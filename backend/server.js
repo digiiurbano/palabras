@@ -28,7 +28,7 @@ app.use(express.json());
 // Auth
 app.post('/api/auth/login', (req, res) => {
   const { correo, contrasena } = req.body;
-  const usuario = DB.validarLogin(correo, contrasena);
+  const usuario = DB.findUsuario(correo, contrasena);
   if (usuario) {
     res.json(usuario);
   } else {
@@ -37,7 +37,7 @@ app.post('/api/auth/login', (req, res) => {
 });
 
 app.get('/api/users/:id', (req, res) => {
-  const usuario = DB.getUsuario(req.params.id);
+  const usuario = DB.findUsuarioById(req.params.id);
   if (usuario) res.json(usuario);
   else res.status(404).json({ error: 'No encontrado' });
 });
