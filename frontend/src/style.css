@@ -1538,16 +1538,16 @@ ul, ol { list-style: none; }
 .login-form  { display: flex; flex-direction: column; gap: var(--space-4); margin-top: var(--space-6); }
 .login-form .form-label { color: rgba(255,255,255,.8); }
 .login-form .form-input {
-  background: rgba(255,255,255,.1);
-  border-color: rgba(255,255,255,.2);
-  color: #fff;
+  background: rgba(255,255,255,.85);
+  border-color: rgba(0,0,0,.15);
+  color: #1e293b;
 }
 .login-form .form-input:focus {
   border-color: var(--gold-400);
-  background: rgba(255,255,255,.14);
+  background: #fff;
   box-shadow: 0 0 0 3px rgba(200,155,44,.25);
 }
-.login-form .form-input::placeholder { color: rgba(255,255,255,.35); }
+.login-form .form-input::placeholder { color: rgba(30,41,59,.4); }
 .login-demo-roles { margin-top: var(--space-6); padding-top: var(--space-5); border-top: 1px solid var(--slate-200); }
 .login-demo-title { font-size: .7rem; font-weight: 700; color: var(--slate-600); letter-spacing: .1em; text-transform: uppercase; text-align: center; margin-bottom: var(--space-3); }
 .login-demo-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: var(--space-2); }
