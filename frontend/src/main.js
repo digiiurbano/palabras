@@ -128,9 +128,20 @@ function quickLogin(rol) {
     Empresa:   { correo:'empresa@techsolutions.de', contrasena:'empresa2025'   },
     Socio:     { correo:'socio@medilink.co',        contrasena:'socio2025'     }
   };
+  // Datos embebidos como fallback para cuando el backend aún no ha cargado
+  const fallbackUsers = {
+    Admin:     { id:'u-admin-001',  nombre:'Ana García',               rol:'Admin',     correo:'admin@jnpalabras.com',     avatar:'AG', activo:true },
+    Asesor:    { id:'u-asesor-001', nombre:'Carlos Martínez',          rol:'Asesor',    correo:'asesor@jnpalabras.com',    avatar:'CM', activo:true },
+    Profesor:  { id:'u-prof-001',   nombre:'Dra. Elena Weber',         rol:'Profesor',  correo:'profesor@jnpalabras.com',  avatar:'EW', activo:true },
+    Candidato: { id:'u-cand-001',   nombre:'Dr. Javier Torres',        rol:'Candidato', correo:'candidato@jnpalabras.com', avatar:'JT', activo:true },
+    Empresa:   { id:'u-emp-001',    nombre:'Tech Solutions GmbH',      rol:'Empresa',   correo:'empresa@techsolutions.de', avatar:'KS', activo:true },
+    Socio:     { id:'u-socio-001',  nombre:'Laura Rodríguez (MediLink)',rol:'Socio',    correo:'socio@medilink.co',        avatar:'LR', activo:true }
+  };
   const cred = credentials[rol];
   if (cred) {
-    const user = DB.findUsuario(cred.correo, cred.contrasena);
+    // Intentar desde la DB cargada; si no hay datos, usar el fallback embebido
+    let user = DB.findUsuario(cred.correo, cred.contrasena);
+    if (!user) user = fallbackUsers[rol];
     if (user) {
       State.currentUser = user;
       State.currentSidebar = null;
@@ -140,6 +151,7 @@ function quickLogin(rol) {
     }
   }
 }
+
 
 function handleLogout() {
   State.currentUser = null;
