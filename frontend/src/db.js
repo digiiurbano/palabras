@@ -15,8 +15,9 @@ export const DB = {
   },
 
   get() {
-    return this.data;
+    return this.data || {};
   },
+
 
   save(data) {
     this.data = data;
