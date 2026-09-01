@@ -1879,6 +1879,16 @@ body {
   padding-bottom: 40px;
 }
 
+.jn-cv-logo-img {
+  width: 140px;
+  height: 140px;
+  object-fit: contain;
+  margin-bottom: 50px;
+  border-radius: 50%;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+  display: block;
+}
+
 .jn-cv-logo-circle {
   width: 140px;
   height: 140px;
@@ -1935,6 +1945,14 @@ body {
   display: flex;
   justify-content: flex-end;
   margin-bottom: 20px;
+}
+
+.jn-cv-mini-logo-img {
+  width: 62px;
+  height: 62px;
+  object-fit: contain;
+  border-radius: 50%;
+  display: block;
 }
 
 .jn-cv-mini-logo {
@@ -2100,7 +2118,7 @@ body {
     print-color-adjust: exact !important;
   }
 
-  .jn-cv-logo-circle, .jn-cv-mini-logo {
+  .jn-cv-logo-circle, .jn-cv-mini-logo, .jn-cv-logo-img, .jn-cv-mini-logo-img {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }

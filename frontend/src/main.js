@@ -185,7 +185,7 @@ function renderAppShell() {
   const notifCount = DB.getNotifNoLeidas(user.id);
   $('app-header-content').innerHTML = `
     <div class="app-logo">
-      <div class="app-logo-icon">JN</div>
+      <img src="/logo.png" alt="JN Palabras" class="app-logo-img" style="height:32px;width:32px;object-fit:contain;border-radius:50%;">
       <span class="app-logo-name">JN Palabras</span>
     </div>
 
@@ -1535,9 +1535,7 @@ function renderLebenslaufOfficial(cv) {
     <!-- PÁGINA 1: DECKBLATT (PORTADA) -->
     <div class="jn-cv-paper jn-cv-page-1">
       <div class="jn-cv-deckblatt">
-        <div class="jn-cv-logo-circle">
-          <span class="jn-cv-logo-text">jn</span>
-        </div>
+        <img src="/logo.png" alt="JN Palabras" class="jn-cv-logo-img">
         <div class="jn-cv-deckblatt-name-label">Name:</div>
         <div class="jn-cv-deckblatt-name-val">${p.vorname || ''} ${p.name || ''}</div>
         <div class="jn-cv-deckblatt-beruf-label">Beruf:</div>
@@ -1552,9 +1550,7 @@ function renderLebenslaufOfficial(cv) {
     <!-- PÁGINA 2+: LEBENSLAUF INHALT -->
     <div class="jn-cv-paper jn-cv-page-2">
       <div class="jn-cv-page-header">
-        <div class="jn-cv-mini-logo">
-          <span class="jn-cv-logo-text">jn</span>
-        </div>
+        <img src="/logo.png" alt="JN Palabras" class="jn-cv-mini-logo-img">
       </div>
 
       ${cv.profil ? `
