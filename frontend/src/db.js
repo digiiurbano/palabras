@@ -97,6 +97,95 @@ export const DB = {
     this.save(db);
   },
 
+  getCV(id_candidato) {
+    const cand = this.getCandidatoById(id_candidato);
+    if (!cand) return null;
+    if (cand.cv_data) return JSON.parse(JSON.stringify(cand.cv_data));
+
+    // Fallback inicial enriquecido
+    const parts = (cand.nombre || '').split(' ');
+    const vorname = parts.slice(0, 2).join(' ') || cand.nombre || '';
+    const name = parts.slice(2).join(' ') || '';
+    return {
+      personal: {
+        vorname,
+        name,
+        beruf: cand.especialidad || 'Arzt / Facharzt',
+        geburtsdatum: '',
+        adresse: `${cand.pais || 'Kolumbien'}`,
+        nationalitaet: cand.pais ? `${cand.pais.toLowerCase()}isch` : '',
+        familienstand: 'Ledig',
+        telefon: '',
+        email: '',
+        foto: cand.foto ? (cand.foto.startsWith('http') ? cand.foto : '') : ''
+      },
+      profil: `Engagierte(r) ${cand.especialidad || 'Mediziner(in)'} mit solider klinischer Erfahrung und hoher Motivation für die berufliche Integration im deutschen Gesundheitssystem.`,
+      werdegang: [
+        {
+          zeitraum: '01/01/2020 – AKTUELL',
+          titel: `${(cand.especialidad || 'ARZT').toUpperCase()} - HOSPITAL UNIVERSITARIO`,
+          beschreibung: 'Stationäre und ambulante Patientenversorgung, diagnostische Verfahren und interdisziplinäre Zusammenarbeit.'
+        }
+      ],
+      ausbildung: [
+        {
+          zeitraum: '2012 – 2018',
+          beschreibung: `Studium der Medizin / Pflege,\nUniversität in ${cand.pais || 'Lateinamerika'}`
+        }
+      ],
+      sprachen: [
+        { sprache: 'Spanisch', niveau: 'Muttersprache' },
+        { sprache: 'Deutsch', niveau: `Niveau ${cand.nivel_aleman || 'B2'}` }
+      ]
+    };
+  },
+
+  saveCV(id_candidato, cvData) {
+    const db = this.get();
+    const idx = db.candidatos.findIndex(c => c.id === id_candidato);
+    if (idx !== -1) {
+      db.candidatos[idx].cv_data = cvData;
+      if (cvData.personal) {
+        if (cvData.personal.vorname || cvData.personal.name) {
+          db.candidatos[idx].nombre = `${cvData.personal.vorname || ''} ${cvData.personal.name || ''}`.trim() || db.candidatos[idx].nombre;
+        }
+        if (cvData.personal.beruf) {
+          db.candidatos[idx].especialidad = cvData.personal.beruf;
+        }
+        if (cvData.personal.nationalitaet) {
+          db.candidatos[idx].pais = cvData.personal.nationalitaet;
+        }
+      }
+      if (Array.isArray(cvData.sprachen)) {
+        const d = cvData.sprachen.find(s => s.sprache && s.sprache.toLowerCase().includes('deutsch'));
+        if (d && d.niveau) {
+          const match = d.niveau.match(/\b(A1|A2|B1|B2|C1|C2|FSP)\b/i);
+          if (match) db.candidatos[idx].nivel_aleman = match[1].toUpperCase();
+        }
+      }
+
+      // Sincronizar documento en la bóveda
+      if (!db.documentos) db.documentos = [];
+      const existingDocIdx = db.documentos.findIndex(doc => doc.id_candidato === id_candidato && (doc.categoria === 'Curriculum Vitae' || doc.nombre.includes('Lebenslauf')));
+      if (existingDocIdx !== -1) {
+        db.documentos[existingDocIdx].estado = 'Aprobado';
+        db.documentos[existingDocIdx].fecha = new Date().toISOString().split('T')[0];
+      } else {
+        db.documentos.push({
+          id: 'doc-' + Date.now(),
+          id_candidato,
+          nombre: 'Lebenslauf_JN_Palabras.pdf',
+          categoria: 'Curriculum Vitae',
+          estado: 'Aprobado',
+          tamano: '1.2 MB',
+          fecha: new Date().toISOString().split('T')[0]
+        });
+      }
+      this.save(db);
+    }
+    return cvData;
+  },
+
   createCandidato(data) {
     const db = this.get();
     const nuevo = { ...data, id: 'c-' + Date.now(), fecha_alta: new Date().toISOString().split('T')[0], consentimiento_gdpr: true };

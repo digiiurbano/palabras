@@ -50,7 +50,45 @@ const INITIAL_DATA = {
       estado_proceso: 'Idioma', estado_homologacion: 'En Trámite',
       anos_exp: 5, id_socio: 'u-socio-001',
       consentimiento_gdpr: true, video_url: null,
-      foto: 'JT', fecha_alta: '2024-03-05'
+      foto: 'JT', fecha_alta: '2024-03-05',
+      cv_data: {
+        personal: {
+          vorname: 'Javier',
+          name: 'Torres Martínez',
+          beruf: 'Facharzt für Allgemeinmedizin / Arzt',
+          geburtsdatum: '14/05/1990',
+          adresse: 'Carrera 45 #102-18, Apto 502, Bogotá D.C., Kolumbien',
+          nationalitaet: 'kolumbianisch',
+          familienstand: 'Ledig',
+          telefon: '(+57) 3105558921',
+          email: 'candidato@jnpalabras.com',
+          foto: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&w=400&q=80'
+        },
+        profil: 'Engagierter und erfahrener Allgemeinmediziner mit fundierter klinischer Praxis in der Notfallaufnahme, stationären Patientenversorgung und ambulanten Diagnostik. Hohe Motivation zur beruflichen Integration im deutschen Gesundheitssystem mit Approbationsanerkennung in Bearbeitung.',
+        werdegang: [
+          {
+            zeitraum: '01/02/2021 – AKTUELL',
+            titel: 'ALLGEMEINARZT / NOTFALLMEDIZIN - HOSPITAL UNIVERSITARIO SAN IGNACIO',
+            beschreibung: 'Leitung von Notfallbehandlungen bei Erwachsenen und Kindern. Durchführung von kardiopulmonalen Reanimationen (ACLS), Ultraschall FAST, endotrachealen Intubationen und Patientenstabilisierung.'
+          },
+          {
+            zeitraum: '15/01/2018 – 30/01/2021',
+            titel: 'STATIONSARZT INNERE MEDIZIN - CLÍNICA DEL COUNTRY',
+            beschreibung: 'Stationäre Betreuung von multimorbiden Patienten, Visitenleitung, Erstellung von Therapieplänen, Lumbalpunktionen, Pleurapunktionen und Entlassungsberichten.'
+          }
+        ],
+        ausbildung: [
+          {
+            zeitraum: '15/01/2011 – 15/12/2017',
+            beschreibung: 'Studium der Humanmedizin (Médico Cirujano),\nPontificia Universidad Javeriana, Bogotá, Kolumbien'
+          }
+        ],
+        sprachen: [
+          { sprache: 'Spanisch', niveau: 'Muttersprache' },
+          { sprache: 'Deutsch', niveau: 'B2 (Goethe-Zertifikat B2 / FSP Vorbereitung)' },
+          { sprache: 'Englisch', niveau: 'B2 (Fließend)' }
+        ]
+      }
     },
     {
       id: 'c-002', id_usuario: null,
@@ -63,12 +101,74 @@ const INITIAL_DATA = {
     },
     {
       id: 'c-003', id_usuario: null,
-      nombre: 'Ing. Rosa Kim', pais: 'Filipinas',
-      especialidad: 'Enfermería UCI', nivel_aleman: 'A2',
+      nombre: 'Enf. Maira Coronel', pais: 'Colombia',
+      especialidad: 'Gesundheits- und Krankenpflege', nivel_aleman: 'B2',
       estado_proceso: 'Idioma', estado_homologacion: 'En Trámite',
-      anos_exp: 4, id_socio: 'u-socio-001',
+      anos_exp: 7, id_socio: 'u-socio-001',
       consentimiento_gdpr: true, video_url: null,
-      foto: 'RK', fecha_alta: '2024-03-20'
+      foto: 'MC', fecha_alta: '2024-03-20',
+      cv_data: {
+        personal: {
+          vorname: 'Maira Alejandra',
+          name: 'Coronel López',
+          beruf: 'Gesundheits- und Krankenschwester',
+          geburtsdatum: '01/10/1994',
+          adresse: 'Straße 27 #55b-35, Wohnung 306, Gebäude Brisas de Santillana, Lage San Antonio de Pereira, 054040, Rionegro, Antioquia, Kolumbien',
+          nationalitaet: 'kolumbianisch',
+          familienstand: 'Ledig',
+          telefon: '(+57) 3127016458',
+          email: 'maira9426@hotmail.com',
+          foto: 'https://images.unsplash.com/photo-1594824813501-447545163148?auto=format&fit=crop&w=400&q=80'
+        },
+        profil: 'Ich bin eine proaktive professionelle Krankenschwester mit der Fähigkeit, Institutionen und Gesundheitsprogramme zu leiten, indem ich mein Wissen und meine kreativen Fähigkeiten einsetze. Ich genieße ständiges Lernen, was für meine berufliche Laufbahn von großem Vorteil ist, da ich der Innovation und der Verbesserung der Aufgaben und Prozesse, in die ich involviert bin, besondere Aufmerksamkeit schenke. Ich bin eine ehrliche, engagierte, verantwortlich Person in meiner Arbeit, mit einer guten Einstellung zu allen Menschen um mich herum, ich komme gut mit der Arbeit im Team zurecht.',
+        werdegang: [
+          {
+            zeitraum: '30/07/2017 – 01/08/2018',
+            titel: 'KRANKENSCHWESTER IPSI OUTTAJIAPULEE',
+            beschreibung: 'Krankenschwester in ländlichen Gebieten.\nEin- und Ausreisekontrolle, Kontrolle von Drogen, Beratungen zur Wachstums und Entwicklungskontrolle, Familienplanung, Aufklärungsgespräche zur Prävention und Verhütung.'
+          },
+          {
+            zeitraum: '30/10/2018 – 26/02/2019',
+            titel: 'KRANKENSCHWESTER im KRANKENHAUS NUESTRA SEÑORA DE LOS REMEDIOS',
+            beschreibung: 'Notfallkrankenschwester, zuständig für den Beobachtungsbereich, Pädiatrie und Erwachsene. Durchführen von Verwaltungsfunktionen und Pflegeverfahren, wie z. B. das Platzieren von Blasenkathetern.'
+          },
+          {
+            zeitraum: '14/03/2019 – 26/07/2020',
+            titel: 'KRANKENSCHWESTER INTENSIVMEDIZIN VON TOLIMA',
+            beschreibung: 'Krankenschwester im Bereich der Intensivpflege, zuständig für Pflegeverfahren wie die Durchführung von Elektrokardiogrammen, das Verabreichen von Medikamenten, die Unterstützung eines Intensivarztes bei Eingriffen, Wundverbänden und Verwaltungsverfahren.'
+          },
+          {
+            zeitraum: '13/11/2020 – 24/08/2023',
+            titel: 'KRANKENSCHWESTER KLINIK SAN JUAN DE DIOS',
+            beschreibung: 'Krankenschwester im Bereich der Intensivpflege, zuständig für Pflegeverfahren wie die Durchführung von Elektrokardiogrammen, das Verabreichen von Medikamenten, die Unterstützung eines Intensivarztes bei Eingriffen, Wundverbänden und Verwaltungsverfahren.'
+          },
+          {
+            zeitraum: '24/08/2023 – 24/02/2024',
+            titel: 'GESUNDHEITS- UND KRANKENSCHWESTER SALUD EN CASA SURA',
+            beschreibung: 'Krankenschwester in der häuslichen Pflege, verantwortlich für Pflegeaktivitäten wie Hausbesuche bei palliativen, chronischen und hundertjährigen Patienten. von Herzkatheter empfangen und liefern. Führen von Indikatoren. Organisieren von Schichtplänen von Pflegehilfskräften. Und andere administrative Verfahren.'
+          },
+          {
+            zeitraum: '15/07/2024 – AKTUELL',
+            titel: 'GESUNDHEITS- UND KRANKENSCHWESTER FRESENIUS MEDICAL CARE',
+            beschreibung: 'Krankenschwester im Hämodialyseraum. Verantwortlich für Pflegeaktivitäten wie: Überführung von Maschinen auf die Intensivstation. Hämodialyseraumbestellung aufgeben. Schicht aktivieren. Heparinvorbereitung. Dialyseraumauftrag überprüfen. Maschinenwaschprüfung. Überwachung und Kontrolle der Probenahme. Verbinden und Trennen der Patienten von der Dialysemaschine.'
+          }
+        ],
+        ausbildung: [
+          {
+            zeitraum: '20/01/2012 – 27/06/2017',
+            beschreibung: 'Ausbildung zur Krankenschwester,\nHochschule Popular del Cesar, Valledupar, Kolumbien'
+          },
+          {
+            zeitraum: '20/01/2006 – 04/12/2011',
+            beschreibung: 'Abitur, Hochschule Juan Mejía Gómez\nChiriguana, Kolumbien'
+          }
+        ],
+        sprachen: [
+          { sprache: 'Spanisch', niveau: 'Muttersprache' },
+          { sprache: 'Deutsch', niveau: 'B2 (Goethe-Zertifikat B2)' },
+          { sprache: 'Englisch', niveau: 'B1 (Grundkenntnisse Medizin)' }
+        ]
+      }
     },
     {
       id: 'c-004', id_usuario: null,
@@ -499,6 +599,94 @@ const DB = {
     const idx = db.candidatos.findIndex(c => c.id === id);
     if (idx !== -1) db.candidatos[idx] = { ...db.candidatos[idx], ...data };
     this.save(db);
+  },
+
+  getCV(id_candidato) {
+    const cand = this.getCandidatoById(id_candidato);
+    if (!cand) return null;
+    if (cand.cv_data) return cand.cv_data;
+
+    // Fallback estructura inicial
+    const parts = (cand.nombre || '').split(' ');
+    const vorname = parts.slice(0, 2).join(' ') || cand.nombre || '';
+    const name = parts.slice(2).join(' ') || '';
+    return {
+      personal: {
+        vorname,
+        name,
+        beruf: cand.especialidad || 'Arzt / Facharzt',
+        geburtsdatum: '',
+        adresse: `${cand.pais || 'Kolumbien'}`,
+        nationalitaet: cand.pais ? `${cand.pais.toLowerCase()}isch` : '',
+        familienstand: 'Ledig',
+        telefon: '',
+        email: '',
+        foto: cand.foto ? (cand.foto.startsWith('http') ? cand.foto : '') : ''
+      },
+      profil: `Engagierte(r) ${cand.especialidad || 'Mediziner(in)'} mit solider klinischer Erfahrung und hoher Motivation für die berufliche Integration im deutschen Gesundheitssystem.`,
+      werdegang: [
+        {
+          zeitraum: '01/01/2020 – AKTUELL',
+          titel: `${(cand.especialidad || 'ARZT').toUpperCase()} - HOSPITAL UNIVERSITARIO`,
+          beschreibung: 'Stationäre und ambulante Patientenversorgung, diagnostische Verfahren und interdisziplinäre Zusammenarbeit.'
+        }
+      ],
+      ausbildung: [
+        {
+          zeitraum: '2012 – 2018',
+          beschreibung: `Studium der Medizin / Pflege,\nUniversität in ${cand.pais || 'Lateinamerika'}`
+        }
+      ],
+      sprachen: [
+        { sprache: 'Spanisch', niveau: 'Muttersprache' },
+        { sprache: 'Deutsch', niveau: `Niveau ${cand.nivel_aleman || 'B2'}` }
+      ]
+    };
+  },
+
+  saveCV(id_candidato, cvData) {
+    const db = this.get();
+    const idx = db.candidatos.findIndex(c => c.id === id_candidato);
+    if (idx !== -1) {
+      db.candidatos[idx].cv_data = cvData;
+      if (cvData.personal) {
+        if (cvData.personal.vorname || cvData.personal.name) {
+          db.candidatos[idx].nombre = `${cvData.personal.vorname || ''} ${cvData.personal.name || ''}`.trim() || db.candidatos[idx].nombre;
+        }
+        if (cvData.personal.beruf) {
+          db.candidatos[idx].especialidad = cvData.personal.beruf;
+        }
+        if (cvData.personal.nationalitaet) {
+          db.candidatos[idx].pais = cvData.personal.nationalitaet;
+        }
+      }
+      if (Array.isArray(cvData.sprachen)) {
+        const d = cvData.sprachen.find(s => s.sprache && s.sprache.toLowerCase().includes('deutsch'));
+        if (d && d.niveau) {
+          const match = d.niveau.match(/\b(A1|A2|B1|B2|C1|C2|FSP)\b/i);
+          if (match) db.candidatos[idx].nivel_aleman = match[1].toUpperCase();
+        }
+      }
+
+      // Asegurar documento en la bóveda
+      const existingDocIdx = db.documentos.findIndex(doc => doc.id_candidato === id_candidato && doc.categoria === 'Curriculum Vitae');
+      if (existingDocIdx !== -1) {
+        db.documentos[existingDocIdx].estado = 'Aprobado';
+        db.documentos[existingDocIdx].fecha = new Date().toISOString().split('T')[0];
+      } else {
+        db.documentos.push({
+          id: 'doc-' + Date.now(),
+          id_candidato,
+          nombre: 'Lebenslauf_JN_Palabras.pdf',
+          categoria: 'Curriculum Vitae',
+          estado: 'Aprobado',
+          tamano: '1.2 MB',
+          fecha: new Date().toISOString().split('T')[0]
+        });
+      }
+      this.save(db);
+    }
+    return cvData;
   },
 
   createCandidato(data) {

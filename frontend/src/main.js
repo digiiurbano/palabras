@@ -20,6 +20,9 @@ const State = {
   notifOpen: false,
   selectedCandidato: null,
   modalOpen: null,
+  cvActiveTab: 'edit',
+  cvSelectedCandId: null,
+  cvDraft: null,
 };
 
 // ──────────────────────────────────────────────────────────────────
@@ -313,6 +316,7 @@ const SIDEBAR_MENUS = {
   Asesor: [
     { id:'asesor-kanban',     icon:'📌', label:'Kanban Candidatos'   },
     { id:'asesor-expedientes',icon:'📁', label:'Expedientes'         },
+    { id:'asesor-cv-builder', icon:'📄', label:'Hojas de Vida (CV)'  },
     { id:'asesor-matching',   icon:'🎯', label:'Matching IA'         },
     { id:'asesor-notas',      icon:'📋', label:'Notas de Seguimiento'},
   ],
@@ -324,6 +328,7 @@ const SIDEBAR_MENUS = {
   ],
   Candidato: [
     { id:'cand-roadmap',   icon:'🗺️', label:'Mi Hoja de Ruta'    },
+    { id:'cand-cv',        icon:'📄', label:'Mi Hoja de Vida (CV)'},
     { id:'cand-documentos',icon:'📂', label:'Mis Documentos'     },
     { id:'cand-aula',      icon:'🎓', label:'Mi Aula Virtual'    },
     { id:'cand-ofertas',   icon:'💼', label:'Ofertas y Entrevistas'},
@@ -392,6 +397,7 @@ function renderDashboard(rol, view = null) {
     // Asesor
     'asesor-kanban':      renderAsesorKanban,
     'asesor-expedientes': renderAsesorExpedientes,
+    'asesor-cv-builder':  renderAsesorCVBuilder,
     'asesor-matching':    renderAsesorMatching,
     'asesor-notas':       renderAsesorNotas,
     // Profesor
@@ -401,6 +407,7 @@ function renderDashboard(rol, view = null) {
     'prof-materiales':renderProfMateriales,
     // Candidato
     'cand-roadmap':   renderCandRoadmap,
+    'cand-cv':        renderCandCV,
     'cand-documentos':renderCandDocumentos,
     'cand-aula':      renderCandAula,
     'cand-ofertas':   renderCandOfertas,
@@ -982,6 +989,11 @@ function openCandidateDetail(id) {
         </div>
       </div>
     </div>
+    <div style="margin-bottom:18px;display:flex;gap:10px;">
+      <button class="btn btn-primary btn-sm" style="flex:1;justify-content:center;" onclick="closeModal('modal-candidato');openCVForCandidate('${id}')">
+        📄 Ver / Editar Hoja de Vida (Plantilla Oficial JN)
+      </button>
+    </div>
     <div style="margin-bottom:20px;">
       <div style="font-size:.8125rem;font-weight:700;color:var(--slate-700);margin-bottom:10px;letter-spacing:.04em;text-transform:uppercase;">📁 Documentos del Expediente</div>
       ${docs.map(d => `
@@ -1209,6 +1221,557 @@ function renderAsesorNotas() {
       }).join('')}
     </div>
   `;
+}
+
+// ──────────────────────────────────────────────────────────────────
+// ★ GENERADOR Y GESTOR DE HOJA DE VIDA (LEBENSLAUF JN PALABRAS)
+// ──────────────────────────────────────────────────────────────────
+
+function openCVForCandidate(id) {
+  State.cvSelectedCandId = id;
+  State.cvActiveTab = 'edit';
+  State.cvDraft = null;
+  navigateTo('asesor-cv-builder');
+}
+
+function renderAsesorCVBuilder() {
+  const candidatos = DB.getCandidatos();
+  if (!State.cvSelectedCandId && candidatos.length > 0) {
+    State.cvSelectedCandId = candidatos[0].id;
+  }
+  
+  const cand = DB.getCandidatoById(State.cvSelectedCandId) || candidatos[0];
+  const cv = State.cvDraft || (cand ? DB.getCV(cand.id) : null);
+  const activeTab = State.cvActiveTab || 'edit';
+
+  return `
+    <div class="cv-builder-header">
+      <div>
+        <h1 class="page-title">📄 Gestor de Hojas de Vida (Deutscher Lebenslauf)</h1>
+        <p class="page-subtitle">Crea, edita y genera el currículum médico oficial de JN Palabras para presentar a hospitales alemanes</p>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <select class="form-select" style="min-width:240px;font-weight:600;" onchange="selectCandidateForCV(this.value)">
+          ${candidatos.map(c => `
+            <option value="${c.id}" ${c.id === cand?.id ? 'selected' : ''}>
+              ${c.nombre} (${c.especialidad || 'Candidato'})
+            </option>
+          `).join('')}
+        </select>
+        <button class="btn btn-outline btn-sm" onclick="createNewCandidateCV()">
+          ➕ Nuevo Candidato
+        </button>
+      </div>
+    </div>
+
+    <!-- Pestañas Formulario / Vista Previa -->
+    <div class="cv-tabs-container">
+      <button class="cv-tab-btn ${activeTab === 'edit' ? 'active' : ''}" onclick="switchCVTab('edit')">
+        ✏️ Formulario de Edición (${cand?.nombre || 'Candidato'})
+      </button>
+      <button class="cv-tab-btn ${activeTab === 'preview' ? 'active' : ''}" onclick="switchCVTab('preview')">
+        👁️ Vista Previa Oficial (Plantilla JN)
+      </button>
+    </div>
+
+    ${activeTab === 'edit' ? renderCVForm(cand?.id, cv, true) : `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:12px;">
+        <div style="font-size:0.875rem;color:var(--slate-600);">
+          Vista previa del formato oficial listo para exportar a PDF (Hoja A4 estándar para hospitales de Alemania).
+        </div>
+        <div style="display:flex;gap:10px;">
+          <button class="btn btn-outline btn-sm" onclick="switchCVTab('edit')">✏️ Volver a Editar</button>
+          <button class="btn btn-primary btn-sm" onclick="printLebenslauf()">🖨️ Descargar / Imprimir en PDF</button>
+        </div>
+      </div>
+      <div class="jn-cv-preview-container">
+        ${renderLebenslaufOfficial(cv)}
+      </div>
+    `}
+  `;
+}
+
+function renderCandCV() {
+  const userId = State.currentUser?.id;
+  const cand = DB.getCandidatos().find(c => c.id_usuario === userId) || DB.getCandidatos()[0];
+  const cv = State.cvDraft || (cand ? DB.getCV(cand.id) : null);
+  const activeTab = State.cvActiveTab || 'edit';
+
+  return `
+    <div class="cv-builder-header">
+      <div>
+        <h1 class="page-title">📄 Mi Hoja de Vida (Deutscher Lebenslauf)</h1>
+        <p class="page-subtitle">Diligencia tu información médica y profesional para generar tu currículum oficial de JN Palabras</p>
+      </div>
+      <div style="display:flex;gap:10px;">
+        ${activeTab === 'edit' ? `
+          <button class="btn btn-primary" onclick="saveCVForm('${cand?.id}', false); switchCVTab('preview');">👁️ Guardar y Previsualizar</button>
+        ` : `
+          <button class="btn btn-primary" onclick="printLebenslauf()">🖨️ Descargar / Imprimir en PDF</button>
+        `}
+      </div>
+    </div>
+
+    <!-- Pestañas Formulario / Vista Previa -->
+    <div class="cv-tabs-container">
+      <button class="cv-tab-btn ${activeTab === 'edit' ? 'active' : ''}" onclick="switchCVTab('edit')">
+        ✏️ Formulario de Edición
+      </button>
+      <button class="cv-tab-btn ${activeTab === 'preview' ? 'active' : ''}" onclick="switchCVTab('preview')">
+        👁️ Vista Previa Oficial (Plantilla JN)
+      </button>
+    </div>
+
+    ${activeTab === 'edit' ? renderCVForm(cand?.id, cv, false) : `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:12px;">
+        <div style="font-size:0.875rem;color:var(--slate-600);">
+          Tu Hoja de Vida formateada según las normas y estándares de los hospitales y clínicas en Alemania.
+        </div>
+        <div style="display:flex;gap:10px;">
+          <button class="btn btn-outline btn-sm" onclick="switchCVTab('edit')">✏️ Volver a Editar</button>
+          <button class="btn btn-primary btn-sm" onclick="printLebenslauf()">🖨️ Descargar / Imprimir en PDF</button>
+        </div>
+      </div>
+      <div class="jn-cv-preview-container">
+        ${renderLebenslaufOfficial(cv)}
+      </div>
+    `}
+  `;
+}
+
+function renderCVForm(candId, cv, isAsesor) {
+  if (!cv) cv = { personal:{}, profil:'', werdegang:[], ausbildung:[], sprachen:[] };
+  const p = cv.personal || {};
+  const werdegang = cv.werdegang || [];
+  const ausbildung = cv.ausbildung || [];
+  const sprachen = cv.sprachen || [];
+
+  return `
+    <form id="cv-form" onsubmit="event.preventDefault(); saveCVForm('${candId}', true);">
+      
+      <!-- 1. DATOS PERSONALES -->
+      <div class="cv-form-card">
+        <div class="cv-section-heading">👤 Angaben zur Person (Datos Personales y Contacto)</div>
+        <div class="cv-section-sub">Información básica que se mostrará en la portada y en la tabla de datos personales</div>
+
+        <div class="grid grid-3" style="gap:16px; margin-bottom:16px;">
+          <div class="form-group">
+            <label class="form-label" for="cv-vorname">Nombres (Vorname) *</label>
+            <input class="form-input" id="cv-vorname" value="${p.vorname || ''}" placeholder="Ej: Maira Alejandra" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="cv-name">Apellidos (Name / Nachname) *</label>
+            <input class="form-input" id="cv-name" value="${p.name || ''}" placeholder="Ej: Coronel López" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="cv-beruf">Profesión / Especialidad (Beruf) *</label>
+            <input class="form-input" id="cv-beruf" value="${p.beruf || ''}" placeholder="Ej: Gesundheits- und Krankenschwester o Facharzt für..." required>
+          </div>
+        </div>
+
+        <div class="grid grid-3" style="gap:16px; margin-bottom:16px;">
+          <div class="form-group">
+            <label class="form-label" for="cv-geburtsdatum">Fecha de Nacimiento (Geburtsdatum)</label>
+            <input class="form-input" id="cv-geburtsdatum" value="${p.geburtsdatum || ''}" placeholder="DD/MM/AAAA (ej: 01/10/1994)">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="cv-nationalitaet">Nacionalidad (Nationalität)</label>
+            <input class="form-input" id="cv-nationalitaet" value="${p.nationalitaet || ''}" placeholder="Ej: kolumbianisch, mexikanisch">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="cv-familienstand">Estado Civil (Familienstand)</label>
+            <input class="form-input" id="cv-familienstand" value="${p.familienstand || ''}" placeholder="Ej: Ledig (Soltero/a), Verheiratet">
+          </div>
+        </div>
+
+        <div class="grid grid-2" style="gap:16px; margin-bottom:16px;">
+          <div class="form-group">
+            <label class="form-label" for="cv-telefon">Teléfono (Telefon con prefijo internacional)</label>
+            <input class="form-input" id="cv-telefon" value="${p.telefon || ''}" placeholder="Ej: (+57) 3127016458">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="cv-email">Correo Electrónico (E-Mail)</label>
+            <input class="form-input" type="email" id="cv-email" value="${p.email || ''}" placeholder="Ej: maira9426@hotmail.com">
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom:16px;">
+          <label class="form-label" for="cv-adresse">Dirección Completa (Adresse)</label>
+          <input class="form-input" id="cv-adresse" value="${p.adresse || ''}" placeholder="Ej: Straße 27 #55b-35, Wohnung 306, Rionegro, Kolumbien">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="cv-foto">Fotografía Profesional</label>
+          <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+            <input class="form-input" id="cv-foto" value="${p.foto || ''}" placeholder="URL de la fotografía o sube una imagen..." style="flex:1;min-width:220px;">
+            <label class="btn btn-outline btn-sm" style="cursor:pointer;white-space:nowrap;">
+              📁 Subir Imagen
+              <input type="file" accept="image/*" style="display:none;" onchange="handleCvPhotoUpload(this)">
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. RESUMEN / PERFIL PROFESIONAL -->
+      <div class="cv-form-card">
+        <div class="cv-section-heading">📝 Profilzusammenfassung (Perfil Profesional / Carta de Presentación)</div>
+        <div class="cv-section-sub">Breve introducción destacando trayectoria clínica, ética de trabajo y competencias en el área médica</div>
+        <div class="form-group">
+          <textarea class="form-input" id="cv-profil" rows="4" placeholder="Ich bin eine proaktive professionelle Fachkraft mit fundierter Erfahrung...">${cv.profil || ''}</textarea>
+        </div>
+      </div>
+
+      <!-- 3. TRAYECTORIA LABORAL (BERUFLICHER WERDEGANG) -->
+      <div class="cv-form-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:8px;">
+          <div class="cv-section-heading" style="margin-bottom:0;">🏥 Beruflicher Werdegang (Experiencia Profesional / Clínica)</div>
+          <button type="button" class="cv-add-item-btn" onclick="addWerdegangItem()">
+            ➕ Añadir Experiencia
+          </button>
+        </div>
+        <div class="cv-section-sub">Registra los cargos clínicos indicando período (DD/MM/AAAA – DD/MM/AAAA o AKTUELL), cargo/hospital y funciones</div>
+
+        <div id="cv-werdegang-list">
+          ${werdegang.map((w, idx) => `
+            <div class="cv-item-box cv-werdegang-item">
+              <button type="button" class="cv-item-remove-btn" onclick="removeWerdegangItem(${idx})">✕ Eliminar</button>
+              <div class="grid grid-2" style="gap:12px;margin-bottom:10px;">
+                <div class="form-group" style="margin-bottom:0;">
+                  <label class="form-label" style="font-size:0.75rem;">Período (DD/MM/AAAA – DD/MM/AAAA o AKTUELL)</label>
+                  <input class="form-input item-zeitraum" value="${w.zeitraum || ''}" placeholder="Ej: 14/03/2019 – 26/07/2020">
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                  <label class="form-label" style="font-size:0.75rem;">Cargo & Hospital (En mayúsculas)</label>
+                  <input class="form-input item-titel" value="${w.titel || ''}" placeholder="Ej: KRANKENSCHWESTER INTENSIVMEDIZIN VON TOLIMA">
+                </div>
+              </div>
+              <div class="form-group" style="margin-bottom:0;">
+                <label class="form-label" style="font-size:0.75rem;">Funciones y Procedimientos Clínicos</label>
+                <textarea class="form-input item-beschreibung" rows="3" placeholder="Descripción de procedimientos, administración de medicamentos, UCI, etc...">${w.beschreibung || ''}</textarea>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+        ${werdegang.length === 0 ? `<div style="text-align:center;padding:20px;color:var(--slate-400);font-size:0.875rem;">No hay experiencias registradas. Haz clic en "➕ Añadir Experiencia".</div>` : ''}
+      </div>
+
+      <!-- 4. EDUCACIÓN (AUSBILDUNG UND QUALIFIKATION) -->
+      <div class="cv-form-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:8px;">
+          <div class="cv-section-heading" style="margin-bottom:0;">🎓 Ausbildung und Qualifikation (Educación y Formación)</div>
+          <button type="button" class="cv-add-item-btn" onclick="addAusbildungItem()">
+            ➕ Añadir Formación
+          </button>
+        </div>
+        <div class="cv-section-sub">Títulos universitarios, convalidaciones médicas y colegios</div>
+
+        <div id="cv-ausbildung-list">
+          ${ausbildung.map((a, idx) => `
+            <div class="cv-item-box cv-ausbildung-item">
+              <button type="button" class="cv-item-remove-btn" onclick="removeAusbildungItem(${idx})">✕ Eliminar</button>
+              <div class="grid grid-2" style="gap:12px;margin-bottom:0;">
+                <div class="form-group" style="margin-bottom:0;">
+                  <label class="form-label" style="font-size:0.75rem;">Período (DD/MM/AAAA – DD/MM/AAAA)</label>
+                  <input class="form-input item-zeitraum" value="${a.zeitraum || ''}" placeholder="Ej: 20/01/2012 – 27/06/2017">
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                  <label class="form-label" style="font-size:0.75rem;">Título, Universidad e Institución</label>
+                  <textarea class="form-input item-beschreibung" rows="2" placeholder="Ausbildung zur Krankenschwester,\nHochschule Popular del Cesar, Valledupar, Kolumbien">${a.beschreibung || ''}</textarea>
+                </div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+        ${ausbildung.length === 0 ? `<div style="text-align:center;padding:20px;color:var(--slate-400);font-size:0.875rem;">No hay formaciones registradas. Haz clic en "➕ Añadir Formación".</div>` : ''}
+      </div>
+
+      <!-- 5. IDIOMAS (SPRACHKENNTNISSE) -->
+      <div class="cv-form-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:8px;">
+          <div class="cv-section-heading" style="margin-bottom:0;">🗣️ Sprachkenntnisse (Idiomas)</div>
+          <button type="button" class="cv-add-item-btn" onclick="addSprachenItem()">
+            ➕ Añadir Idioma
+          </button>
+        </div>
+        <div class="cv-section-sub">Nivel de idiomas y certificaciones oficiales (ej: Muttersprache, B2 Goethe-Zertifikat)</div>
+
+        <div id="cv-sprachen-list">
+          ${sprachen.map((s, idx) => `
+            <div class="cv-item-box cv-sprachen-item" style="padding:12px 16px;">
+              <button type="button" class="cv-item-remove-btn" onclick="removeSprachenItem(${idx})">✕ Eliminar</button>
+              <div class="grid grid-2" style="gap:12px;margin-bottom:0;">
+                <div class="form-group" style="margin-bottom:0;">
+                  <label class="form-label" style="font-size:0.75rem;">Idioma (Sprache)</label>
+                  <input class="form-input item-sprache" value="${s.sprache || ''}" placeholder="Ej: Spanisch, Deutsch, Englisch">
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                  <label class="form-label" style="font-size:0.75rem;">Nivel / Certificado (Niveau)</label>
+                  <input class="form-input item-niveau" value="${s.niveau || ''}" placeholder="Ej: Muttersprache, B2 Goethe-Zertifikat, B1...">
+                </div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+
+      <!-- BOTONES DE ACCIÓN INFERIORES -->
+      <div style="display:flex;justify-content:flex-end;gap:12px;margin-top:24px;">
+        <button type="button" class="btn btn-outline" onclick="switchCVTab('preview')">👁️ Previsualizar Plantilla</button>
+        <button type="submit" class="btn btn-primary">💾 Guardar Hoja de Vida</button>
+      </div>
+
+    </form>
+  `;
+}
+
+function renderLebenslaufOfficial(cv) {
+  if (!cv) return `<div style="color:#fff;padding:40px;text-align:center;">No hay datos disponibles para previsualizar.</div>`;
+  const p = cv.personal || {};
+  const werdegang = cv.werdegang || [];
+  const ausbildung = cv.ausbildung || [];
+  const sprachen = cv.sprachen || [];
+
+  return `
+    <!-- PÁGINA 1: DECKBLATT (PORTADA) -->
+    <div class="jn-cv-paper jn-cv-page-1">
+      <div class="jn-cv-deckblatt">
+        <div class="jn-cv-logo-circle">
+          <span class="jn-cv-logo-text">jn</span>
+        </div>
+        <div class="jn-cv-deckblatt-name-label">Name:</div>
+        <div class="jn-cv-deckblatt-name-val">${p.vorname || ''} ${p.name || ''}</div>
+        <div class="jn-cv-deckblatt-beruf-label">Beruf:</div>
+        <div class="jn-cv-deckblatt-beruf-val">${p.beruf || 'Gesundheits- und Krankenpfleger / Arzt'}</div>
+      </div>
+      <div class="jn-cv-page-footer">
+        <strong>JN PALABRAS Consulting</strong><br>
+        info@jnpalabras.com
+      </div>
+    </div>
+
+    <!-- PÁGINA 2+: LEBENSLAUF INHALT -->
+    <div class="jn-cv-paper jn-cv-page-2">
+      <div class="jn-cv-page-header">
+        <div class="jn-cv-mini-logo">
+          <span class="jn-cv-logo-text">jn</span>
+        </div>
+      </div>
+
+      ${cv.profil ? `
+        <div class="jn-cv-profil-summary">
+          ${cv.profil.replace(/\n/g, '<br>')}
+        </div>
+      ` : ''}
+
+      <div class="jn-cv-section-title">Angaben zur Person</div>
+      <div class="jn-cv-personal-wrap">
+        <div class="jn-cv-photo-box">
+          ${p.foto ? `<img src="${p.foto}" alt="Foto" onerror="this.style.display='none';this.nextElementSibling.style.display='block';"><div class="jn-cv-photo-placeholder" style="display:none;">👤</div>` : `<div class="jn-cv-photo-placeholder">👤</div>`}
+        </div>
+        <table class="jn-cv-table" style="flex:1;">
+          <tbody>
+            <tr><td style="width:30%;font-weight:600;">Vorname</td><td>${p.vorname || '—'}</td></tr>
+            <tr><td style="font-weight:600;">Name</td><td>${p.name || '—'}</td></tr>
+            <tr><td style="font-weight:600;">Geburtsdatum</td><td>${p.geburtsdatum || '—'}</td></tr>
+            <tr><td style="font-weight:600;">Adresse</td><td>${p.adresse || '—'}</td></tr>
+            <tr><td style="font-weight:600;">Nationalität</td><td>${p.nationalitaet || '—'}</td></tr>
+            <tr><td style="font-weight:600;">Familienstand</td><td>${p.familienstand || '—'}</td></tr>
+            <tr><td style="font-weight:600;">Telefon</td><td>${p.telefon || '—'}</td></tr>
+            <tr><td style="font-weight:600;">E-Mail</td><td>${p.email || '—'}</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      ${werdegang.length > 0 ? `
+        <div class="jn-cv-section-title">Beruflicher Werdegang</div>
+        <table class="jn-cv-table" style="margin-bottom:16px;">
+          <tbody>
+            ${werdegang.map(w => `
+              <tr>
+                <td class="jn-cv-table-date-col">${w.zeitraum || ''}</td>
+                <td class="jn-cv-table-content-col">
+                  <div class="jn-cv-werdegang-title">${w.titel || ''}</div>
+                  <div class="jn-cv-werdegang-desc">${(w.beschreibung || '').replace(/\n/g, '<br>')}</div>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      ` : ''}
+
+      ${ausbildung.length > 0 ? `
+        <div class="jn-cv-section-title">Ausbildung und Qualifikation</div>
+        <table class="jn-cv-table" style="margin-bottom:16px;">
+          <tbody>
+            ${ausbildung.map(a => `
+              <tr>
+                <td class="jn-cv-table-date-col">${a.zeitraum || ''}</td>
+                <td class="jn-cv-table-content-col">
+                  <div class="jn-cv-werdegang-desc">${(a.beschreibung || '').replace(/\n/g, '<br>')}</div>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      ` : ''}
+
+      ${sprachen.length > 0 ? `
+        <div class="jn-cv-section-title">Sprachkenntnisse</div>
+        <table class="jn-cv-table" style="margin-bottom:16px;">
+          <tbody>
+            ${sprachen.map(s => `
+              <tr>
+                <td style="width:30%;font-weight:600;">${s.sprache || ''}</td>
+                <td>${s.niveau || ''}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      ` : ''}
+
+      <div class="jn-cv-page-footer">
+        <strong>JN PALABRAS Consulting</strong><br>
+        info@jnpalabras.com
+      </div>
+    </div>
+  `;
+}
+
+function collectCVFormData() {
+  const vorname = $('cv-vorname')?.value.trim() || '';
+  const name = $('cv-name')?.value.trim() || '';
+  const beruf = $('cv-beruf')?.value.trim() || '';
+  const geburtsdatum = $('cv-geburtsdatum')?.value.trim() || '';
+  const nationalitaet = $('cv-nationalitaet')?.value.trim() || '';
+  const familienstand = $('cv-familienstand')?.value.trim() || '';
+  const telefon = $('cv-telefon')?.value.trim() || '';
+  const email = $('cv-email')?.value.trim() || '';
+  const adresse = $('cv-adresse')?.value.trim() || '';
+  const foto = $('cv-foto')?.value.trim() || '';
+  const profil = $('cv-profil')?.value.trim() || '';
+
+  const werdegang = [];
+  $$('.cv-werdegang-item').forEach(el => {
+    const zeitraum = el.querySelector('.item-zeitraum')?.value.trim() || '';
+    const titel = el.querySelector('.item-titel')?.value.trim() || '';
+    const beschreibung = el.querySelector('.item-beschreibung')?.value.trim() || '';
+    if (zeitraum || titel || beschreibung) werdegang.push({ zeitraum, titel, beschreibung });
+  });
+
+  const ausbildung = [];
+  $$('.cv-ausbildung-item').forEach(el => {
+    const zeitraum = el.querySelector('.item-zeitraum')?.value.trim() || '';
+    const beschreibung = el.querySelector('.item-beschreibung')?.value.trim() || '';
+    if (zeitraum || beschreibung) ausbildung.push({ zeitraum, beschreibung });
+  });
+
+  const sprachen = [];
+  $$('.cv-sprachen-item').forEach(el => {
+    const sprache = el.querySelector('.item-sprache')?.value.trim() || '';
+    const niveau = el.querySelector('.item-niveau')?.value.trim() || '';
+    if (sprache || niveau) sprachen.push({ sprache, niveau });
+  });
+
+  return {
+    personal: { vorname, name, beruf, geburtsdatum, nationalitaet, familienstand, telefon, email, adresse, foto },
+    profil,
+    werdegang,
+    ausbildung,
+    sprachen
+  };
+}
+
+function saveCVForm(candId, notify = true) {
+  const data = collectCVFormData();
+  State.cvDraft = data;
+  if (candId) {
+    DB.saveCV(candId, data);
+    if (notify) {
+      showToast('Hoja de Vida Guardada', 'La información del candidato ha sido actualizada y sincronizada en su expediente.', 'success');
+    }
+  }
+}
+
+function switchCVTab(tab) {
+  if (State.cvActiveTab === 'edit' && $('cv-form')) {
+    State.cvDraft = collectCVFormData();
+  }
+  State.cvActiveTab = tab;
+  renderDashboard(State.currentUser.rol);
+}
+
+function selectCandidateForCV(candId) {
+  State.cvSelectedCandId = candId;
+  State.cvDraft = null;
+  renderDashboard(State.currentUser.rol);
+}
+
+function createNewCandidateCV() {
+  const nombre = prompt('Nombre completo del nuevo candidato:');
+  if (!nombre) return;
+  const nuevo = DB.createCandidato({
+    nombre,
+    especialidad: 'Medicina General',
+    pais: 'Colombia',
+    nivel_aleman: 'B1',
+    estado_proceso: 'Lead Nuevo',
+    estado_homologacion: 'Pendiente'
+  });
+  State.cvSelectedCandId = nuevo.id;
+  State.cvDraft = null;
+  showToast('Candidato Creado', `Se ha creado a ${nombre}. Ahora puedes completar su Hoja de Vida.`, 'success');
+  renderDashboard(State.currentUser.rol);
+}
+
+function printLebenslauf() {
+  window.print();
+}
+
+function handleCvPhotoUpload(input) {
+  if (input.files && input.files[0]) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      if ($('cv-foto')) $('cv-foto').value = e.target.result;
+      showToast('Foto cargada', 'La fotografía se ha adjuntado al formulario.', 'info');
+    };
+    reader.readAsDataURL(input.files[0]);
+  }
+}
+
+function addWerdegangItem() {
+  State.cvDraft = collectCVFormData();
+  State.cvDraft.werdegang.push({ zeitraum: '', titel: '', beschreibung: '' });
+  renderDashboard(State.currentUser.rol);
+}
+
+function removeWerdegangItem(index) {
+  State.cvDraft = collectCVFormData();
+  State.cvDraft.werdegang.splice(index, 1);
+  renderDashboard(State.currentUser.rol);
+}
+
+function addAusbildungItem() {
+  State.cvDraft = collectCVFormData();
+  State.cvDraft.ausbildung.push({ zeitraum: '', beschreibung: '' });
+  renderDashboard(State.currentUser.rol);
+}
+
+function removeAusbildungItem(index) {
+  State.cvDraft = collectCVFormData();
+  State.cvDraft.ausbildung.splice(index, 1);
+  renderDashboard(State.currentUser.rol);
+}
+
+function addSprachenItem() {
+  State.cvDraft = collectCVFormData();
+  State.cvDraft.sprachen.push({ sprache: '', niveau: '' });
+  renderDashboard(State.currentUser.rol);
+}
+
+function removeSprachenItem(index) {
+  State.cvDraft = collectCVFormData();
+  State.cvDraft.sprachen.splice(index, 1);
+  renderDashboard(State.currentUser.rol);
 }
 
 // ──────────────────────────────────────────────────────────────────
@@ -2393,3 +2956,18 @@ window.enviarFeedback = enviarFeedback;
 window.registrarCandidatoSocio = registrarCandidatoSocio;
 window.simulateExcelUpload = simulateExcelUpload;
 window.downloadTemplate = downloadTemplate;
+// CV Builder handlers
+window.openCVForCandidate = openCVForCandidate;
+window.switchCVTab = switchCVTab;
+window.saveCVForm = saveCVForm;
+window.selectCandidateForCV = selectCandidateForCV;
+window.createNewCandidateCV = createNewCandidateCV;
+window.printLebenslauf = printLebenslauf;
+window.handleCvPhotoUpload = handleCvPhotoUpload;
+window.addWerdegangItem = addWerdegangItem;
+window.removeWerdegangItem = removeWerdegangItem;
+window.addAusbildungItem = addAusbildungItem;
+window.removeAusbildungItem = removeAusbildungItem;
+window.addSprachenItem = addSprachenItem;
+window.removeSprachenItem = removeSprachenItem;
+
