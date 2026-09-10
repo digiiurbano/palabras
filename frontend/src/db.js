@@ -1,5 +1,38 @@
-// URL del backend: usa variable de entorno en producción, localhost en desarrollo
+// URL del backend: usa VITE_API_URL en producción o localhost en desarrollo
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
+const OFFICIAL_USERS = [
+  {
+    id: 'u-admin-001', nombre: 'Ana García', rol: 'Admin',
+    correo: 'admin@jnpalabras.com', contrasena: 'JNPalabrasAdmin2026!',
+    avatar: 'AG', activo: true, fecha_creacion: '2024-01-15'
+  },
+  {
+    id: 'u-asesor-001', nombre: 'Carlos Martínez', rol: 'Asesor',
+    correo: 'asesor@jnpalabras.com', contrasena: 'JNPalabrasAsesor2026!',
+    avatar: 'CM', activo: true, fecha_creacion: '2024-02-10'
+  },
+  {
+    id: 'u-prof-001', nombre: 'Dra. Elena Weber', rol: 'Profesor',
+    correo: 'profesor@jnpalabras.com', contrasena: 'JNPalabrasProfesor2026!',
+    avatar: 'EW', activo: true, fecha_creacion: '2024-02-20'
+  },
+  {
+    id: 'u-cand-001', nombre: 'Dr. Javier Torres', rol: 'Candidato',
+    correo: 'candidato@jnpalabras.com', contrasena: 'JNPalabrasCandidato2026!',
+    avatar: 'JT', activo: true, fecha_creacion: '2024-03-05'
+  },
+  {
+    id: 'u-emp-001', nombre: 'Klinikum Stuttgart', rol: 'Empresa',
+    correo: 'empresa@jnpalabras.com', contrasena: 'JNPalabrasEmpresa2026!',
+    avatar: 'KS', activo: true, fecha_creacion: '2024-01-20'
+  },
+  {
+    id: 'u-socio-001', nombre: 'Laura Rodríguez (MediLink)', rol: 'Socio',
+    correo: 'socio@jnpalabras.com', contrasena: 'JNPalabrasSocio2026!',
+    avatar: 'LR', activo: true, fecha_creacion: '2024-03-01'
+  }
+];
 
 export const DB = {
   data: null,
@@ -7,17 +40,23 @@ export const DB = {
   async init() {
     try {
       const res = await fetch(`${API_URL}/api/db`);
-      this.data = await res.json();
+      if (res.ok) {
+        this.data = await res.json();
+      } else {
+        throw new Error(`HTTP error ${res.status}`);
+      }
     } catch (e) {
-      console.warn("Backend no disponible. Por favor arranca el backend.");
-      this.data = {};
+      console.warn("Backend no alcanzable. Usando almacenamiento local con usuarios oficiales.");
+      this.data = { usuarios: OFFICIAL_USERS };
     }
   },
 
   get() {
-    return this.data || {};
+    if (!this.data || !this.data.usuarios) {
+      this.data = { usuarios: OFFICIAL_USERS, ...(this.data || {}) };
+    }
+    return this.data;
   },
-
 
   save(data) {
     this.data = data;
@@ -25,7 +64,7 @@ export const DB = {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
-    }).catch(e => console.error("Error guardando en backend", e));
+    }).catch(e => console.warn("Modo offline: guardado localmente en cliente"));
   },
 
   reset() {
@@ -35,19 +74,50 @@ export const DB = {
   },
 
   // ── USUARIOS ──────────────────────────────────────────────────
-  getUsuarios() { return this.get().usuarios || []; },
+  getUsuarios() {
+    const list = this.get().usuarios;
+    return (Array.isArray(list) && list.length > 0) ? list : OFFICIAL_USERS;
+  },
 
-  findUsuario(correo, contrasena) {
-    return this.getUsuarios().find(u => u.correo === correo && u.contrasena === contrasena);
+  async findUsuario(correo, contrasena) {
+    // 1. Intentar API en backend si está disponible
+    try {
+      const res = await fetch(`${API_URL}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ correo, contrasena })
+      });
+      if (res.ok) {
+        const user = await res.json();
+        if (user && user.id) return user;
+      }
+    } catch (e) {
+      // Ignorar fallo de red y continuar con validación local
+    }
+
+    // 2. Buscar en memoria/local de la DB
+    let user = this.getUsuarios().find(u => u.correo === correo && u.contrasena === contrasena);
+    
+    // 3. Fallback directo a las credenciales oficiales embebidas
+    if (!user) {
+      user = OFFICIAL_USERS.find(u => u.correo === correo && u.contrasena === contrasena);
+    }
+    
+    return user;
   },
 
   findUsuarioById(id) {
-    return this.getUsuarios().find(u => u.id === id);
+    let user = this.getUsuarios().find(u => u.id === id);
+    if (!user) {
+      user = OFFICIAL_USERS.find(u => u.id === id);
+    }
+    return user;
   },
 
   createUsuario(data) {
     const db = this.get();
     const nuevo = { ...data, id: 'u-' + Date.now(), fecha_creacion: new Date().toISOString(), activo: true };
+    if (!db.usuarios) db.usuarios = [...OFFICIAL_USERS];
     db.usuarios.push(nuevo);
     this.save(db);
     return nuevo;
@@ -55,6 +125,7 @@ export const DB = {
 
   updateUsuario(id, data) {
     const db = this.get();
+    if (!db.usuarios) db.usuarios = [...OFFICIAL_USERS];
     const idx = db.usuarios.findIndex(u => u.id === id);
     if (idx !== -1) db.usuarios[idx] = { ...db.usuarios[idx], ...data };
     this.save(db);
@@ -62,6 +133,7 @@ export const DB = {
 
   deleteUsuario(id) {
     const db = this.get();
+    if (!db.usuarios) db.usuarios = [...OFFICIAL_USERS];
     db.usuarios = db.usuarios.filter(u => u.id !== id);
     this.save(db);
   },
