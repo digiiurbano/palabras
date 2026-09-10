@@ -5,6 +5,7 @@
  */
 
 import { DB } from './db.js';
+import { getIcon } from './icons.js';
 
 // ──────────────────────────────────────────────────────────────────
 // ESTADO GLOBAL
@@ -55,12 +56,11 @@ function getAvatarColor(name) {
 }
 
 function showToast(title, message, type = 'info', duration = 4000) {
-  const icons = { info:'🔔', success:'✅', error:'❌', warning:'⚠️' };
   const container = $('toast-container');
   if (!container) return;
   const toast = document.createElement('div');
   toast.className = `toast ${type}`;
-  toast.innerHTML = `<div class="toast-icon">${icons[type]||'🔔'}</div><div class="toast-content"><div class="toast-title">${title}</div><div class="toast-message">${message}</div></div>`;
+  toast.innerHTML = `<div class="toast-icon">${getIcon(type)}</div><div class="toast-content"><div class="toast-title">${title}</div><div class="toast-message">${message}</div></div>`;
   container.appendChild(toast);
   setTimeout(() => { toast.style.opacity='0'; toast.style.transform='translateX(16px)'; setTimeout(()=>toast.remove(), 400); }, duration);
 }
@@ -105,11 +105,18 @@ function showApp() {
 // ──────────────────────────────────────────────────────────────────
 // AUTENTICACIÓN
 // ──────────────────────────────────────────────────────────────────
-function handleLogin(e) {
+async function handleLogin(e) {
   e.preventDefault();
   const correo = $('login-email').value.trim();
   const pass   = $('login-pass').value.trim();
-  const user   = DB.findUsuario(correo, pass);
+  
+  if (!correo || !pass) {
+    showToast('Campos requeridos', 'Por favor ingresa tu correo y contraseña.', 'warning');
+    return;
+  }
+
+  let user = await DB.findUsuario(correo, pass);
+  
   if (user) {
     State.currentUser = user;
     State.currentSidebar = null;
@@ -122,51 +129,12 @@ function handleLogin(e) {
   }
 }
 
-function quickLogin(rol) {
-  const credentials = {
-    Admin:     { correo:'admin@jnpalabras.com',     contrasena:'admin2025'     },
-    Asesor:    { correo:'asesor@jnpalabras.com',    contrasena:'asesor2025'    },
-    Profesor:  { correo:'profesor@jnpalabras.com',  contrasena:'profesor2025'  },
-    Candidato: { correo:'candidato@jnpalabras.com', contrasena:'candidato2025' },
-    Empresa:   { correo:'empresa@techsolutions.de', contrasena:'empresa2025'   },
-    Socio:     { correo:'socio@medilink.co',        contrasena:'socio2025'     }
-  };
-  // Datos embebidos como fallback para cuando el backend aún no ha cargado
-  const fallbackUsers = {
-    Admin:     { id:'u-admin-001',  nombre:'Ana García',               rol:'Admin',     correo:'admin@jnpalabras.com',     avatar:'AG', activo:true },
-    Asesor:    { id:'u-asesor-001', nombre:'Carlos Martínez',          rol:'Asesor',    correo:'asesor@jnpalabras.com',    avatar:'CM', activo:true },
-    Profesor:  { id:'u-prof-001',   nombre:'Dra. Elena Weber',         rol:'Profesor',  correo:'profesor@jnpalabras.com',  avatar:'EW', activo:true },
-    Candidato: { id:'u-cand-001',   nombre:'Dr. Javier Torres',        rol:'Candidato', correo:'candidato@jnpalabras.com', avatar:'JT', activo:true },
-    Empresa:   { id:'u-emp-001',    nombre:'Tech Solutions GmbH',      rol:'Empresa',   correo:'empresa@techsolutions.de', avatar:'KS', activo:true },
-    Socio:     { id:'u-socio-001',  nombre:'Laura Rodríguez (MediLink)',rol:'Socio',    correo:'socio@medilink.co',        avatar:'LR', activo:true }
-  };
-  const cred = credentials[rol];
-  if (cred) {
-    // Intentar desde la DB cargada; si no hay datos, usar el fallback embebido
-    let user = DB.findUsuario(cred.correo, cred.contrasena);
-    if (!user) user = fallbackUsers[rol];
-    if (user) {
-      State.currentUser = user;
-      State.currentSidebar = null;
-      DB.setSession(user);
-      showToast('Acceso Demo', `Entrando como ${user.nombre} (${rol})`, 'success');
-      showApp();
-    }
-  }
-}
-
-
 function handleLogout() {
   State.currentUser = null;
   State.currentSidebar = null;
   DB.clearSession();
   showPublic();
   showToast('Sesión cerrada', 'Has cerrado sesión exitosamente.', 'info');
-}
-
-// Cambio de rol desde el header del dashboard
-function switchRole(rol) {
-  quickLogin(rol);
 }
 
 // ──────────────────────────────────────────────────────────────────
@@ -189,23 +157,11 @@ function renderAppShell() {
       <span class="app-logo-name">JN Palabras</span>
     </div>
 
-    <!-- Selector de rol -->
-    <div style="display:flex;align-items:center;gap:12px;">
-      <span style="font-size:.75rem;color:var(--slate-400);font-weight:600;letter-spacing:.04em;">VISTA DEMO:</span>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;">
-        ${['Admin','Asesor','Profesor','Candidato','Empresa','Socio'].map(r => `
-          <button onclick="switchRole('${r}')" class="btn btn-sm ${r === user.rol ? 'btn-secondary' : 'btn-outline'}" style="padding:.3rem .6rem;font-size:.75rem;">
-            ${getRolIcon(r)} ${r}
-          </button>
-        `).join('')}
-      </div>
-    </div>
-
     <div class="header-actions">
       <!-- Notificaciones -->
       <div class="relative">
         <button class="header-icon-btn" onclick="toggleNotifPanel()" id="notif-btn" aria-label="Notificaciones">
-          🔔
+          ${getIcon('bell')}
           ${notifCount > 0 ? `<span class="notification-dot"></span>` : ''}
         </button>
         <div class="notif-panel" id="notif-panel">
@@ -213,11 +169,11 @@ function renderAppShell() {
         </div>
       </div>
       <!-- Usuario -->
-      <div class="role-switcher" title="Cambiar usuario">
+      <div class="role-switcher" title="Usuario activo">
         <div class="role-avatar" style="background:${getAvatarColor(user.nombre)}">${getInitials(user.nombre)}</div>
         <div class="role-info">
           <div class="role-name">${user.nombre.split(' ').slice(0,2).join(' ')}</div>
-          <div class="role-label">${user.rol}</div>
+          <div class="role-label" style="display:flex;align-items:center;gap:4px;">${getRolIcon(user.rol)} ${user.rol}</div>
         </div>
       </div>
       <button onclick="handleLogout()" class="btn btn-outline btn-sm">Salir</button>
@@ -227,7 +183,6 @@ function renderAppShell() {
   // Sidebar + contenido
   renderSidebar(user.rol);
   renderDashboard(user.rol);
-
 }
 
 // Cerrar panel notif al hacer clic fuera — registrado una sola vez
@@ -246,7 +201,7 @@ function ensureNotifClickListener() {
 }
 
 function getRolIcon(rol) {
-  return { Admin:'👑', Asesor:'🧑‍💼', Profesor:'👩‍🏫', Candidato:'🩺', Empresa:'🏥', Socio:'🤝' }[rol] || '👤';
+  return getIcon(rol) || getIcon('Candidato');
 }
 
 function getRolColor(rol) {
@@ -259,9 +214,16 @@ function getRolColor(rol) {
 function renderNotifPanel(userId) {
   const notifs = DB.getNotificaciones(userId);
   const tipoIcono = {
-    Documento_Aprobado:'✅', Documento_Rechazado:'❌', Entrevista_Agendada:'📅',
-    Visado_Aprobado:'🛂', Nueva_Calificacion:'📊', Nuevo_Candidato:'🆕',
-    Oferta_Nueva:'💼', Comision_Registrada:'💰', Alerta_Rendimiento:'⚠️', Sistema:'🔔'
+    Documento_Aprobado: getIcon('success'), 
+    Documento_Rechazado: getIcon('error'), 
+    Entrevista_Agendada: getIcon('calendar'),
+    Visado_Aprobado: getIcon('passport'), 
+    Nueva_Calificacion: getIcon('fileText'), 
+    Nuevo_Candidato: getIcon('newTag'),
+    Oferta_Nueva: getIcon('briefcase'), 
+    Comision_Registrada: getIcon('coins'), 
+    Alerta_Rendimiento: getIcon('warning'), 
+    Sistema: getIcon('bell')
   };
   return `
     <div class="notif-header">
@@ -270,10 +232,10 @@ function renderNotifPanel(userId) {
     </div>
     <div class="notif-list">
       ${notifs.length === 0
-        ? `<div class="empty-state" style="padding:24px;"><div class="empty-icon">🔕</div><div class="empty-desc">Sin notificaciones nuevas</div></div>`
+        ? `<div class="empty-state" style="padding:24px;"><div class="empty-icon">${getIcon('bellOff')}</div><div class="empty-desc">Sin notificaciones nuevas</div></div>`
         : notifs.map(n => `
           <div class="notif-item ${n.leida ? '' : 'unread'}">
-            <div class="notif-item-icon">${tipoIcono[n.tipo]||'🔔'}</div>
+            <div class="notif-item-icon">${tipoIcono[n.tipo] || getIcon('bell')}</div>
             <div>
               <div class="notif-item-title">${n.titulo}</div>
               <div class="notif-item-time">${timeAgo(n.fecha)}</div>
@@ -306,44 +268,44 @@ function marcarNotifLeidas(userId) {
 // ──────────────────────────────────────────────────────────────────
 const SIDEBAR_MENUS = {
   Admin: [
-    { id:'admin-overview',    icon:'📊', label:'Resumen General'     },
-    { id:'admin-users',       icon:'👥', label:'Gestión de Usuarios'  },
-    { id:'admin-candidatos',  icon:'🩺', label:'Todos los Candidatos' },
-    { id:'admin-cms',         icon:'📝', label:'CMS Web Pública'      },
-    { id:'admin-comisiones',  icon:'💰', label:'Control Comisiones'   },
-    { id:'admin-empresas',    icon:'🏥', label:'Empresas / Clínicas'  },
+    { id:'admin-overview',    icon: getIcon('fileText'), label:'Resumen General'     },
+    { id:'admin-users',       icon: getIcon('Admin'),    label:'Gestión de Usuarios'  },
+    { id:'admin-candidatos',  icon: getIcon('Candidato'),label:'Todos los Candidatos' },
+    { id:'admin-cms',         icon: getIcon('fileText'), label:'CMS Web Pública'      },
+    { id:'admin-comisiones',  icon: getIcon('coins'),    label:'Control Comisiones'   },
+    { id:'admin-empresas',    icon: getIcon('Empresa'),  label:'Empresas / Clínicas'  },
   ],
   Asesor: [
-    { id:'asesor-kanban',     icon:'📌', label:'Kanban Candidatos'   },
-    { id:'asesor-expedientes',icon:'📁', label:'Expedientes'         },
-    { id:'asesor-cv-builder', icon:'📄', label:'Hojas de Vida (CV)'  },
-    { id:'asesor-matching',   icon:'🎯', label:'Matching IA'         },
-    { id:'asesor-notas',      icon:'📋', label:'Notas de Seguimiento'},
+    { id:'asesor-kanban',     icon: getIcon('Asesor'),   label:'Kanban Candidatos'   },
+    { id:'asesor-expedientes',icon: getIcon('clipboard'),label:'Expedientes'         },
+    { id:'asesor-cv-builder', icon: getIcon('fileText'), label:'Hojas de Vida (CV)'  },
+    { id:'asesor-matching',   icon: getIcon('search'),   label:'Matching IA'         },
+    { id:'asesor-notas',      icon: getIcon('clipboard'),label:'Notas de Seguimiento'},
   ],
   Profesor: [
-    { id:'prof-grupos',    icon:'👩‍🏫', label:'Mis Grupos'         },
-    { id:'prof-califs',    icon:'📊', label:'Calificaciones'       },
-    { id:'prof-alertas',   icon:'⚠️', label:'Alertas Rendimiento'  },
-    { id:'prof-materiales',icon:'📚', label:'Materiales'          },
+    { id:'prof-grupos',    icon: getIcon('Profesor'),  label:'Mis Grupos'         },
+    { id:'prof-califs',    icon: getIcon('fileText'),  label:'Calificaciones'       },
+    { id:'prof-alertas',   icon: getIcon('warning'),   label:'Alertas Rendimiento'  },
+    { id:'prof-materiales',icon: getIcon('fileText'),  label:'Materiales'          },
   ],
   Candidato: [
-    { id:'cand-roadmap',   icon:'🗺️', label:'Mi Hoja de Ruta'    },
-    { id:'cand-cv',        icon:'📄', label:'Mi Hoja de Vida (CV)'},
-    { id:'cand-documentos',icon:'📂', label:'Mis Documentos'     },
-    { id:'cand-aula',      icon:'🎓', label:'Mi Aula Virtual'    },
-    { id:'cand-ofertas',   icon:'💼', label:'Ofertas y Entrevistas'},
+    { id:'cand-roadmap',   icon: getIcon('passport'),  label:'Mi Hoja de Ruta'    },
+    { id:'cand-cv',        icon: getIcon('fileText'),  label:'Mi Hoja de Vida (CV)'},
+    { id:'cand-documentos',icon: getIcon('clipboard'), label:'Mis Documentos'     },
+    { id:'cand-aula',      icon: getIcon('Profesor'),  label:'Mi Aula Virtual'    },
+    { id:'cand-ofertas',   icon: getIcon('briefcase'), label:'Ofertas y Entrevistas'},
   ],
   Empresa: [
-    { id:'emp-candidatos', icon:'🔍', label:'Buscar Candidatos'   },
-    { id:'emp-vacantes',   icon:'📋', label:'Mis Vacantes'        },
-    { id:'emp-entrevistas',icon:'📅', label:'Entrevistas'         },
-    { id:'emp-feedback',   icon:'⭐', label:'Feedback'            },
+    { id:'emp-candidatos', icon: getIcon('search'),    label:'Buscar Candidatos'   },
+    { id:'emp-vacantes',   icon: getIcon('briefcase'), label:'Mis Vacantes'        },
+    { id:'emp-entrevistas',icon: getIcon('calendar'),  label:'Entrevistas'         },
+    { id:'emp-feedback',   icon: getIcon('success'),   label:'Feedback'            },
   ],
   Socio: [
-    { id:'socio-registro',   icon:'➕', label:'Registrar Candidato' },
-    { id:'socio-referidos',  icon:'📡', label:'Mis Referidos'       },
-    { id:'socio-comisiones', icon:'💰', label:'Mis Comisiones'      },
-    { id:'socio-toolkit',    icon:'🧰', label:'Caja de Herramientas'},
+    { id:'socio-registro',   icon: getIcon('Socio'),    label:'Registrar Candidato' },
+    { id:'socio-referidos',  icon: getIcon('network'),  label:'Mis Referidos'       },
+    { id:'socio-comisiones', icon: getIcon('coins'),    label:'Mis Comisiones'      },
+    { id:'socio-toolkit',    icon: getIcon('briefcase'),label:'Caja de Herramientas'},
   ]
 };
 
@@ -358,7 +320,7 @@ function renderSidebar(rol) {
       ${items.map(item => `
         <div class="sidebar-link ${State.currentSidebar === item.id ? 'active' : ''}"
              onclick="navigateTo('${item.id}')">
-          <span class="sidebar-icon">${item.icon}</span>
+          <span class="sidebar-icon" style="display:inline-flex;align-items:center;">${item.icon}</span>
           ${item.label}
         </div>
       `).join('')}
@@ -366,7 +328,7 @@ function renderSidebar(rol) {
     <div style="margin-top:auto;padding:0 16px 16px;">
       <div class="divider-dark"></div>
       <div class="sidebar-link" onclick="showPublic()">
-        <span class="sidebar-icon">🌐</span> Web Pública
+        <span class="sidebar-icon" style="display:inline-flex;align-items:center;">${getIcon('globe')}</span> Web Pública
       </div>
     </div>
   `;
@@ -2903,7 +2865,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 // EXPOSE TO GLOBAL SCOPE FOR INLINE HTML HANDLERS
 window.showLogin = showLogin;
 window.handleLogin = handleLogin;
-window.quickLogin = quickLogin;
 window.handleLogout = handleLogout;
 window.scrollToSection = scrollToSection;
 window.showPublic = showPublic;
@@ -2914,7 +2875,6 @@ window.rejectGdpr = rejectGdpr;
 window.showToast = showToast;
 window.submitRegistration = submitRegistration;
 window.navigateTo = navigateTo;
-window.switchRole = switchRole;
 window.toggleNotifPanel = toggleNotifPanel;
 window.marcarNotifLeidas = marcarNotifLeidas;
 window.showTab = showTab;

@@ -1,42 +1,44 @@
 /**
- * JN PALABRAS - MOCK DATABASE (Backend In-Memory)
- * Simula la base de datos relacional para el MVP interactivo.
+ * JN PALABRAS - DATABASE SERVICE (PostgreSQL + In-Memory Fallback)
+ * Gestiona la persistencia relacional en PostgreSQL y fallback local para desarrollo.
  */
+
+const { isPostgresConfigured, query } = require('./db/pool');
 
 let memoryDB = null;
 
 const INITIAL_DATA = {
-  // ── USUARIOS ──────────────────────────────────────────────────
+  // ── USUARIOS OFICIALES ─────────────────────────────────────────
   usuarios: [
     {
       id: 'u-admin-001', nombre: 'Ana García', rol: 'Admin',
-      correo: 'admin@jnpalabras.com', contrasena: 'admin2025',
+      correo: 'admin@jnpalabras.com', contrasena: 'JNPalabrasAdmin2026!',
       avatar: 'AG', activo: true, fecha_creacion: '2024-01-15',
       ultimo_acceso: new Date().toISOString()
     },
     {
       id: 'u-asesor-001', nombre: 'Carlos Martínez', rol: 'Asesor',
-      correo: 'asesor@jnpalabras.com', contrasena: 'asesor2025',
+      correo: 'asesor@jnpalabras.com', contrasena: 'JNPalabrasAsesor2026!',
       avatar: 'CM', activo: true, fecha_creacion: '2024-02-10'
     },
     {
       id: 'u-prof-001', nombre: 'Dra. Elena Weber', rol: 'Profesor',
-      correo: 'profesor@jnpalabras.com', contrasena: 'profesor2025',
+      correo: 'profesor@jnpalabras.com', contrasena: 'JNPalabrasProfesor2026!',
       avatar: 'EW', activo: true, fecha_creacion: '2024-02-20'
     },
     {
       id: 'u-cand-001', nombre: 'Dr. Javier Torres', rol: 'Candidato',
-      correo: 'candidato@jnpalabras.com', contrasena: 'candidato2025',
+      correo: 'candidato@jnpalabras.com', contrasena: 'JNPalabrasCandidato2026!',
       avatar: 'JT', activo: true, fecha_creacion: '2024-03-05'
     },
     {
-      id: 'u-emp-001', nombre: 'Tech Solutions GmbH', rol: 'Empresa',
-      correo: 'empresa@techsolutions.de', contrasena: 'empresa2025',
+      id: 'u-emp-001', nombre: 'Klinikum Stuttgart', rol: 'Empresa',
+      correo: 'empresa@jnpalabras.com', contrasena: 'JNPalabrasEmpresa2026!',
       avatar: 'KS', activo: true, fecha_creacion: '2024-01-20'
     },
     {
       id: 'u-socio-001', nombre: 'Laura Rodríguez (MediLink)', rol: 'Socio',
-      correo: 'socio@medilink.co', contrasena: 'socio2025',
+      correo: 'socio@jnpalabras.com', contrasena: 'JNPalabrasSocio2026!',
       avatar: 'LR', activo: true, fecha_creacion: '2024-03-01'
     }
   ],
@@ -528,9 +530,37 @@ const DB = {
     return memoryDB;
   },
 
+  async getAsync() {
+    if (isPostgresConfigured()) {
+      try {
+        const usersRes = await query('SELECT id, nombre, correo, rol, avatar_url AS avatar, activo, fecha_creacion FROM usuarios;');
+        const candRes = await query('SELECT * FROM candidatos;');
+        const empRes = await query('SELECT * FROM empresas;');
+        const vacRes = await query('SELECT * FROM vacantes;');
+        
+        const db = this.get();
+        return {
+          ...db,
+          usuarios: usersRes.rows.length ? usersRes.rows : db.usuarios,
+          candidatos: candRes.rows.length ? candRes.rows : db.candidatos,
+          empresas: empRes.rows.length ? empRes.rows : db.empresas,
+          vacantes: vacRes.rows.length ? vacRes.rows : db.vacantes
+        };
+      } catch (err) {
+        console.warn('⚠️ Fallback a in-memory por error consultando PostgreSQL:', err.message);
+        return this.get();
+      }
+    }
+    return this.get();
+  },
+
   // Guardar todo
   save(data) {
     memoryDB = data;
+  },
+
+  async saveAsync(data) {
+    this.save(data);
   },
 
   // Reset a datos iniciales
@@ -538,14 +568,38 @@ const DB = {
     memoryDB = JSON.parse(JSON.stringify(INITIAL_DATA));
   },
 
+  async resetAsync() {
+    this.reset();
+  },
+
   // ── USUARIOS ──────────────────────────────────────────────────
   getUsuarios() { return this.get().usuarios; },
 
-  findUsuario(correo, contrasena) {
+  async findUsuario(correo, contrasena) {
+    if (isPostgresConfigured()) {
+      try {
+        const res = await query('SELECT id, nombre, correo, rol, avatar_url AS avatar, activo FROM usuarios WHERE correo = $1 LIMIT 1;', [correo]);
+        if (res.rows.length > 0) {
+          return res.rows[0];
+        }
+      } catch (err) {
+        console.warn('⚠️ Query error en PostgreSQL findUsuario, usando fallback in-memory:', err.message);
+      }
+    }
     return this.getUsuarios().find(u => u.correo === correo && u.contrasena === contrasena);
   },
 
-  findUsuarioById(id) {
+  async findUsuarioById(id) {
+    if (isPostgresConfigured()) {
+      try {
+        const res = await query('SELECT id, nombre, correo, rol, avatar_url AS avatar, activo FROM usuarios WHERE id = $1 LIMIT 1;', [id]);
+        if (res.rows.length > 0) {
+          return res.rows[0];
+        }
+      } catch (err) {
+        console.warn('⚠️ Query error en PostgreSQL findUsuarioById, usando fallback in-memory:', err.message);
+      }
+    }
     return this.getUsuarios().find(u => u.id === id);
   },
 

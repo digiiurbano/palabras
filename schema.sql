@@ -335,14 +335,14 @@ CREATE TABLE auditoria_gdpr (
 -- DATOS SEMILLA (SEED DATA) - Para el MVP Demo
 -- -------------------------------------------------------
 
--- Usuarios de demostración (contraseña: JNPalabras2025! -> hash de ejemplo)
+-- Usuarios Oficiales del Sistema
 INSERT INTO usuarios (id, nombre, correo, contrasena_hash, rol) VALUES
-    ('a0000000-0000-0000-0000-000000000001', 'Ana García (Admin)', 'admin@jnpalabras.com', '$2b$12$HASHEDPASSWORD_ADMIN', 'Admin'),
-    ('a0000000-0000-0000-0000-000000000002', 'Carlos Martínez (Asesor)', 'asesor@jnpalabras.com', '$2b$12$HASHEDPASSWORD_ASESOR', 'Asesor'),
-    ('a0000000-0000-0000-0000-000000000003', 'Dra. Elena Weber (Profesor)', 'profesor@jnpalabras.com', '$2b$12$HASHEDPASSWORD_PROF', 'Profesor'),
-    ('a0000000-0000-0000-0000-000000000004', 'Dr. Javier Torres (Candidato)', 'candidato@jnpalabras.com', '$2b$12$HASHEDPASSWORD_CAND', 'Candidato'),
-    ('a0000000-0000-0000-0000-000000000005', 'Klinikum Stuttgart', 'empresa@klinikum.de', '$2b$12$HASHEDPASSWORD_EMP', 'Empresa'),
-    ('a0000000-0000-0000-0000-000000000006', 'MediLink Colombia', 'socio@medilink.co', '$2b$12$HASHEDPASSWORD_SOCIO', 'Socio');
+    ('a0000000-0000-0000-0000-000000000001', 'Ana García (Admin)', 'admin@jnpalabras.com', 'JNPalabrasAdmin2026!', 'Admin'),
+    ('a0000000-0000-0000-0000-000000000002', 'Carlos Martínez (Asesor)', 'asesor@jnpalabras.com', 'JNPalabrasAsesor2026!', 'Asesor'),
+    ('a0000000-0000-0000-0000-000000000003', 'Dra. Elena Weber (Profesor)', 'profesor@jnpalabras.com', 'JNPalabrasProfesor2026!', 'Profesor'),
+    ('a0000000-0000-0000-0000-000000000004', 'Dr. Javier Torres (Candidato)', 'candidato@jnpalabras.com', 'JNPalabrasCandidato2026!', 'Candidato'),
+    ('a0000000-0000-0000-0000-000000000005', 'Klinikum Stuttgart', 'empresa@jnpalabras.com', 'JNPalabrasEmpresa2026!', 'Empresa'),
+    ('a0000000-0000-0000-0000-000000000006', 'MediLink Colombia', 'socio@jnpalabras.com', 'JNPalabrasSocio2026!', 'Socio');
 
 -- Candidatos de demostración
 INSERT INTO candidatos (id, id_usuario, nombre_completo, pais_origen, especialidad_medica, nivel_aleman_actual, estado_proceso, estado_homologacion, consentimiento_gdpr, fecha_consentimiento) VALUES

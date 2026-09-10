@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: jn-palabras-backend
+    env: node
+    region: frankfurt # Servidor en Europa (Alemania/Frankfurt) para cumplimiento GDPR
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: NODE_ENV
+        value: production
+      - key: FRONTEND_URL
+        sync: false # Configurar en el dashboard de Render con la URL de Vercel
+      - key: DATABASE_URL
+        sync: false # Configurar en el dashboard de Render con la URL de PostgreSQL
