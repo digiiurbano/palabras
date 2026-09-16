@@ -344,7 +344,15 @@ function navigateTo(id) {
 // DASHBOARD ROUTER
 // ──────────────────────────────────────────────────────────────────
 function renderDashboard(rol, view = null) {
-  const id = view || State.currentSidebar || SIDEBAR_MENUS[rol]?.[0]?.id;
+  let id = view || State.currentSidebar || SIDEBAR_MENUS[rol]?.[0]?.id;
+  
+  // Validar permisos (Role-Based Access Control básico)
+  const allowedViews = SIDEBAR_MENUS[rol]?.map(menu => menu.id) || [];
+  if (!allowedViews.includes(id)) {
+    id = SIDEBAR_MENUS[rol]?.[0]?.id; // Fallback al inicio del rol
+    State.currentSidebar = id;
+  }
+
   const container = $('main-content');
   if (!container) return;
 
