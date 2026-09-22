@@ -1,6 +1,6 @@
 
 // URL del backend: usa VITE_API_URL en producción o localhost en desarrollo
-const API_URL = 'http://localhost:3030';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3030';
 
 const OFFICIAL_USERS = [
   {
