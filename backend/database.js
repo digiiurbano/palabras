@@ -230,7 +230,14 @@ const DB = {
   async getAllUsuariosAsync() {
     if (isPostgresConfigured()) {
       try {
-        const res = await query('SELECT id, nombre, correo, roles, avatar_url AS avatar, activo, fecha_creacion FROM usuarios ORDER BY fecha_creacion DESC;');
+        const res = await query(`
+          SELECT 
+            u.id, u.nombre, u.correo, u.roles, u.avatar_url AS avatar, u.activo, u.fecha_creacion,
+            (SELECT row_to_json(e) FROM empresas e WHERE e.id_usuario = u.id LIMIT 1) as empresa_data,
+            (SELECT row_to_json(s) FROM socios s WHERE s.id_usuario = u.id LIMIT 1) as socio_data
+          FROM usuarios u 
+          ORDER BY u.fecha_creacion DESC;
+        `);
         return res.rows;
       } catch (err) {
         console.warn('⚠️ Query error en PostgreSQL getAllUsuariosAsync, usando fallback in-memory:', err.message);
@@ -285,7 +292,41 @@ const DB = {
           VALUES ($1, $2, crypt($3, gen_salt('bf')), $4, $5, true)
           RETURNING id, nombre, correo, roles, avatar_url AS avatar, activo, fecha_creacion;
         `, [data.nombre, data.correo, data.contrasena, JSON.stringify(data.roles || ['Candidato']), data.avatar]);
-        return res.rows[0];
+        
+        const newUser = res.rows[0];
+        
+        if (data.empresa_data) {
+          await query(`
+            INSERT INTO empresas (id_usuario, nombre_clinica, tipo_centro, region_alemania, ciudad, telefono, contacto_nombre, correo_contacto)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+          `, [
+            newUser.id, 
+            data.empresa_data.nombre_clinica || 'Sin Nombre', 
+            data.empresa_data.tipo_centro || null,
+            data.empresa_data.region_alemania || null,
+            data.empresa_data.ciudad || null,
+            data.empresa_data.telefono || null,
+            data.empresa_data.contacto_nombre || null,
+            data.empresa_data.correo_contacto || null
+          ]);
+        }
+        
+        if (data.socio_data) {
+          await query(`
+            INSERT INTO socios (id_usuario, nombre_agencia, pais_operacion, telefono, porcentaje_comision, contacto_nombre, correo_contacto)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
+          `, [
+            newUser.id,
+            data.socio_data.nombre_agencia || 'Sin Nombre',
+            data.socio_data.pais_operacion || null,
+            data.socio_data.telefono || null,
+            data.socio_data.porcentaje_comision || 10,
+            data.socio_data.contacto_nombre || null,
+            data.socio_data.correo_contacto || null
+          ]);
+        }
+        
+        return newUser;
       } catch (err) {
         console.error('⚠️ Error insertando en PostgreSQL createUsuarioAsync:', err.message);
         throw err;
@@ -321,7 +362,72 @@ const DB = {
           WHERE id = $6
           RETURNING id, nombre, correo, roles, avatar_url AS avatar, activo, fecha_creacion;
         `, [data.nombre, data.correo, JSON.stringify(data.roles), data.avatar, data.activo, id]);
-        return res.rows[0];
+        
+        const updatedUser = res.rows[0];
+        
+        if (data.empresa_data) {
+          const empRes = await query('SELECT id FROM empresas WHERE id_usuario = $1 LIMIT 1', [id]);
+          if (empRes.rows.length > 0) {
+            await query(`
+              UPDATE empresas 
+              SET nombre_clinica = $1, tipo_centro = $2, region_alemania = $3, ciudad = $4, telefono = $5
+              WHERE id_usuario = $6
+            `, [
+              data.empresa_data.nombre_clinica || 'Sin Nombre',
+              data.empresa_data.tipo_centro || null,
+              data.empresa_data.region_alemania || null,
+              data.empresa_data.ciudad || null,
+              data.empresa_data.telefono || null,
+              id
+            ]);
+          } else {
+            await query(`
+              INSERT INTO empresas (id_usuario, nombre_clinica, tipo_centro, region_alemania, ciudad, telefono, contacto_nombre, correo_contacto)
+              VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            `, [
+              id,
+              data.empresa_data.nombre_clinica || 'Sin Nombre',
+              data.empresa_data.tipo_centro || null,
+              data.empresa_data.region_alemania || null,
+              data.empresa_data.ciudad || null,
+              data.empresa_data.telefono || null,
+              data.empresa_data.contacto_nombre || null,
+              data.empresa_data.correo_contacto || null
+            ]);
+          }
+        }
+        
+        if (data.socio_data) {
+          const socRes = await query('SELECT id FROM socios WHERE id_usuario = $1 LIMIT 1', [id]);
+          if (socRes.rows.length > 0) {
+            await query(`
+              UPDATE socios
+              SET nombre_agencia = $1, pais_operacion = $2, telefono = $3, porcentaje_comision = $4
+              WHERE id_usuario = $5
+            `, [
+              data.socio_data.nombre_agencia || 'Sin Nombre',
+              data.socio_data.pais_operacion || null,
+              data.socio_data.telefono || null,
+              data.socio_data.porcentaje_comision || 10,
+              id
+            ]);
+          } else {
+            await query(`
+              INSERT INTO socios (id_usuario, nombre_agencia, pais_operacion, telefono, porcentaje_comision, contacto_nombre, correo_contacto)
+              VALUES ($1, $2, $3, $4, $5, $6, $7)
+            `, [
+              id,
+              data.socio_data.nombre_agencia || 'Sin Nombre',
+              data.socio_data.pais_operacion || null,
+              data.socio_data.telefono || null,
+              data.socio_data.porcentaje_comision || 10,
+              data.socio_data.contacto_nombre || null,
+              data.socio_data.correo_contacto || null
+            ]);
+          }
+        }
+        
+        return updatedUser;
       } catch (err) {
         console.error('⚠️ Error actualizando en PostgreSQL updateUsuarioAsync:', err.message);
         throw err;

@@ -718,9 +718,35 @@ function renderAdminUsers() {
                 <label style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="nu-rol" value="Asesor"> Asesor</label>
                 <label style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="nu-rol" value="Profesor"> Profesor</label>
                 <label style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="nu-rol" value="Candidato"> Candidato</label>
-                <label style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="nu-rol" value="Empresa"> Empresa</label>
-                <label style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="nu-rol" value="Socio"> Socio</label>
+                <label style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="nu-rol" value="Empresa" onchange="toggleRoleFields('nu')"> Empresa</label>
+                <label style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="nu-rol" value="Socio" onchange="toggleRoleFields('nu')"> Socio</label>
               </div>
+            </div>
+
+            <!-- Campos dinámicos para Empresa -->
+            <div id="nu-empresa-fields" style="display:none; padding:10px; background:#f8fafc; border-radius:6px; margin-top:10px; flex-direction:column;">
+              <h4 style="margin:0 0 10px 0; font-size:14px; color:#334155;">🏢 Datos de la Institución / Clínica</h4>
+              <input class="form-input" id="nu-empresa-nombre" placeholder="Nombre de la Clínica/Hospital" style="margin-bottom:8px">
+              <select class="form-input" id="nu-empresa-tipo" style="margin-bottom:8px">
+                <option value="">Tipo de Centro...</option>
+                <option value="Hospital_Universitario">Hospital Universitario</option>
+                <option value="Clinica_Privada">Clínica Privada</option>
+                <option value="Centro_Medico">Centro Médico</option>
+                <option value="Residencia">Residencia</option>
+                <option value="Otro">Otro</option>
+              </select>
+              <input class="form-input" id="nu-empresa-region" placeholder="Región (Ej. Bayern)" style="margin-bottom:8px">
+              <input class="form-input" id="nu-empresa-ciudad" placeholder="Ciudad" style="margin-bottom:8px">
+              <input class="form-input" id="nu-empresa-telefono" placeholder="Teléfono Institucional">
+            </div>
+
+            <!-- Campos dinámicos para Socio -->
+            <div id="nu-socio-fields" style="display:none; padding:10px; background:#f0fdf4; border-radius:6px; margin-top:10px; flex-direction:column;">
+              <h4 style="margin:0 0 10px 0; font-size:14px; color:#166534;">🤝 Datos de la Agencia Aliada</h4>
+              <input class="form-input" id="nu-socio-nombre" placeholder="Nombre de la Agencia" style="margin-bottom:8px">
+              <input class="form-input" id="nu-socio-pais" placeholder="País de Operación" style="margin-bottom:8px">
+              <input class="form-input" type="number" id="nu-socio-comision" placeholder="% Comisión (Ej. 10)" step="0.01" style="margin-bottom:8px">
+              <input class="form-input" id="nu-socio-telefono" placeholder="Teléfono Institucional">
             </div>
           </form>
         </div>
@@ -760,9 +786,35 @@ function renderAdminUsers() {
                 <label style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="eu-rol" value="Asesor"> Asesor</label>
                 <label style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="eu-rol" value="Profesor"> Profesor</label>
                 <label style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="eu-rol" value="Candidato"> Candidato</label>
-                <label style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="eu-rol" value="Empresa"> Empresa</label>
-                <label style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="eu-rol" value="Socio"> Socio</label>
+                <label style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="eu-rol" value="Empresa" onchange="toggleRoleFields('eu')"> Empresa</label>
+                <label style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="eu-rol" value="Socio" onchange="toggleRoleFields('eu')"> Socio</label>
               </div>
+            </div>
+
+            <!-- Campos dinámicos para Empresa -->
+            <div id="eu-empresa-fields" style="display:none; padding:10px; background:#f8fafc; border-radius:6px; margin-top:10px; flex-direction:column;">
+              <h4 style="margin:0 0 10px 0; font-size:14px; color:#334155;">🏢 Datos de la Institución / Clínica</h4>
+              <input class="form-input" id="eu-empresa-nombre" placeholder="Nombre de la Clínica/Hospital" style="margin-bottom:8px">
+              <select class="form-input" id="eu-empresa-tipo" style="margin-bottom:8px">
+                <option value="">Tipo de Centro...</option>
+                <option value="Hospital_Universitario">Hospital Universitario</option>
+                <option value="Clinica_Privada">Clínica Privada</option>
+                <option value="Centro_Medico">Centro Médico</option>
+                <option value="Residencia">Residencia</option>
+                <option value="Otro">Otro</option>
+              </select>
+              <input class="form-input" id="eu-empresa-region" placeholder="Región (Ej. Bayern)" style="margin-bottom:8px">
+              <input class="form-input" id="eu-empresa-ciudad" placeholder="Ciudad" style="margin-bottom:8px">
+              <input class="form-input" id="eu-empresa-telefono" placeholder="Teléfono Institucional">
+            </div>
+
+            <!-- Campos dinámicos para Socio -->
+            <div id="eu-socio-fields" style="display:none; padding:10px; background:#f0fdf4; border-radius:6px; margin-top:10px; flex-direction:column;">
+              <h4 style="margin:0 0 10px 0; font-size:14px; color:#166534;">🤝 Datos de la Agencia Aliada</h4>
+              <input class="form-input" id="eu-socio-nombre" placeholder="Nombre de la Agencia" style="margin-bottom:8px">
+              <input class="form-input" id="eu-socio-pais" placeholder="País de Operación" style="margin-bottom:8px">
+              <input class="form-input" type="number" id="eu-socio-comision" placeholder="% Comisión (Ej. 10)" step="0.01" style="margin-bottom:8px">
+              <input class="form-input" id="eu-socio-telefono" placeholder="Teléfono Institucional">
             </div>
           </form>
         </div>
@@ -777,6 +829,17 @@ function renderAdminUsers() {
 
 function initUserForm() {}
 
+window.toggleRoleFields = function(prefix) {
+  const isEmpresa = Array.from(document.querySelectorAll(`input[name="${prefix}-rol"]:checked`)).some(cb => cb.value === 'Empresa');
+  const isSocio = Array.from(document.querySelectorAll(`input[name="${prefix}-rol"]:checked`)).some(cb => cb.value === 'Socio');
+  
+  const empFields = document.getElementById(`${prefix}-empresa-fields`);
+  const socFields = document.getElementById(`${prefix}-socio-fields`);
+  
+  if(empFields) empFields.style.display = isEmpresa ? 'flex' : 'none';
+  if(socFields) socFields.style.display = isSocio ? 'flex' : 'none';
+};
+
 function createUser() {
   if (!State.currentUser.roles.includes('Admin')) { showToast('Error', 'No tienes permisos para esta acción.', 'error'); return; }
   const nombre = $('nu-nombre')?.value.trim();
@@ -787,7 +850,32 @@ function createUser() {
   const roles = Array.from(checkboxes).map(cb => cb.value);
 
   if (!nombre || !correo || !pass || roles.length === 0) { showToast('Error', 'Completa todos los campos y selecciona al menos un rol.', 'error'); return; }
-  DB.createUsuario({ nombre, correo, contrasena: pass, roles, avatar: getInitials(nombre) });
+  
+  let payload = { nombre, correo, contrasena: pass, roles, avatar: getInitials(nombre) };
+  
+  if (roles.includes('Empresa')) {
+    payload.empresa_data = {
+      nombre_clinica: $('nu-empresa-nombre')?.value.trim(),
+      tipo_centro: $('nu-empresa-tipo')?.value,
+      region_alemania: $('nu-empresa-region')?.value.trim(),
+      ciudad: $('nu-empresa-ciudad')?.value.trim(),
+      telefono: $('nu-empresa-telefono')?.value.trim(),
+      contacto_nombre: nombre,
+      correo_contacto: correo
+    };
+  }
+  if (roles.includes('Socio')) {
+    payload.socio_data = {
+      nombre_agencia: $('nu-socio-nombre')?.value.trim(),
+      pais_operacion: $('nu-socio-pais')?.value.trim(),
+      porcentaje_comision: $('nu-socio-comision')?.value || 10,
+      telefono: $('nu-socio-telefono')?.value.trim(),
+      contacto_nombre: nombre,
+      correo_contacto: correo
+    };
+  }
+
+  DB.createUsuario(payload);
   closeModal('modal-new-user');
   showToast('Usuario creado', `${nombre} fue registrado con ${roles.length} rol(es).`, 'success');
   navigateTo('admin-users');
@@ -818,6 +906,35 @@ function editUser(id) {
     cb.checked = user.roles && user.roles.includes(cb.value);
   });
   
+  // Populate dynamic fields if they exist
+  if (user.empresa_data) {
+    $('eu-empresa-nombre').value = user.empresa_data.nombre_clinica || '';
+    $('eu-empresa-tipo').value = user.empresa_data.tipo_centro || '';
+    $('eu-empresa-region').value = user.empresa_data.region_alemania || '';
+    $('eu-empresa-ciudad').value = user.empresa_data.ciudad || '';
+    $('eu-empresa-telefono').value = user.empresa_data.telefono || '';
+  } else {
+    $('eu-empresa-nombre').value = '';
+    $('eu-empresa-tipo').value = '';
+    $('eu-empresa-region').value = '';
+    $('eu-empresa-ciudad').value = '';
+    $('eu-empresa-telefono').value = '';
+  }
+  
+  if (user.socio_data) {
+    $('eu-socio-nombre').value = user.socio_data.nombre_agencia || '';
+    $('eu-socio-pais').value = user.socio_data.pais_operacion || '';
+    $('eu-socio-comision').value = user.socio_data.porcentaje_comision || '';
+    $('eu-socio-telefono').value = user.socio_data.telefono || '';
+  } else {
+    $('eu-socio-nombre').value = '';
+    $('eu-socio-pais').value = '';
+    $('eu-socio-comision').value = '';
+    $('eu-socio-telefono').value = '';
+  }
+  
+  if (window.toggleRoleFields) window.toggleRoleFields('eu');
+  
   openModal('modal-edit-user');
 }
 
@@ -837,8 +954,30 @@ async function saveUser() {
     return;
   }
   
-  const updateData = { nombre, correo, roles };
+  let updateData = { nombre, correo, roles };
   if (pass) updateData.contrasena = pass;
+  
+  if (roles.includes('Empresa')) {
+    updateData.empresa_data = {
+      nombre_clinica: $('eu-empresa-nombre')?.value.trim(),
+      tipo_centro: $('eu-empresa-tipo')?.value,
+      region_alemania: $('eu-empresa-region')?.value.trim(),
+      ciudad: $('eu-empresa-ciudad')?.value.trim(),
+      telefono: $('eu-empresa-telefono')?.value.trim(),
+      contacto_nombre: nombre,
+      correo_contacto: correo
+    };
+  }
+  if (roles.includes('Socio')) {
+    updateData.socio_data = {
+      nombre_agencia: $('eu-socio-nombre')?.value.trim(),
+      pais_operacion: $('eu-socio-pais')?.value.trim(),
+      porcentaje_comision: $('eu-socio-comision')?.value || 10,
+      telefono: $('eu-socio-telefono')?.value.trim(),
+      contacto_nombre: nombre,
+      correo_contacto: correo
+    };
+  }
   
   try {
     await DB.updateUsuario(id, updateData);
