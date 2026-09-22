@@ -336,13 +336,13 @@ CREATE TABLE auditoria_gdpr (
 -- -------------------------------------------------------
 
 -- Usuarios Oficiales del Sistema
-INSERT INTO usuarios (id, nombre, correo, contrasena_hash, rol) VALUES
-    ('a0000000-0000-0000-0000-000000000001', 'Ana García (Admin)', 'admin@jnpalabras.com', 'JNPalabrasAdmin2026!', 'Admin'),
-    ('a0000000-0000-0000-0000-000000000002', 'Carlos Martínez (Asesor)', 'asesor@jnpalabras.com', 'JNPalabrasAsesor2026!', 'Asesor'),
-    ('a0000000-0000-0000-0000-000000000003', 'Dra. Elena Weber (Profesor)', 'profesor@jnpalabras.com', 'JNPalabrasProfesor2026!', 'Profesor'),
-    ('a0000000-0000-0000-0000-000000000004', 'Dr. Javier Torres (Candidato)', 'candidato@jnpalabras.com', 'JNPalabrasCandidato2026!', 'Candidato'),
-    ('a0000000-0000-0000-0000-000000000005', 'Klinikum Stuttgart', 'empresa@jnpalabras.com', 'JNPalabrasEmpresa2026!', 'Empresa'),
-    ('a0000000-0000-0000-0000-000000000006', 'MediLink Colombia', 'socio@jnpalabras.com', 'JNPalabrasSocio2026!', 'Socio');
+INSERT INTO usuarios (id, nombre, correo, contrasena_hash, roles) VALUES
+    ('a0000000-0000-0000-0000-000000000001', 'Ana García (Admin)', 'admin@jnpalabras.com', 'JNPalabrasAdmin2026!', '["Admin"]'::jsonb),
+    ('a0000000-0000-0000-0000-000000000002', 'Carlos Martínez (Asesor)', 'asesor@jnpalabras.com', 'JNPalabrasAsesor2026!', '["Asesor"]'::jsonb),
+    ('a0000000-0000-0000-0000-000000000003', 'Dra. Elena Weber (Profesor)', 'profesor@jnpalabras.com', 'JNPalabrasProfesor2026!', '["Profesor"]'::jsonb),
+    ('a0000000-0000-0000-0000-000000000004', 'Dr. Javier Torres (Candidato)', 'candidato@jnpalabras.com', 'JNPalabrasCandidato2026!', '["Candidato"]'::jsonb),
+    ('a0000000-0000-0000-0000-000000000005', 'Klinikum Stuttgart', 'empresa@jnpalabras.com', 'JNPalabrasEmpresa2026!', '["Empresa"]'::jsonb),
+    ('a0000000-0000-0000-0000-000000000006', 'MediLink Colombia', 'socio@jnpalabras.com', 'JNPalabrasSocio2026!', '["Socio"]'::jsonb);
 
 -- Candidatos de demostración
 INSERT INTO candidatos (id, id_usuario, nombre_completo, pais_origen, especialidad_medica, nivel_aleman_actual, estado_proceso, estado_homologacion, consentimiento_gdpr, fecha_consentimiento) VALUES
