@@ -4,8 +4,7 @@
  * Kanban Drag & Drop, notificaciones, matching y toda la lógica de interfaz.
  */
 
-import { DB } from './db.js';
-import { getIcon } from './icons.js';
+
 
 // ──────────────────────────────────────────────────────────────────
 // ESTADO GLOBAL
@@ -24,6 +23,7 @@ const State = {
   cvActiveTab: 'edit',
   cvSelectedCandId: null,
   cvDraft: null,
+  kanbanView: 'kanban', // 'kanban' | 'list'
 };
 
 // ──────────────────────────────────────────────────────────────────
@@ -46,10 +46,12 @@ function formatCurrency(amount, currency = 'EUR') {
 }
 
 function getInitials(name) {
-  return name.split(' ').slice(0,2).map(n => n[0]).join('').toUpperCase();
+  if (!name) return '??';
+  return name.split(' ').filter(Boolean).slice(0,2).map(n => n[0]).join('').toUpperCase();
 }
 
 function getAvatarColor(name) {
+  if (!name) return '#0f172a';
   const colors = ['#0f172a','#1e293b','#334155','#475569','#064e3b','#1e3a5f','#4c1d95','#7c2d12'];
   let h = 0; for (const c of name) h = (h * 31 + c.charCodeAt(0)) % colors.length;
   return colors[h];
@@ -84,6 +86,17 @@ function showPublic() {
   $('login-screen').classList.remove('active');
   document.body.className = '';
   State.currentView = 'public';
+  
+  const loginBtn = $('nav-login-btn');
+  if (loginBtn) {
+    if (State.currentUser) {
+      loginBtn.textContent = 'Mi Perfil';
+      loginBtn.onclick = showApp;
+    } else {
+      loginBtn.textContent = 'Iniciar Sesión';
+      loginBtn.onclick = showLogin;
+    }
+  }
 }
 
 function showLogin() {
@@ -119,9 +132,10 @@ async function handleLogin(e) {
   
   if (user) {
     State.currentUser = user;
+  if (user && !State.activeRole) State.activeRole = (user.roles && user.roles.length > 0) ? user.roles[0] : 'Candidato';
     State.currentSidebar = null;
     DB.setSession(user);
-    showToast('Bienvenido/a', `Hola ${user.nombre.split(' ')[0]}! Has iniciado sesión como ${user.rol}.`, 'success');
+    showToast('Bienvenido/a', `Hola ${user.nombre.split(' ')[0]}! Has iniciado sesión como ${State.activeRole}.`, 'success');
     showApp();
   } else {
     showToast('Error de acceso', 'Correo o contraseña incorrectos.', 'error');
@@ -131,10 +145,57 @@ async function handleLogin(e) {
 
 function handleLogout() {
   State.currentUser = null;
+  State.activeRole = null;
   State.currentSidebar = null;
   DB.clearSession();
   showPublic();
   showToast('Sesión cerrada', 'Has cerrado sesión exitosamente.', 'info');
+}
+
+function editProfile() {
+  const user = State.currentUser;
+  if (!user) return;
+  
+  const elId = $('ep-id');
+  const elNombre = $('ep-nombre');
+  const elCorreo = $('ep-correo');
+  const elPass = $('ep-pass');
+  if (elId) elId.value = user.id;
+  if (elNombre) elNombre.value = user.nombre || '';
+  if (elCorreo) elCorreo.value = user.correo || '';
+  if (elPass) elPass.value = '';
+  
+  openModal('modal-edit-profile');
+}
+
+async function saveProfile() {
+  const id = $('ep-id').value;
+  const nombre = $('ep-nombre').value.trim();
+  const correo = $('ep-correo').value.trim();
+  const pass = $('ep-pass').value.trim();
+  
+  if (!nombre || !correo) {
+    showToast('Error', 'Completa los campos obligatorios.', 'error');
+    return;
+  }
+  
+  const updateData = { nombre, correo };
+  if (pass) updateData.contrasena = pass;
+  
+  try {
+    await DB.updateUsuario(id, updateData);
+    State.currentUser.nombre = nombre;
+    State.currentUser.correo = correo;
+    if (pass) State.currentUser.contrasena = pass;
+    DB.setSession(State.currentUser);
+    
+    closeModal('modal-edit-profile');
+    showToast('Éxito', 'Perfil actualizado correctamente.', 'success');
+    renderAppShell();
+  } catch(e) {
+    console.error(e);
+    showToast('Error', 'Ocurrió un error al actualizar el perfil.', 'error');
+  }
 }
 
 // ──────────────────────────────────────────────────────────────────
@@ -147,12 +208,12 @@ function renderAppShell() {
   ensureNotifClickListener();
 
   // Configurar Tema Visual por Rol
-  document.body.className = `theme-${user.rol.toLowerCase()}`;
+  document.body.className = `theme-${State.activeRole.toLowerCase()}`;
 
   // Header
   const notifCount = DB.getNotifNoLeidas(user.id);
   $('app-header-content').innerHTML = `
-    <div class="app-logo">
+    <div class="app-logo" onclick="navigateTo(SIDEBAR_MENUS[State.activeRole][0].id)" style="cursor: pointer;" aria-label="Ir al inicio del dashboard">
       <img src="/logo.png" alt="JN Palabras" class="app-logo-img" style="height:32px;width:32px;object-fit:contain;border-radius:50%;">
       <span class="app-logo-name">JN Palabras</span>
     </div>
@@ -173,16 +234,26 @@ function renderAppShell() {
         <div class="role-avatar" style="background:${getAvatarColor(user.nombre)}">${getInitials(user.nombre)}</div>
         <div class="role-info">
           <div class="role-name">${user.nombre.split(' ').slice(0,2).join(' ')}</div>
-          <div class="role-label" style="display:flex;align-items:center;gap:4px;">${getRolIcon(user.rol)} ${user.rol}</div>
+          
+          <div class="role-label" style="display:flex;align-items:center;gap:4px;">
+            ${getRolIcon(State.activeRole)} 
+            <select class="role-switcher-select" onchange="switchRole(this.value)" style="background:transparent;border:none;color:inherit;font-size:inherit;font-weight:inherit;outline:none;cursor:pointer;">
+              ${(user.roles || [State.activeRole]).map(r => `<option value="${r}" ${r===State.activeRole?'selected':''}>${r}</option>`).join('')}
+            </select>
+          </div>
+
         </div>
       </div>
-      <button onclick="handleLogout()" class="btn btn-outline btn-sm">Salir</button>
+      <div style="display:flex;gap:4px;">
+        <button onclick="editProfile()" class="btn btn-outline btn-sm">Editar Perfil</button>
+        <button onclick="handleLogout()" class="btn btn-outline btn-sm">Salir</button>
+      </div>
     </div>
   `;
 
   // Sidebar + contenido
-  renderSidebar(user.rol);
-  renderDashboard(user.rol);
+  renderSidebar(State.activeRole);
+  renderDashboard(State.activeRole);
 }
 
 // Cerrar panel notif al hacer clic fuera — registrado una sola vez
@@ -277,6 +348,7 @@ const SIDEBAR_MENUS = {
   ],
   Asesor: [
     { id:'asesor-kanban',     icon: getIcon('Asesor'),   label:'Kanban Candidatos'   },
+    { id:'asesor-base-datos', icon: getIcon('Admin'),    label:'Base de Datos'       },
     { id:'asesor-expedientes',icon: getIcon('clipboard'),label:'Expedientes'         },
     { id:'asesor-cv-builder', icon: getIcon('fileText'), label:'Hojas de Vida (CV)'  },
     { id:'asesor-matching',   icon: getIcon('search'),   label:'Matching IA'         },
@@ -310,13 +382,20 @@ const SIDEBAR_MENUS = {
 };
 
 function renderSidebar(rol) {
+  const user = State.currentUser;
   const items = SIDEBAR_MENUS[rol] || [];
   const firstItem = items[0]?.id;
   State.currentSidebar = State.currentSidebar || firstItem;
 
   $('sidebar-content').innerHTML = `
-    <div class="sidebar-section">
-      <div class="sidebar-label">${rol}</div>
+    <!-- Logo en el Sidebar -->
+    <div class="sidebar-logo" style="padding: var(--space-6) var(--space-5); display: flex; align-items: center; gap: var(--space-3); border-bottom: 1px solid rgba(255,255,255,0.05); cursor: pointer;" onclick="navigateTo(SIDEBAR_MENUS[State.activeRole][0].id)">
+      <img src="/logo.png" alt="JN Palabras" style="height:32px;width:32px;object-fit:contain;border-radius:50%;background:#fff;padding:2px;">
+      <span style="color:#fff; font-weight:700; font-size:1.125rem; letter-spacing:-0.02em;">JN Palabras</span>
+    </div>
+
+    <div class="sidebar-section" style="margin-top: var(--space-6);">
+      <div class="sidebar-label" style="color: rgba(255,255,255,0.5);">${rol}</div>
       ${items.map(item => `
         <div class="sidebar-link ${State.currentSidebar === item.id ? 'active' : ''}"
              onclick="navigateTo('${item.id}')">
@@ -325,10 +404,19 @@ function renderSidebar(rol) {
         </div>
       `).join('')}
     </div>
-    <div style="margin-top:auto;padding:0 16px 16px;">
-      <div class="divider-dark"></div>
-      <div class="sidebar-link" onclick="showPublic()">
+    
+    <div style="margin-top:auto; display:flex; flex-direction:column;">
+      <div class="sidebar-link" style="margin: 0 var(--space-4) var(--space-4);" onclick="showPublic()">
         <span class="sidebar-icon" style="display:inline-flex;align-items:center;">${getIcon('globe')}</span> Web Pública
+      </div>
+      
+      <!-- Perfil inferior -->
+      <div class="sidebar-profile">
+        <div class="sidebar-profile-avatar">${user ? user.nombre.charAt(0).toUpperCase() : 'U'}</div>
+        <div class="sidebar-profile-info">
+          <span class="sidebar-profile-name">${user ? user.nombre.split(' ')[0] : 'Usuario'}</span>
+          <span class="sidebar-profile-role">${rol}</span>
+        </div>
       </div>
     </div>
   `;
@@ -336,14 +424,14 @@ function renderSidebar(rol) {
 
 function navigateTo(id) {
   State.currentSidebar = id;
-  renderSidebar(State.currentUser.rol);
-  renderDashboard(State.currentUser.rol, id);
+  renderSidebar(State.activeRole);
+  renderDashboard(State.activeRole, id);
 }
 
 // ──────────────────────────────────────────────────────────────────
 // DASHBOARD ROUTER
 // ──────────────────────────────────────────────────────────────────
-function renderDashboard(rol, view = null) {
+async function renderDashboard(rol, view = null) {
   let id = view || State.currentSidebar || SIDEBAR_MENUS[rol]?.[0]?.id;
   
   // Validar permisos (Role-Based Access Control básico)
@@ -366,6 +454,7 @@ function renderDashboard(rol, view = null) {
     'admin-empresas':   renderAdminEmpresas,
     // Asesor
     'asesor-kanban':      renderAsesorKanban,
+    'asesor-base-datos':  renderAdminCandidatos,
     'asesor-expedientes': renderAsesorExpedientes,
     'asesor-cv-builder':  renderAsesorCVBuilder,
     'asesor-matching':    renderAsesorMatching,
@@ -395,15 +484,20 @@ function renderDashboard(rol, view = null) {
 
   const fn = renders[id];
   if (fn) {
-    container.innerHTML = '<div class="animate-fadeInUp">' + fn() + '</div>';
-    // Post-render hooks
-    if (id === 'asesor-kanban') initKanban();
-    if (id === 'emp-vacantes')  initVacanteForm();
-    if (id === 'admin-users')   initUserForm();
+    try {
+      const html = await fn();
+      container.innerHTML = '<div class="animate-fadeInUp">' + html + '</div>';
+      // Post-render hooks
+      if (id === 'asesor-kanban') initKanban();
+      if (id === 'emp-vacantes')  initVacanteForm();
+      if (id === 'admin-users')   initUserForm();
+    } catch (e) {
+      console.error("Error renderizando vista:", e);
+      container.innerHTML = `<div class="p-8 text-center text-[var(--danger)]">Error al cargar la vista.</div>`;
+    }
   }
 }
 
-// ──────────────────────────────────────────────────────────────────
 // ★ DASHBOARD 1: SUPER ADMINISTRADOR
 // ──────────────────────────────────────────────────────────────────
 function renderAdminOverview() {
@@ -531,6 +625,9 @@ function renderAdminOverview() {
 }
 
 function renderAdminUsers() {
+  if (State.activeRole !== 'Admin') {
+    return `<div class="p-8 text-center text-[var(--danger)]">Acceso denegado. Se requieren privilegios de Administrador.</div>`;
+  }
   const users = DB.getUsuarios();
   return `
     <div class="page-header">
@@ -573,7 +670,11 @@ function renderAdminUsers() {
                   </div>
                 </td>
                 <td>${u.correo}</td>
-                <td><span class="badge" style="background:${getRolColor(u.rol)}22;color:${getRolColor(u.rol)}">${getRolIcon(u.rol)} ${u.rol}</span></td>
+                <td>
+                  <div style="display:flex;gap:4px;flex-wrap:wrap;">
+                    ${(u.roles || []).map(r => `<span class="badge" style="background:${getRolColor(r)}22;color:${getRolColor(r)}">${getRolIcon(r)} ${r}</span>`).join('')}
+                  </div>
+                </td>
                 <td><span class="badge ${u.activo?'badge-success':'badge-slate'}">${u.activo?'Activo':'Inactivo'}</span></td>
                 <td>${u.fecha_creacion||'—'}</td>
                 <td>
@@ -611,11 +712,15 @@ function renderAdminUsers() {
               <input class="form-input" id="nu-pass" placeholder="Contraseña inicial" required>
             </div>
             <div class="form-group">
-              <label class="form-label">Rol</label>
-              <select class="form-select" id="nu-rol">
-                <option>Admin</option><option>Asesor</option><option>Profesor</option>
-                <option>Candidato</option><option>Empresa</option><option>Socio</option>
-              </select>
+              <label class="form-label">Roles (Selecciona uno o más)</label>
+              <div style="display:flex;flex-wrap:wrap;gap:10px;">
+                <label style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="nu-rol" value="Admin"> Admin</label>
+                <label style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="nu-rol" value="Asesor"> Asesor</label>
+                <label style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="nu-rol" value="Profesor"> Profesor</label>
+                <label style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="nu-rol" value="Candidato"> Candidato</label>
+                <label style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="nu-rol" value="Empresa"> Empresa</label>
+                <label style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="nu-rol" value="Socio"> Socio</label>
+              </div>
             </div>
           </form>
         </div>
@@ -625,31 +730,126 @@ function renderAdminUsers() {
         </div>
       </div>
     </div>
+
+    <!-- Modal Editar Usuario -->
+    <div class="modal-overlay" id="modal-edit-user">
+      <div class="modal">
+        <div class="modal-header">
+          <h3 class="modal-title">✏️ Editar Usuario</h3>
+          <button class="modal-close" onclick="closeModal('modal-edit-user')">✕</button>
+        </div>
+        <div class="modal-body">
+          <form id="edit-user-form" style="display:flex;flex-direction:column;gap:16px;">
+            <input type="hidden" id="eu-id">
+            <div class="form-group">
+              <label class="form-label">Nombre completo</label>
+              <input class="form-input" id="eu-nombre" placeholder="Nombre y apellidos" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Correo electrónico</label>
+              <input class="form-input" type="email" id="eu-correo" placeholder="correo@ejemplo.com" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Contraseña (Opcional)</label>
+              <input class="form-input" id="eu-pass" placeholder="Dejar en blanco para mantener la actual">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Roles (Selecciona uno o más)</label>
+              <div style="display:flex;flex-wrap:wrap;gap:10px;">
+                <label style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="eu-rol" value="Admin"> Admin</label>
+                <label style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="eu-rol" value="Asesor"> Asesor</label>
+                <label style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="eu-rol" value="Profesor"> Profesor</label>
+                <label style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="eu-rol" value="Candidato"> Candidato</label>
+                <label style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="eu-rol" value="Empresa"> Empresa</label>
+                <label style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="eu-rol" value="Socio"> Socio</label>
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-outline" onclick="closeModal('modal-edit-user')">Cancelar</button>
+          <button class="btn btn-primary" onclick="saveUser()">Guardar Cambios</button>
+        </div>
+      </div>
+    </div>
   `;
 }
 
 function initUserForm() {}
 
 function createUser() {
+  if (!State.currentUser.roles.includes('Admin')) { showToast('Error', 'No tienes permisos para esta acción.', 'error'); return; }
   const nombre = $('nu-nombre')?.value.trim();
   const correo = $('nu-correo')?.value.trim();
   const pass   = $('nu-pass')?.value.trim();
-  const rol    = $('nu-rol')?.value;
-  if (!nombre || !correo || !pass) { showToast('Error', 'Completa todos los campos.', 'error'); return; }
-  DB.createUsuario({ nombre, correo, contrasena: pass, rol, avatar: getInitials(nombre) });
+  
+  const checkboxes = document.querySelectorAll('input[name="nu-rol"]:checked');
+  const roles = Array.from(checkboxes).map(cb => cb.value);
+
+  if (!nombre || !correo || !pass || roles.length === 0) { showToast('Error', 'Completa todos los campos y selecciona al menos un rol.', 'error'); return; }
+  DB.createUsuario({ nombre, correo, contrasena: pass, roles, avatar: getInitials(nombre) });
   closeModal('modal-new-user');
-  showToast('Usuario creado', `${nombre} fue registrado como ${rol}.`, 'success');
+  showToast('Usuario creado', `${nombre} fue registrado con ${roles.length} rol(es).`, 'success');
   navigateTo('admin-users');
 }
 
 function deleteUser(id) {
+  if (State.activeRole !== 'Admin') { showToast('Error', 'No tienes permisos para esta acción.', 'error'); return; }
   if (!confirm('¿Eliminar este usuario? Esta acción no se puede deshacer.')) return;
   DB.deleteUsuario(id);
   showToast('Usuario eliminado', 'El usuario fue eliminado del sistema.', 'warning');
   navigateTo('admin-users');
 }
 
-function editUser(id) { showToast('Editar usuario', 'Función disponible en la siguiente fase del MVP.', 'info'); }
+function editUser(id) { 
+  if (State.activeRole !== 'Admin') { showToast('Error', 'No tienes permisos para esta acción.', 'error'); return; }
+  
+  const usuarios = DB.getUsuarios();
+  const user = usuarios.find(u => u.id === id);
+  if (!user) { showToast('Error', 'Usuario no encontrado.', 'error'); return; }
+  
+  $('eu-id').value = user.id;
+  $('eu-nombre').value = user.nombre;
+  $('eu-correo').value = user.correo;
+  $('eu-pass').value = '';
+  
+  const checkboxes = document.querySelectorAll('input[name="eu-rol"]');
+  checkboxes.forEach(cb => {
+    cb.checked = user.roles && user.roles.includes(cb.value);
+  });
+  
+  openModal('modal-edit-user');
+}
+
+async function saveUser() {
+  if (State.activeRole !== 'Admin') { showToast('Error', 'No tienes permisos para esta acción.', 'error'); return; }
+  
+  const id = $('eu-id').value;
+  const nombre = $('eu-nombre').value.trim();
+  const correo = $('eu-correo').value.trim();
+  const pass = $('eu-pass').value.trim();
+  
+  const checkboxes = document.querySelectorAll('input[name="eu-rol"]:checked');
+  const roles = Array.from(checkboxes).map(cb => cb.value);
+  
+  if (!nombre || !correo || roles.length === 0) {
+    showToast('Error', 'Completa los campos obligatorios y selecciona al menos un rol.', 'error');
+    return;
+  }
+  
+  const updateData = { nombre, correo, roles };
+  if (pass) updateData.contrasena = pass;
+  
+  try {
+    await DB.updateUsuario(id, updateData);
+    closeModal('modal-edit-user');
+    showToast('Éxito', 'Usuario actualizado correctamente.', 'success');
+    navigateTo('admin-users'); // refrescar la vista
+  } catch(e) {
+    console.error(e);
+    showToast('Error', 'Ocurrió un error al actualizar el usuario.', 'error');
+  }
+}
 
 function filterTable(input, tbodyId) {
   const val = input.value.toLowerCase();
@@ -673,14 +873,15 @@ function renderAdminCandidatos() {
       </div>
       <div class="data-table-wrapper">
         <table class="data-table">
-          <thead><tr><th>Candidato</th><th>País</th><th>Especialidad</th><th>Alemán</th><th>Estado Proceso</th><th>Homologación</th></tr></thead>
+          <thead><tr><th>Candidato</th><th>País</th><th>Especialidad</th><th>Alemán</th><th>Puntaje</th><th>Estado Proceso</th><th>Homologación</th></tr></thead>
           <tbody id="cand-table-body">
             ${candidatos.map(c => `
-              <tr>
+              <tr style="cursor:pointer;" onclick="openCandidateDetail('${c.id}')">
                 <td><div class="td-avatar"><div class="avatar" style="background:${getAvatarColor(c.nombre)}">${getInitials(c.nombre)}</div><div class="td-name">${c.nombre}</div></div></td>
                 <td><span style="font-size:1rem;">${countryFlag(c.pais)}</span> ${c.pais}</td>
                 <td>${c.especialidad}</td>
                 <td><span class="badge badge-info">${c.nivel_aleman}</span></td>
+                <td><strong style="color:var(--gold-600);">${c.puntaje_elegibilidad ?? 'N/A'}</strong></td>
                 <td><span class="badge" style="background:${getEstadoColor(c.estado_proceso)}22;color:${getEstadoColor(c.estado_proceso)}">${c.estado_proceso}</span></td>
                 <td><span class="badge ${c.estado_homologacion==='Aprobado'?'badge-success':c.estado_homologacion==='Rechazado'?'badge-danger':'badge-warning'}">${c.estado_homologacion}</span></td>
               </tr>
@@ -843,43 +1044,81 @@ function renderAdminEmpresas() {
 // ──────────────────────────────────────────────────────────────────
 function renderAsesorKanban() {
   const { kanban_columns, candidatos } = DB.get();
-  return `
-    <div class="page-header" style="display:flex;justify-content:space-between;align-items:center;background:var(--theme-sidebar-bg);padding:24px;border-radius:var(--radius-lg);margin-bottom:24px;color:#fff;">
-      <div>
-        <h1 style="font-size:1.5rem;font-weight:800;color:var(--theme-sidebar-text);margin-bottom:4px;">Tablero Kanban</h1>
-        <p style="font-size:.875rem;color:var(--theme-sidebar-text);opacity:0.8;">Pipeline de integración de candidatos</p>
-      </div>
-      <div style="display:flex;gap:12px;">
-        <button class="btn" style="background:var(--theme-accent);color:var(--theme-btn-primary-text);" onclick="showToast('Kanban','Filtros avanzados (Demo)','info')">⚙️ Filtrar Vista</button>
-        <button class="btn btn-outline" style="color:var(--theme-sidebar-text);border-color:var(--theme-sidebar-hover);" onclick="showToast('Kanban','Exportando a CSV...','success')">📥 Exportar</button>
-      </div>
-    </div>
-    <div class="kanban-board" id="kanban-board">
-      ${kanban_columns.map(col => {
-        const cards = candidatos.filter(c => c.estado_proceso === col.id);
-        return `
-          <div class="kanban-col" data-col="${col.id}" id="col-${col.id.replace(/\s+/g,'-')}">
-            <div class="kanban-col-header">
-              <span class="kanban-col-title">${col.icon} ${col.label}</span>
-              <span class="kanban-col-count">${cards.length}</span>
-            </div>
-            <div class="kanban-drop-zone" data-col="${col.id}">
-              ${cards.map(c => `
-                <div class="kanban-card" draggable="true" data-id="${c.id}" data-col="${col.id}"
-                     onclick="openCandidateDetail('${c.id}')">
-                  <div class="kanban-card-name">${c.nombre}</div>
-                  <div class="kanban-card-spec">${c.especialidad} · ${c.pais}</div>
-                  <div class="kanban-card-footer">
-                    <span class="badge badge-info" style="font-size:.65rem;">${c.nivel_aleman}</span>
-                    <span style="font-size:.7rem;color:var(--slate-400);">${countryFlag(c.pais)}</span>
+  const viewMode = State.kanbanView || 'kanban';
+
+  let boardHtml = '';
+  if (viewMode === 'kanban') {
+    boardHtml = `
+      <div class="kanban-board" id="kanban-board">
+        ${kanban_columns.map(col => {
+          const cards = candidatos.filter(c => c.estado_proceso === col.id);
+          return `
+            <div class="kanban-col" data-col="${col.id}" id="col-${col.id.replace(/\s+/g,'-')}">
+              <div class="kanban-col-header">
+                <span class="kanban-col-title">${col.icon} ${col.label}</span>
+                <span class="kanban-col-count">${cards.length}</span>
+              </div>
+              <div class="kanban-drop-zone" data-col="${col.id}">
+                ${cards.map(c => `
+                  <div class="kanban-card" draggable="true" data-id="${c.id}" data-col="${col.id}"
+                       onclick="openCandidateDetail('${c.id}')">
+                    <div class="kanban-card-name">${c.nombre}</div>
+                    <div class="kanban-card-spec">${c.especialidad} · ${c.pais}</div>
+                    <div class="kanban-card-footer">
+                      <span class="badge badge-info" style="font-size:.65rem;">${c.nivel_aleman}</span>
+                      <span style="font-size:.7rem;color:var(--slate-400);">${countryFlag(c.pais)}</span>
+                    </div>
                   </div>
-                </div>
-              `).join('')}
+                `).join('')}
+              </div>
             </div>
-          </div>
-        `;
-      }).join('')}
+          `;
+        }).join('')}
+      </div>
+    `;
+  } else {
+    boardHtml = `
+      <div class="card">
+        <div class="data-table-wrapper">
+          <table class="data-table">
+            <thead><tr><th>Candidato</th><th>País</th><th>Especialidad</th><th>Alemán</th><th>Estado Proceso</th></tr></thead>
+            <tbody>
+              ${candidatos.map(c => `
+                <tr onclick="openCandidateDetail('${c.id}')" style="cursor:pointer">
+                  <td><div class="td-avatar"><div class="avatar" style="background:${getAvatarColor(c.nombre)}">${getInitials(c.nombre)}</div><div class="td-name">${c.nombre}</div></div></td>
+                  <td><span style="font-size:1rem;">${countryFlag(c.pais)}</span> ${c.pais}</td>
+                  <td>${c.especialidad}</td>
+                  <td><span class="badge badge-info">${c.nivel_aleman}</span></td>
+                  <td><span class="badge badge-warning">${c.estado_proceso}</span></td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="kanban-banner">
+      <div>
+        <h1 class="kanban-banner-title">Tablero de Candidatos</h1>
+        <p class="kanban-banner-subtitle">Pipeline de integración de candidatos</p>
+      </div>
+      <div class="kanban-banner-actions">
+        <button class="btn btn-outline" style="color:#fff;border-color:rgba(255,255,255,0.2);" onclick="toggleKanbanView()">
+          <span style="margin-right:4px;">${getIcon('layout')}</span> Vista ${viewMode === 'kanban' ? 'Lista' : 'Kanban'}
+        </button>
+        <button class="btn" style="background:var(--gold-500);color:var(--wine-900);font-weight:700;" onclick="openModal('modal-nuevo-candidato')">
+          <span style="margin-right:4px;">${getIcon('userPlus')}</span> Agregar Candidato
+        </button>
+        <button class="btn btn-outline" style="color:#fff;border-color:rgba(255,255,255,0.2);" onclick="showToast('Exportar','Exportando a CSV...','success')">
+          <span style="margin-right:4px;">${getIcon('download')}</span> Exportar
+        </button>
+      </div>
     </div>
+    
+    ${boardHtml}
 
     <!-- Modal Detalle Candidato -->
     <div class="modal-overlay" id="modal-candidato">
@@ -891,7 +1130,74 @@ function renderAsesorKanban() {
         <div class="modal-body" id="modal-cand-body"></div>
       </div>
     </div>
+
+    <!-- Modal Nuevo Candidato Manual -->
+    <div class="modal-overlay" id="modal-nuevo-candidato">
+      <div class="modal" style="max-width:500px;">
+        <div class="modal-header">
+          <h3 class="modal-title">➕ Nuevo Candidato</h3>
+          <button class="modal-close" onclick="closeModal('modal-nuevo-candidato')">✕</button>
+        </div>
+        <div class="modal-body">
+          <form id="form-nuevo-candidato" style="display:flex;flex-direction:column;gap:16px;">
+            <div class="form-group">
+              <label class="form-label">Nombre completo</label>
+              <input class="form-input" id="nc-nombre" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Especialidad</label>
+              <input class="form-input" id="nc-especialidad" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">País</label>
+              <input class="form-input" id="nc-pais" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Nivel de Alemán</label>
+              <select class="form-select" id="nc-aleman">
+                <option>A1</option><option>A2</option><option>B1</option>
+                <option>B2</option><option>C1</option><option>C2</option>
+              </select>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-outline" onclick="closeModal('modal-nuevo-candidato')">Cancelar</button>
+          <button class="btn btn-primary" onclick="guardarNuevoCandidato()">Guardar</button>
+        </div>
+      </div>
+    </div>
   `;
+}
+
+function toggleKanbanView() {
+  State.kanbanView = State.kanbanView === 'list' ? 'kanban' : 'list';
+  renderDashboard(State.activeRole, 'asesor-kanban');
+}
+
+async function guardarNuevoCandidato() {
+  const nombre = $('nc-nombre').value.trim();
+  const especialidad = $('nc-especialidad').value.trim();
+  const pais = $('nc-pais').value.trim();
+  const aleman = $('nc-aleman').value;
+  
+  if (!nombre || !especialidad || !pais) {
+    showToast('Error', 'Completa todos los campos obligatorios', 'error');
+    return;
+  }
+  
+  await DB.createCandidato({
+    nombre,
+    especialidad,
+    pais,
+    nivel_aleman: aleman,
+    estado_proceso: 'Postulación',
+    estado_homologacion: 'Pendiente'
+  });
+  
+  closeModal('modal-nuevo-candidato');
+  showToast('Éxito', 'Candidato agregado exitosamente', 'success');
+  renderDashboard(State.activeRole, 'asesor-kanban');
 }
 
 function initKanban() {
@@ -951,11 +1257,14 @@ function openCandidateDetail(id) {
       <div class="avatar avatar-lg" style="background:${getAvatarColor(c.nombre)};flex-shrink:0;">${getInitials(c.nombre)}</div>
       <div>
         <div style="font-size:1.0625rem;font-weight:700;color:var(--slate-900);">${c.nombre}</div>
-        <div style="font-size:.875rem;color:var(--slate-600);">${c.especialidad} · ${c.pais} ${countryFlag(c.pais)}</div>
+        <div style="font-size:.875rem;color:var(--slate-600);">${c.especialidad} · ${c.pais} ${countryFlag(c.pais)}${c.edad ? ` · ${c.edad} años` : ''}</div>
+        ${c.correo ? `<div style="font-size:.875rem;color:var(--slate-500);margin-top:2px;">📧 ${c.correo}</div>` : ''}
+        ${c.telefono ? `<div style="font-size:.875rem;color:var(--slate-500);margin-top:2px;">📱 ${c.telefono}</div>` : ''}
         <div style="display:flex;gap:8px;margin-top:8px;">
           <span class="badge badge-info">${c.nivel_aleman}</span>
           <span class="badge badge-warning">${c.estado_proceso}</span>
           <span class="badge ${c.estado_homologacion==='Aprobado'?'badge-success':'badge-warning'}">${c.estado_homologacion}</span>
+          ${c.puntaje_elegibilidad !== undefined ? `<span class="badge badge-gold" title="Puntaje de Elegibilidad">Puntaje: ${c.puntaje_elegibilidad}</span>` : ''}
         </div>
       </div>
     </div>
@@ -963,7 +1272,19 @@ function openCandidateDetail(id) {
       <button class="btn btn-primary btn-sm" style="flex:1;justify-content:center;" onclick="closeModal('modal-candidato');openCVForCandidate('${id}')">
         📄 Ver / Editar Hoja de Vida (Plantilla Oficial JN)
       </button>
+      <button class="btn btn-danger btn-sm" onclick="deleteCandidateProfile('${id}')" style="justify-content:center;" title="Eliminar Candidato">
+        <span style="display:flex; align-items:center;">${getIcon('trash')}</span>
+      </button>
     </div>
+    ${c.estado_proceso === 'Lead Nuevo' ? `
+    <div style="margin-bottom:18px;display:flex;gap:10px;background:#f8fafc;padding:12px;border-radius:8px;border:1px solid var(--slate-200);">
+      <div style="flex:1;font-size:0.875rem;color:var(--slate-700);display:flex;align-items:center;">
+        <strong>Acción requerida:</strong> Evaluar candidato
+      </div>
+      <button class="btn btn-success btn-sm" onclick="acceptCandidate('${id}')">Aceptar</button>
+      <button class="btn btn-danger btn-sm" onclick="rejectCandidate('${id}')">Rechazar</button>
+    </div>
+    ` : ''}
     <div style="margin-bottom:20px;">
       <div style="font-size:.8125rem;font-weight:700;color:var(--slate-700);margin-bottom:10px;letter-spacing:.04em;text-transform:uppercase;">📁 Documentos del Expediente</div>
       ${docs.map(d => `
@@ -1005,6 +1326,37 @@ function openCandidateDetail(id) {
     </div>
   `;
   openModal('modal-candidato');
+}
+
+function deleteCandidateProfile(id) {
+  if (confirm('¿Estás seguro de que deseas eliminar a este candidato? Esta acción no se puede deshacer.')) {
+    DB.deleteCandidato(id).then(() => {
+      showToast('Candidato eliminado', 'El perfil ha sido borrado correctamente.', 'success');
+      closeModal('modal-candidato');
+      State.selectedCandidato = null;
+      renderDashboard(State.activeRole);
+    }).catch(e => {
+      showToast('Error', 'No se pudo eliminar el candidato.', 'error');
+    });
+  }
+}
+
+function acceptCandidate(id) {
+  DB.updateCandidato(id, { estado_proceso: 'En Proceso' }).then(() => {
+    showToast('Candidato aceptado', 'El candidato ha pasado a la fase "En Proceso".', 'success');
+    openCandidateDetail(id);
+    renderDashboard(State.activeRole);
+  });
+}
+
+function rejectCandidate(id) {
+  if (confirm('¿Estás seguro de que deseas rechazar a este candidato?')) {
+    DB.updateCandidato(id, { estado_proceso: 'Rechazado' }).then(() => {
+      showToast('Candidato rechazado', 'El candidato ha sido marcado como "Rechazado".', 'warning');
+      openCandidateDetail(id);
+      renderDashboard(State.activeRole);
+    });
+  }
 }
 
 function reviewDoc(docId, estado) {
@@ -1663,19 +2015,19 @@ function switchCVTab(tab) {
     State.cvDraft = collectCVFormData();
   }
   State.cvActiveTab = tab;
-  renderDashboard(State.currentUser.rol);
+  renderDashboard(State.activeRole);
 }
 
 function selectCandidateForCV(candId) {
   State.cvSelectedCandId = candId;
   State.cvDraft = null;
-  renderDashboard(State.currentUser.rol);
+  renderDashboard(State.activeRole);
 }
 
-function createNewCandidateCV() {
+async function createNewCandidateCV() {
   const nombre = prompt('Nombre completo del nuevo candidato:');
   if (!nombre) return;
-  const nuevo = DB.createCandidato({
+  const nuevo = await DB.createCandidato({
     nombre,
     especialidad: 'Medicina General',
     pais: 'Colombia',
@@ -1686,7 +2038,7 @@ function createNewCandidateCV() {
   State.cvSelectedCandId = nuevo.id;
   State.cvDraft = null;
   showToast('Candidato Creado', `Se ha creado a ${nombre}. Ahora puedes completar su Hoja de Vida.`, 'success');
-  renderDashboard(State.currentUser.rol);
+  renderDashboard(State.activeRole);
 }
 
 function printLebenslauf() {
@@ -1707,37 +2059,37 @@ function handleCvPhotoUpload(input) {
 function addWerdegangItem() {
   State.cvDraft = collectCVFormData();
   State.cvDraft.werdegang.push({ zeitraum: '', titel: '', beschreibung: '' });
-  renderDashboard(State.currentUser.rol);
+  renderDashboard(State.activeRole);
 }
 
 function removeWerdegangItem(index) {
   State.cvDraft = collectCVFormData();
   State.cvDraft.werdegang.splice(index, 1);
-  renderDashboard(State.currentUser.rol);
+  renderDashboard(State.activeRole);
 }
 
 function addAusbildungItem() {
   State.cvDraft = collectCVFormData();
   State.cvDraft.ausbildung.push({ zeitraum: '', beschreibung: '' });
-  renderDashboard(State.currentUser.rol);
+  renderDashboard(State.activeRole);
 }
 
 function removeAusbildungItem(index) {
   State.cvDraft = collectCVFormData();
   State.cvDraft.ausbildung.splice(index, 1);
-  renderDashboard(State.currentUser.rol);
+  renderDashboard(State.activeRole);
 }
 
 function addSprachenItem() {
   State.cvDraft = collectCVFormData();
   State.cvDraft.sprachen.push({ sprache: '', niveau: '' });
-  renderDashboard(State.currentUser.rol);
+  renderDashboard(State.activeRole);
 }
 
 function removeSprachenItem(index) {
   State.cvDraft = collectCVFormData();
   State.cvDraft.sprachen.splice(index, 1);
-  renderDashboard(State.currentUser.rol);
+  renderDashboard(State.activeRole);
 }
 
 // ──────────────────────────────────────────────────────────────────
@@ -2514,14 +2866,14 @@ function showTab(show, hide) {
   $(hide).style.display='none';
 }
 
-function registrarCandidatoSocio() {
+async function registrarCandidatoSocio() {
   const nombre = $('sc-nombre')?.value.trim();
   const pais   = $('sc-pais')?.value.trim();
   const spec   = $('sc-spec')?.value;
   const nivel  = $('sc-nivel')?.value;
   if (!nombre || !pais) { showToast('Error','Nombre y país son obligatorios.','error'); return; }
   const socio = DB.getSocioByUsuario(State.currentUser.id);
-  DB.createCandidato({ nombre, pais, especialidad: spec, nivel_aleman: nivel, estado_proceso:'Lead Nuevo', estado_homologacion:'Pendiente', id_socio: State.currentUser.id, foto: getInitials(nombre), anos_exp: 0 });
+  await DB.createCandidato({ nombre, pais, especialidad: spec, nivel_aleman: nivel, estado_proceso:'Lead Nuevo', estado_homologacion:'Pendiente', id_socio: State.currentUser.id, foto: getInitials(nombre), anos_exp: 0 });
   showToast('✅ Candidato registrado', `${nombre} fue enviado a JN Palabras como Lead Nuevo.`, 'success', 5000);
   $('sc-nombre').value=''; $('sc-pais').value='';
 }
@@ -2642,135 +2994,299 @@ function renderSocioToolkit() {
 // ──────────────────────────────────────────────────────────────────
 // TEST DE ELEGIBILIDAD
 // ──────────────────────────────────────────────────────────────────
-const ELIGIBILITY_QUESTIONS = [
+const OFF_CANVAS_STEPS = [
   {
-    label:'Paso 1 de 4',
-    question:'¿Cuál es tu especialidad o profesión principal?',
-    options:[
-      { value:'it', label:'Tecnología / IT (Desarrollo, Datos, Sistemas)', icon:'💻' },
-      { value:'ingenieria', label:'Ingeniería (Mecánica, Eléctrica, Industrial)', icon:'⚙️' },
-      { value:'salud', label:'Salud (Medicina, Enfermería, Terapia)', icon:'🏥' },
-      { value:'otro', label:'Otras áreas (Administración, Finanzas, etc.)', icon:'💼' }
+    type: 'intro',
+    title: '¡Bienvenido a JN Palabras!',
+    desc: 'Esta breve evaluación nos tomará unos 3 minutos. Nos ayudará a conocer tu perfil y determinar si cumples los requisitos iniciales para emigrar y trabajar en Alemania.',
+    buttonText: 'Empezar Evaluación'
+  },
+  {
+    type: 'question',
+    id: 'degree_check',
+    label: 'Paso 1 de 9',
+    question: '¿Tienes un título universitario o una carrera culminada de por lo menos 3 años?',
+    options: [
+      { value: 'yes', label: 'Sí, tengo título o carrera', icon: getIcon('academic') },
+      { value: 'no', label: 'No', icon: getIcon('cross') }
     ]
   },
   {
-    label:'Paso 2 de 4',
-    question:'¿Cuál es tu nivel de alemán actual?',
-    options:[
-      { value:'b2-c1', label:'B2 o superior (puedo comunicarme con fluidez)', icon:'🗣️' },
-      { value:'b1', label:'B1 (nivel intermedio)', icon:'📖' },
-      { value:'a1-a2', label:'A1 o A2 (nivel básico)', icon:'📝' },
-      { value:'ninguno', label:'Sin conocimientos de alemán todavía', icon:'🔤' }
+    type: 'question',
+    id: 'sector',
+    label: 'Paso 2 de 9',
+    question: '¿A qué sector pertenece tu profesión?',
+    options: [
+      { value: 'salud', label: 'Salud / Medicina', icon: getIcon('hospital') },
+      { value: 'ingenieria', label: 'Ingeniería', icon: getIcon('settings') },
+      { value: 'it', label: 'Tecnología (IT)', icon: getIcon('laptop') },
+      { value: 'educacion', label: 'Educación', icon: getIcon('home') },
+      { value: 'oficios', label: 'Artesanos / Oficios', icon: getIcon('tool') },
+      { value: 'otros', label: 'Otros', icon: getIcon('briefcase') }
     ]
   },
   {
-    label:'Paso 3 de 4',
-    question:'¿En qué estado se encuentra tu título universitario?',
-    options:[
-      { value:'homologado', label:'Ya está homologado en España / UE', icon:'✅' },
-      { value:'en-tramite', label:'En proceso de homologación (Anerkennung)', icon:'⏳' },
-      { value:'sin-tramite', label:'No he iniciado el trámite aún', icon:'📋' },
-      { value:'desconozco', label:'No conozco el proceso de homologación', icon:'❓' }
+    type: 'question',
+    id: 'profession',
+    label: 'Paso 3 de 9',
+    question: 'Selecciona tu profesión específica:',
+    options: [
+      { sector: 'salud', value: 5, label: 'Médico', icon: getIcon('stethoscope') },
+      { sector: 'salud', value: 5, label: 'Enfermero/a', icon: getIcon('hospital') },
+      { sector: 'salud', value: 5, label: 'Auxiliar de Geriatría', icon: getIcon('hospital') },
+      { sector: 'salud', value: 5, label: 'Asistente Técnico/a de Anestesia', icon: getIcon('syringe') },
+      { sector: 'salud', value: 5, label: 'Especialista en Asistencia de Cuidados', icon: getIcon('hospital') },
+      { sector: 'salud', value: 5, label: 'Auxiliar de Enfermería', icon: getIcon('stethoscope') },
+      { sector: 'ingenieria', value: 4, label: 'Ingeniero/a', icon: getIcon('settings') },
+      { sector: 'it', value: 4, label: 'Informático (IT)', icon: getIcon('laptop') },
+      { sector: 'educacion', value: 3, label: 'Educador/a', icon: getIcon('home') },
+      { sector: 'oficios', value: 4, label: 'Artesano / Oficio', icon: getIcon('tool') },
+      { sector: 'otros', value: 2, label: 'Otra', icon: getIcon('briefcase') }
     ]
   },
   {
-    label:'Paso 4 de 4',
-    question:'¿Estás dispuesto/a a vivir y trabajar en Alemania en los próximos 18 meses?',
-    options:[
-      { value:'si-decidido', label:'Sí, es una prioridad para mí y mi familia', icon:'✈️' },
-      { value:'si-dudas', label:'Sí, pero tengo dudas sobre el proceso', icon:'🤔' },
-      { value:'explorando', label:'Estoy explorando opciones', icon:'🔭' },
-      { value:'no', label:'No por ahora', icon:'❌' }
+    type: 'question',
+    id: 'age',
+    label: 'Paso 4 de 9',
+    question: '¿Cuál es tu edad?',
+    options: [
+      { value: 4, label: '18 - 30 Años', icon: getIcon('calendar') },
+      { value: 3, label: '30 - 35 Años', icon: getIcon('calendar') },
+      { value: 2, label: '35 - 40 Años', icon: getIcon('calendar') },
+      { value: 1, label: '40 - 50 Años', icon: getIcon('calendar') },
+      { value: 1, label: '50 Años o más', icon: getIcon('calendar') }
+    ]
+  },
+  {
+    type: 'question',
+    id: 'education_level',
+    label: 'Paso 5 de 9',
+    question: 'Nivel educativo / Título',
+    options: [
+      { value: 4, label: 'Técnico', icon: getIcon('tool') },
+      { value: 5, label: 'Doctorado', icon: getIcon('academic') },
+      { value: 5, label: 'Maestría', icon: getIcon('academic') },
+      { value: 5, label: 'Especialización', icon: getIcon('academic') },
+      { value: 5, label: 'Licenciatura', icon: getIcon('fileText') },
+      { value: 4, label: 'Formación Profesional', icon: getIcon('briefcase') },
+      { value: 3, label: 'Otro', icon: getIcon('info') }
+    ]
+  },
+  {
+    type: 'question',
+    id: 'experience',
+    label: 'Paso 6 de 9',
+    question: 'Años de experiencia laboral',
+    options: [
+      { value: 0, label: 'Sin Experiencia', icon: getIcon('info') },
+      { value: 1, label: '1 - 2 Años', icon: getIcon('star') },
+      { value: 2, label: '2 - 4 Años', icon: getIcon('star') },
+      { value: 3, label: '4 Años o más', icon: getIcon('star') }
+    ]
+  },
+  {
+    type: 'question',
+    id: 'german',
+    label: 'Paso 7 de 9',
+    question: 'Conocimientos de Alemán',
+    options: [
+      { value: 1, label: 'Sin conocimiento', icon: getIcon('abc') },
+      { value: 1, label: 'A1', icon: getIcon('globe') },
+      { value: 1, label: 'A2', icon: getIcon('globe') },
+      { value: 3, label: 'B1', icon: getIcon('globe') },
+      { value: 3, label: 'B2', icon: getIcon('globe') },
+      { value: 4, label: 'C1', icon: getIcon('globe') },
+      { value: 4, label: 'C2', icon: getIcon('globe') },
+      { value: 5, label: 'C2 +', icon: getIcon('globe') },
+      { value: 5, label: 'Lengua Materna', icon: getIcon('globe') }
+    ]
+  },
+  {
+    type: 'question',
+    id: 'location',
+    label: 'Paso 8 de 9',
+    question: 'Lugar de residencia',
+    options: [
+      { value: 4, label: 'Europa', icon: getIcon('globe') },
+      { value: 3, label: 'Latinoamérica', icon: getIcon('globe') },
+      { value: 3, label: 'Asia', icon: getIcon('globe') },
+      { value: 3, label: 'África', icon: getIcon('globe') },
+      { value: 3, label: 'Otro', icon: getIcon('mapPin') }
+    ]
+  },
+  {
+    type: 'question',
+    id: 'marital',
+    label: 'Último Paso',
+    question: 'Estado Civil',
+    options: [
+      { value: 1, label: 'Casado/a', icon: getIcon('info') },
+      { value: 2, label: 'Soltero/a', icon: getIcon('info') }
     ]
   }
 ];
 
-function initEligibilityTest() {
-  State.eligibilityStep = 0;
-  State.eligibilityAnswers = {};
-  renderEligibilityStep();
+function openApplicationOffcanvas() {
+  const overlay = $('application-overlay');
+  const offcanvas = $('application-offcanvas');
+  if (overlay && offcanvas) {
+    overlay.classList.add('open');
+    offcanvas.classList.add('open');
+    document.body.style.overflow = 'hidden';
+    initApplicationOffcanvas();
+  }
 }
 
-function renderEligibilityStep() {
-  const step = State.eligibilityStep;
-  const q    = ELIGIBILITY_QUESTIONS[step];
-  const container = $('eligibility-content');
-  if (!container || !q) return;
-
-  container.innerHTML = `
-    <div class="test-step-label">${q.label}</div>
-    <div class="test-question">${q.question}</div>
-    <div class="test-options">
-      ${q.options.map(opt => `
-        <div class="test-option" onclick="selectEligibilityOption('${opt.value}', this)">
-          <span class="test-option-icon">${opt.icon}</span>
-          <span>${opt.label}</span>
-        </div>
-      `).join('')}
-    </div>
-  `;
-  // Actualizar barra de progreso
-  const segments = $$('#eligibility-progress .test-progress-segment');
-  segments.forEach((seg, i) => {
-    seg.className = `test-progress-segment${i < step ? ' done' : i === step ? ' active' : ''}`;
-  });
+function closeApplicationOffcanvas() {
+  const overlay = $('application-overlay');
+  const offcanvas = $('application-offcanvas');
+  if (overlay && offcanvas) {
+    overlay.classList.remove('open');
+    offcanvas.classList.remove('open');
+    document.body.style.overflow = '';
+  }
 }
 
-function selectEligibilityOption(value, el) {
-  State.eligibilityAnswers[State.eligibilityStep] = value;
-  // Highlight seleccionado
-  $$('.test-option').forEach(o => o.classList.remove('selected'));
+function initApplicationOffcanvas() {
+  State.appStep = 0;
+  State.appAnswers = {};
+  renderApplicationStep();
+}
+
+function renderApplicationStep() {
+  const step = State.appStep;
+  const stepData = OFF_CANVAS_STEPS[step];
+  const container = $('application-offcanvas-content');
+  const progressContainer = $('eligibility-progress');
+  
+  if (!container || !stepData) return;
+
+  // Update progress bar
+  if (progressContainer) {
+    const questionSteps = OFF_CANVAS_STEPS.filter(s => s.type === 'question').length;
+    let currentQIndex = OFF_CANVAS_STEPS.slice(0, step).filter(s => s.type === 'question').length;
+    
+    if (stepData.type === 'intro') {
+      progressContainer.innerHTML = '';
+    } else {
+      progressContainer.innerHTML = Array.from({length: questionSteps}).map((_, i) => 
+        `<div class="test-progress-segment${i < currentQIndex ? ' done' : i === currentQIndex ? ' active' : ''}"></div>`
+      ).join('');
+    }
+  }
+
+  if (stepData.type === 'intro') {
+    container.innerHTML = `
+      <div class="intro-step" style="padding-top:20px;">
+        <div style="font-size:4rem; margin-bottom:16px;">👋</div>
+        <h3>${stepData.title}</h3>
+        <p>${stepData.desc}</p>
+        <button class="btn btn-primary btn-lg" style="width:100%" onclick="nextApplicationStep()">🚀 ${stepData.buttonText}</button>
+      </div>
+    `;
+  } else if (stepData.type === 'question') {
+    let options = stepData.options;
+    
+    if (stepData.id === 'profession' && State.appAnswers['sector']) {
+      options = options.filter(o => o.sector === State.appAnswers['sector'] || o.sector === 'otros');
+      if (options.length === 0) options = stepData.options.filter(o => o.sector === 'otros');
+    }
+
+    container.innerHTML = `
+      <div class="test-step-label">${stepData.label}</div>
+      <div class="test-question interactive-question" style="font-size:1.5rem; margin-bottom:24px;">${stepData.question}</div>
+      <div class="test-options">
+        ${options.map(opt => `
+          <div class="test-option" onclick="selectAppOption('${stepData.id}', '${opt.value}', this)">
+            <span class="test-option-icon">${opt.icon}</span>
+            <span>${opt.label}</span>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+}
+
+function selectAppOption(questionId, value, el) {
+  State.appAnswers[questionId] = value;
+  $$('#application-offcanvas-content .test-option').forEach(o => o.classList.remove('selected'));
   if (el) el.classList.add('selected');
 
   setTimeout(() => {
-    State.eligibilityStep++;
-    if (State.eligibilityStep >= ELIGIBILITY_QUESTIONS.length) {
-      showEligibilityResult();
-    } else {
-      renderEligibilityStep();
-    }
+    nextApplicationStep();
   }, 400);
 }
 
-function showEligibilityResult() {
-  const ans = State.eligibilityAnswers;
-  const isEligible = ans[0] !== 'otro' && ans[3] !== 'no';
-  const container  = $('eligibility-content');
-  const segments   = $$('#eligibility-progress .test-progress-segment');
-  segments.forEach(s => s.className = 'test-progress-segment done');
+function nextApplicationStep() {
+  State.appStep++;
+  if (State.appStep >= OFF_CANVAS_STEPS.length) {
+    showApplicationResult();
+  } else {
+    renderApplicationStep();
+  }
+}
+
+function showApplicationResult() {
+  const ans = State.appAnswers;
+  let totalScore = 0;
+  
+  Object.keys(ans).forEach(key => {
+    const num = parseInt(ans[key], 10);
+    if (!isNaN(num) && key !== 'sector' && key !== 'degree_check') {
+      totalScore += num;
+    }
+  });
+
+  const isEligible = totalScore >= 20;
+  const container  = $('application-offcanvas-content');
+  const progressContainer = $('eligibility-progress');
+  
+  if (progressContainer) {
+    const questionSteps = OFF_CANVAS_STEPS.filter(s => s.type === 'question').length;
+    progressContainer.innerHTML = Array.from({length: questionSteps}).map(() => 
+      `<div class="test-progress-segment done"></div>`
+    ).join('');
+  }
 
   if (isEligible) {
     container.innerHTML = `
-      <div class="test-result-success">
+      <div class="test-result-success" style="text-align: center; margin-top:24px;">
         <div class="test-result-icon">🎉</div>
         <div class="test-result-title">¡Felicitaciones! Eres elegible</div>
         <div class="test-result-desc">
-          Tu perfil cumple los criterios de JN Palabras para iniciar el proceso de emigración médica a Alemania.
+          Tu perfil cumple los criterios de JN Palabras para iniciar el proceso de emigración médica a Alemania.<br><br>
+          <div style="background:#f1f5f9; padding:16px; border-radius:8px; display:inline-block; margin-bottom:16px;">
+            <strong style="color:var(--slate-900); font-size:1.25rem;">Puntaje de Perfil: ${totalScore}</strong>
+          </div><br>
           Uno de nuestros asesores se pondrá en contacto contigo en menos de 24 horas hábiles.
         </div>
-        <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
-          <button class="btn btn-primary btn-lg" onclick="openRegistrationModal()">✅ Completar Mi Registro</button>
-          <button class="btn btn-outline btn-lg" onclick="initEligibilityTest()">🔄 Reiniciar Test</button>
+        <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap; margin-top:24px;">
+          <button class="btn btn-primary btn-lg" style="width:100%;" onclick="closeApplicationOffcanvas(); openModal('modal-registro-candidato');">✅ Completar Mi Registro</button>
         </div>
       </div>
     `;
   } else {
     container.innerHTML = `
-      <div class="test-result-success">
+      <div class="test-result-success" style="text-align: center; margin-top:24px;">
         <div class="test-result-icon">💙</div>
-        <div class="test-result-title">Por ahora no cumples todos los requisitos</div>
+        <div class="test-result-title">Analizaremos tu caso en detalle</div>
         <div class="test-result-desc">
-          No te preocupes. Contáctanos directamente y analizaremos tu caso particular.
-          En JN Palabras encontramos soluciones personalizadas para cada perfil profesional.
+          <div style="background:#f1f5f9; padding:16px; border-radius:8px; display:inline-block; margin-bottom:16px;">
+            <strong style="color:var(--slate-900); font-size:1.25rem;">Puntaje de Perfil: ${totalScore}</strong>
+          </div><br>
+          No te preocupes si no alcanzaste el puntaje ideal. Contáctanos directamente y analizaremos tu caso particular.
         </div>
-        <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
-          <button class="btn btn-primary btn-lg" onclick="scrollToSection('contact')">📧 Contactar Asesor</button>
-          <button class="btn btn-outline btn-lg" onclick="initEligibilityTest()">🔄 Reiniciar Test</button>
+        <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap; margin-top:24px;">
+          <button class="btn btn-primary btn-lg" style="width:100%;" onclick="closeApplicationOffcanvas(); scrollToSection('contact');">📧 Contactar Asesor</button>
         </div>
       </div>
     `;
   }
 }
+
+// Ensure the new functions are available globally if index.html calls them
+window.openApplicationOffcanvas = openApplicationOffcanvas;
+window.closeApplicationOffcanvas = closeApplicationOffcanvas;
 
 function openRegistrationModal() {
   openModal('modal-registro-candidato');
@@ -2812,14 +3328,43 @@ function rejectGdpr() {
 // ──────────────────────────────────────────────────────────────────
 // MODAL REGISTRO CANDIDATO (desde web pública)
 // ──────────────────────────────────────────────────────────────────
-function submitRegistration(e) {
+async function submitRegistration(e) {
   e?.preventDefault();
   const nombre = $('reg-nombre')?.value.trim();
   const pais   = $('reg-pais')?.value.trim();
   const correo = $('reg-correo')?.value.trim();
   const spec   = $('reg-spec')?.value;
   if (!nombre || !correo || !pais) { showToast('Error','Por favor completa todos los campos requeridos.','error'); return; }
-  DB.createCandidato({ nombre, pais, especialidad:spec, nivel_aleman:$('reg-nivel')?.value||'Ninguno', estado_proceso:'Lead Nuevo', estado_homologacion:'Pendiente', foto: getInitials(nombre), anos_exp:0 });
+  
+  // Calcular puntaje
+  let totalScore = 0;
+  Object.keys(State.appAnswers).forEach(key => {
+    const num = parseInt(State.appAnswers[key], 10);
+    if (!isNaN(num) && key !== 'sector' && key !== 'degree_check') {
+      totalScore += num;
+    }
+  });
+
+  await DB.createCandidato({ 
+    nombre, 
+    pais, 
+    especialidad: spec, 
+    nivel_aleman: $('reg-nivel')?.value || 'Ninguno', 
+    estado_proceso: 'Lead Nuevo', 
+    estado_homologacion: 'Pendiente', 
+    foto: getInitials(nombre), 
+    anos_exp: 0,
+    correo,
+    telefono: $('reg-telefono')?.value.trim() || '',
+    edad: $('reg-edad')?.value.trim() || '',
+    puntaje_elegibilidad: totalScore,
+    respuestas_elegibilidad: { ...State.appAnswers }
+  });
+  
+  // Limpiar respuestas para futuras aplicaciones
+  State.appAnswers = {};
+  State.appStep = 0;
+  
   closeModal('modal-registro-candidato');
   showToast('🎉 ¡Registro exitoso!', `Bienvenido/a ${nombre.split(' ')[0]}! Tu asesor te contactará en 24h.`, 'success', 7000);
 }
@@ -2833,7 +3378,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Check sesión activa
   const session = DB.getSession();
   if (session) {
+    if (session.rol && !session.roles) session.roles = [session.rol];
     State.currentUser = session;
+    State.activeRole = (session.roles && session.roles.length > 0) ? session.roles[0] : 'Candidato';
     showApp();
   } else {
     showPublic();
@@ -2853,7 +3400,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   // Inicializar test de elegibilidad
-  initEligibilityTest();
+  // (eliminado porque initEligibilityTest no existe)
 
   // Smooth anchor links
   $$('a[href^="#"]').forEach(a => {
@@ -2874,6 +3421,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 window.showLogin = showLogin;
 window.handleLogin = handleLogin;
 window.handleLogout = handleLogout;
+window.editProfile = editProfile;
+window.saveProfile = saveProfile;
 window.scrollToSection = scrollToSection;
 window.showPublic = showPublic;
 window.openModal = openModal;
@@ -2887,16 +3436,21 @@ window.toggleNotifPanel = toggleNotifPanel;
 window.marcarNotifLeidas = marcarNotifLeidas;
 window.showTab = showTab;
 window.filterBlindCards = filterBlindCards;
-window.initEligibilityTest = initEligibilityTest;
 window.selectEligibilityOption = selectEligibilityOption;
 window.openRegistrationModal = openRegistrationModal;
 // Dashboard inline handlers
 window.editUser = editUser;
+window.saveUser = saveUser;
 window.deleteUser = deleteUser;
 window.createUser = createUser;
 window.filterTable = filterTable;
 window.saveCms = saveCms;
+window.toggleKanbanView = toggleKanbanView;
+window.guardarNuevoCandidato = guardarNuevoCandidato;
 window.openCandidateDetail = openCandidateDetail;
+window.deleteCandidateProfile = deleteCandidateProfile;
+window.acceptCandidate = acceptCandidate;
+window.rejectCandidate = rejectCandidate;
 window.reviewDoc = reviewDoc;
 window.showRejectModal = showRejectModal;
 window.addQuickNote = addQuickNote;
@@ -2935,3 +3489,11 @@ window.removeAusbildungItem = removeAusbildungItem;
 window.addSprachenItem = addSprachenItem;
 window.removeSprachenItem = removeSprachenItem;
 
+
+window.switchRole = function(newRole) {
+  State.activeRole = newRole;
+  document.body.className = `theme-${newRole.toLowerCase()}`;
+  renderSidebar(newRole);
+  renderDashboard(newRole);
+  renderHeader();
+};

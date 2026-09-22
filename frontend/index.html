@@ -59,7 +59,7 @@
       <div style="text-align:center;margin-bottom:24px;">
         <h2 style="font-size:1.75rem;font-weight:800;color:var(--slate-900);">Bienvenido a la Plataforma</h2>
       </div>
-      <form class="login-form" id="login-form" novalidate>
+      <form class="login-form" id="login-form" onsubmit="handleLogin(event)" novalidate>
         <div class="form-group">
           <label class="form-label" for="login-email" style="color:var(--slate-700)">Correo electrónico</label>
           <input class="form-input" type="email" id="login-email" placeholder="correo@ejemplo.com" autocomplete="email" required>
@@ -80,7 +80,6 @@
       </div>
 
       <div style="text-align:center;margin-top:20px;">
-        <button onclick="showPublic()" class="btn btn-outline" style="font-size:.8125rem;">← Volver al sitio web</button>
       </div>
     </div>
   </div>
@@ -112,437 +111,202 @@
 <div id="public-site">
 
   <!-- NAVEGACIÓN PÚBLICA -->
-  <nav id="public-nav" role="navigation" aria-label="Navegación principal">
-    <div class="nav-inner">
-      <div class="nav-logo">
+  <nav class="public-navbar" role="navigation" aria-label="Navegación principal">
+    <div class="nav-inner" style="display:flex;justify-content:space-between;align-items:center; max-width: 1200px; margin: 0 auto;">
+      <div class="nav-logo" onclick="showPublic(); window.scrollTo({top:0, behavior:'smooth'})" style="cursor: pointer; display:flex; align-items:center; gap: 12px;">
         <img src="/logo.png" alt="JN Palabras Logo" style="height: 48px; width: auto; border-radius: 6px;">
-        <div class="nav-logo-text">
-          <span class="nav-logo-primary">JN Palabras</span>
-          <span class="nav-logo-sub">Heidelberg · Deutschland</span>
+        <div class="nav-logo-text" style="color:var(--warm-900);">
+          <span style="font-weight:800; font-size:1.1rem; display:block;">JN Palabras</span>
+          <span style="font-size:0.75rem; letter-spacing:1px; text-transform:uppercase;">Heidelberg · Deutschland</span>
         </div>
       </div>
-      <div class="nav-links" role="menubar">
-        <a href="#hospitales" class="nav-link" role="menuitem" onclick="scrollToSection('hospitales')">Empresas</a>
-        <a href="#candidatos" class="nav-link" role="menuitem" onclick="scrollToSection('candidatos')">Candidatos</a>
+      <div class="nav-links" role="menubar" style="display:flex; gap: 32px; align-items: center;">
         <a href="#proceso" class="nav-link" role="menuitem" onclick="scrollToSection('proceso')">Nuestro Proceso</a>
-        <a href="#aliados" class="nav-link" role="menuitem" onclick="scrollToSection('aliados')">Aliados</a>
+        <a href="#about" class="nav-link" role="menuitem" onclick="scrollToSection('about')">Nosotros</a>
         <a href="#contact" class="nav-link" role="menuitem" onclick="scrollToSection('contact')">Contacto</a>
       </div>
-      <div class="nav-actions">
-        <button class="nav-btn-login" onclick="showLogin()" id="nav-login-btn">Iniciar Sesión</button>
-        <button class="btn btn-primary" onclick="scrollToSection('eligibilidad')">Test de Elegibilidad</button>
+      <div class="nav-actions" style="display:flex; gap: 16px;">
+        <button class="btn btn-outline" onclick="showLogin()" id="nav-login-btn">Iniciar Sesión</button>
+        <button class="btn-redesign-primary" onclick="scrollToSection('eligibilidad')">Únete a JN Palabras</button>
       </div>
     </div>
   </nav>
 
-  <!-- ── HERO ──────────────────────────────────────────────── -->
-  <section class="hero" id="hero" aria-labelledby="hero-title">
-    <div class="hero-particles" aria-hidden="true">
-      <div class="hero-particle hp1"></div>
-      <div class="hero-particle hp2"></div>
-      <div class="hero-particle hp3"></div>
-    </div>
-    <div class="hero-grid" aria-hidden="true"></div>
-    <div class="hero-content container">
-      <div class="animate-fadeInUp" style="background:var(--wine-800); border-radius:24px; padding:32px; display:inline-block; margin-bottom:32px; box-shadow:0 20px 60px rgba(0,0,0,0.6);">
-        <img src="/logo.png" alt="JN Palabras" style="height: 160px; width: auto; display: block;">
-      </div>
-      <h1 class="hero-title animate-fadeInUp delay-100" id="hero-title">
-        PALABRAS
-        <br>
-        <span class="hero-title-highlight">ONBOARDING</span>
+  <!-- HERO SECTION -->
+  <header class="public-hero-redesign" id="hero">
+    <div class="hero-redesign-content animate-fadeInUp">
+      <h1 class="hero-redesign-title">
+        Lleva tu carrera médica al <span class="text-gold">corazón de Europa</span>
       </h1>
-      <p class="hero-subtitle animate-fadeInUp delay-200">
-        para una nachhaltige Gewinnung und Integration von Fachkräften
+      <p class="hero-redesign-text">
+        El programa de 4 pasos para profesionales de la salud. Te acompañamos desde tu país de origen hasta tu primer día de trabajo en Alemania.
       </p>
-      <div class="hero-ctas animate-fadeInUp delay-300">
-        <button class="btn btn-primary btn-xl" onclick="scrollToSection('eligibilidad')">
-          Iniciar Test de Elegibilidad
-        </button>
-        <button class="btn btn-outline-white btn-xl" onclick="scrollToSection('hospitales')">
-          Soy una Empresa
-        </button>
+      <div class="hero-redesign-actions">
+        <button class="btn-redesign-primary" onclick="openApplicationOffcanvas()">Comienza el Proceso</button>
+        <button class="btn-redesign-secondary" onclick="scrollToSection('proceso')">Conoce Más</button>
       </div>
-      <div class="hero-stats animate-fadeInUp delay-400">
-        <div>
-          <div class="hero-stat-value">150+</div>
-          <div class="hero-stat-label">Profesionales Colocados</div>
-        </div>
-        <div>
-          <div class="hero-stat-value">40+</div>
-          <div class="hero-stat-label">Empresas Aliadas</div>
-        </div>
-        <div>
-          <div class="hero-stat-value">18</div>
-          <div class="hero-stat-label">Países de Origen</div>
-        </div>
-        <div>
-          <div class="hero-stat-value">98%</div>
-          <div class="hero-stat-label">Tasa de Satisfacción</div>
-        </div>
+    </div>
+    <div class="hero-redesign-image animate-fadeInUp delay-200">
+      <div class="shape-placeholder">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+      </div>
+    </div>
+  </header>
+
+  <!-- ABOUT SECTION -->
+  <section class="public-about-redesign" id="about">
+    <div class="about-redesign-image animate-fadeInUp">
+      <div class="about-shape-placeholder">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+      </div>
+    </div>
+    <div class="about-redesign-content animate-fadeInUp delay-200">
+      <h2 class="section-subtitle">
+        Más que una agencia, <span class="text-gold">tu aliado estratégico</span>
+      </h2>
+      <div class="about-redesign-highlight">
+        "Nuestra misión es hacer de Alemania tu nuevo hogar profesional."
+      </div>
+      <p class="about-redesign-text">
+        Entendemos que emigrar es uno de los pasos más importantes de tu vida. Por eso no solo te encontramos un trabajo; te preparamos culturalmente, te enseñamos el idioma y nos aseguramos de que tu homologación y visado sean un éxito.
+      </p>
+      <div class="about-redesign-quote">
+        98% de nuestros candidatos se integran exitosamente en el sistema de salud alemán durante su primer año.
       </div>
     </div>
   </section>
 
-  <!-- ── PROCESO DE 4 PASOS ─────────────────────────────────── -->
-  <section class="section" id="proceso" aria-labelledby="proceso-title">
-    <div class="container">
-      <div class="section-header">
-        <div class="section-eyebrow">Nuestro Método</div>
-        <h2 class="section-title" id="proceso-title">El Programa de 4 Pasos</h2>
-        <p class="section-desc">Un acompañamiento completo y personalizado desde tu país de origen hasta tu plena integración en el sistema sanitario alemán.</p>
+  <!-- PROCESS SECTION -->
+  <section class="public-process-redesign" id="proceso">
+    <h2 class="process-title animate-fadeInUp">Nuestro Programa de <span>4 Pasos</span></h2>
+    <p class="process-subtitle animate-fadeInUp delay-100">Un acompañamiento integral diseñado específicamente para médicos y enfermeros internacionales.</p>
+    
+    <div class="process-cards-grid">
+      <div class="process-card animate-fadeInUp delay-200">
+        <div class="process-number wine">1</div>
+        <h4>Visa y Migración</h4>
+        <p>Gestionamos la homologación de tu título (Anerkennung), trámites consulares y el visado de trabajo.</p>
       </div>
-      <div class="grid grid-4">
-        <article class="step-card animate-fadeInUp">
-          <div class="step-number" aria-hidden="true">1</div>
-          <div class="step-icon" aria-hidden="true"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="12" cy="10" r="3"/><path d="M7 16h10"/></svg></div>
-          <h3 class="step-title">Visa y Migración</h3>
-          <p class="step-desc">Gestionamos la homologación de tu título (Anerkennung), los trámites consulares y el proceso completo de visado de trabajo en Alemania.</p>
-        </article>
-        <article class="step-card animate-fadeInUp delay-100">
-          <div class="step-number" aria-hidden="true">2</div>
-          <div class="step-icon" aria-hidden="true"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
-          <h3 class="step-title">Idioma Alemán</h3>
-          <p class="step-desc">Capacitación lingüística intensiva orientada al sector salud, desde nivel A1 hasta C1 y la Fachsprachenprüfung (FSP), con clases en vivo.</p>
-        </article>
-        <article class="step-card animate-fadeInUp delay-200">
-          <div class="step-number" aria-hidden="true">3</div>
-          <div class="step-icon" aria-hidden="true"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></div>
-          <h3 class="step-title">Incorporación Intercultural</h3>
-          <p class="step-desc">Mentoría y coaching de adaptación sociocultural en origen y en destino, para que tu integración al equipo de trabajo alemán sea natural y efectiva.</p>
-        </article>
-        <article class="step-card animate-fadeInUp delay-300">
-          <div class="step-number" aria-hidden="true">4</div>
-          <div class="step-icon" aria-hidden="true"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
-          <h3 class="step-title">Vida en Alemania</h3>
-          <p class="step-desc">Acompañamiento post-llegada: búsqueda de vivienda, empadronamiento (Anmeldung), apertura de cuentas bancarias y gestión de seguros.</p>
-        </article>
+      <div class="process-card animate-fadeInUp delay-300">
+        <div class="process-number gold">2</div>
+        <h4>Idioma Alemán</h4>
+        <p>Capacitación intensiva orientada al sector salud, preparándote para la Fachsprachenprüfung (FSP).</p>
+      </div>
+      <div class="process-card animate-fadeInUp delay-400">
+        <div class="process-number wine">3</div>
+        <h4>Interculturalidad</h4>
+        <p>Coaching de adaptación para que tu integración al equipo de trabajo alemán sea natural.</p>
+      </div>
+      <div class="process-card animate-fadeInUp delay-500">
+        <div class="process-number gold">4</div>
+        <h4>Vida en Alemania</h4>
+        <p>Acompañamiento en la búsqueda de vivienda, empadronamiento, seguros y cuentas bancarias.</p>
       </div>
     </div>
   </section>
 
-  <!-- ── AUDIENCIAS: B2B Y B2C ──────────────────────────────── -->
-  <section class="section section-wine" id="candidatos" aria-labelledby="audiencias-title">
-    <div class="container">
-      <div class="section-header">
-        <div class="section-eyebrow" style="color:var(--gold-400);">Para Todos</div>
-        <h2 class="section-title" id="audiencias-title">Soluciones a Medida</h2>
-        <p class="section-desc">Tanto si eres una empresa buscando talento cualificado como un profesional buscando nuevas oportunidades.</p>
-      </div>
-      <div class="grid grid-2">
-        <!-- B2C -->
-        <div class="audience-card animate-fadeInUp">
-          <div class="audience-tag">Para Profesionales Cualificados</div>
-          <h3 class="audience-title">Tu Pasaporte Profesional a Alemania</h3>
-          <p class="audience-desc">Te acompañamos en cada etapa, desde la primera consulta hasta el primer día en tu empresa en Alemania, garantizando que cada trámite sea sencillo y transparente.</p>
-          <div class="audience-features">
-            <div class="audience-feature">Asesoría personalizada de visado y homologación (Anerkennung)</div>
-            <div class="audience-feature">Clases de alemán en vivo (A1 → C1 + lenguaje técnico)</div>
-            <div class="audience-feature">Portal personal con seguimiento de tu proceso 24/7</div>
-            <div class="audience-feature">Apoyo en búsqueda de vivienda y gestión bancaria</div>
-            <div class="audience-feature">Red de hispanos ya integrados en Alemania</div>
-          </div>
-        <button class="btn btn-primary btn-lg" onclick="scrollToSection('eligibilidad')">Comenzar Ahora</button>
-        </div>
-        <!-- B2B -->
-        <div class="audience-card animate-fadeInUp delay-200" id="hospitales">
-          <div class="audience-tag">Para Empresas y Organizaciones</div>
-          <h3 class="audience-title">El Talento Cualificado que tu Empresa Necesita</h3>
-          <p class="audience-desc">Conectamos a tu institución con profesionales internacionales cualificados, con el nivel de alemán adecuado y listos para integrarse a tu equipo.</p>
-          <div class="audience-features">
-            <div class="audience-feature">Candidatos preseleccionados con Anerkennung lista o en trámite</div>
-            <div class="audience-feature">Nivel de alemán verificado (B2/C1 + preparación técnica)</div>
-            <div class="audience-feature">Portal de búsqueda anonimizada con filtros avanzados</div>
-            <div class="audience-feature">Gestión de entrevistas y proceso de contratación</div>
-            <div class="audience-feature">Seguimiento post-incorporación para garantizar retención</div>
-          </div>
-          <button class="btn btn-primary btn-lg" onclick="openModal('modal-hospital')" style="display:inline-flex;align-items:center;gap:8px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><line x1="8" y1="6" x2="8.01" y2="6"/><line x1="12" y1="6" x2="12.01" y2="6"/><line x1="16" y1="6" x2="16.01" y2="6"/></svg> Solicitar Talento</button>
-        </div>
-      </div>
+  <!-- TEST DE ELEGIBILIDAD (Offcanvas Trigger) -->
+  <section id="eligibilidad" class="public-cta-banner">
+    <div class="cta-banner-circle animate-scaleIn">
+      <h2>Transforma tu futuro hoy</h2>
+      <p>Descubre si eres elegible en menos de 3 minutos</p>
+      <button class="btn-redesign-primary" style="margin-top:24px; background:var(--wine-950);" onclick="openApplicationOffcanvas()">Test de Elegibilidad</button>
     </div>
   </section>
 
-  <!-- ── TEST DE ELEGIBILIDAD ───────────────────────────────── -->
-  <section id="eligibilidad" class="section" style="background:linear-gradient(160deg,var(--slate-950) 0%,var(--slate-900) 100%);position:relative;overflow:hidden;" aria-labelledby="eligibilidad-title">
-    <div class="hero-grid" aria-hidden="true"></div>
-    <div class="container" style="position:relative;z-index:2;">
-      <div class="section-header">
-        <div class="section-eyebrow">¿Calificas?</div>
-        <h2 class="section-title" id="eligibilidad-title" style="color:#fff;">Test de Elegibilidad</h2>
-        <p class="section-desc">4 preguntas. 2 minutos. Descubre si tu perfil profesional cumple los requisitos para emigrar a Alemania con JN Palabras.</p>
-      </div>
-      <div class="test-wrapper" role="form" aria-label="Test de elegibilidad">
-        <!-- Barra de progreso -->
-        <div class="test-progress-bar" id="eligibility-progress" aria-label="Progreso del test">
-          <div class="test-progress-segment active"></div>
-          <div class="test-progress-segment"></div>
-          <div class="test-progress-segment"></div>
-          <div class="test-progress-segment"></div>
-        </div>
-        <!-- Contenido del test -->
-        <div class="test-card">
-          <div id="eligibility-content">
-            <!-- Renderizado dinámico por initEligibilityTest() -->
-          </div>
+  <!-- CONTACT SECTION -->
+  <section class="public-contact-redesign" id="contact">
+    <div class="contact-redesign-info animate-fadeInUp">
+      <h2 class="contact-title">Hablemos de <span>tu futuro</span></h2>
+      <p class="contact-desc">Nuestro equipo en Heidelberg está listo para resolver tus dudas. Contáctanos y daremos el primer paso juntos.</p>
+      
+      <div class="contact-item">
+        <div class="contact-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></div>
+        <div class="contact-details">
+          <h5>Sede Principal</h5>
+          <p>Heidelberg, Baden-Württemberg, Alemania</p>
         </div>
       </div>
-    </div>
-  </section>
-
-  <!-- ── ALIADOS ────────────────────────────────────────────── -->
-  <section class="section" id="aliados" aria-labelledby="aliados-title">
-    <div class="container">
-      <div class="section-header">
-        <div class="section-eyebrow">Red de Socios</div>
-        <h2 class="section-title" id="aliados-title">Programa de Agencias Aliadas</h2>
-        <p class="section-desc">¿Tienes una agencia de reclutamiento de talento internacional en América Latina, Asia o África? Únete a nuestra red y gana comisiones por cada candidato colocado exitosamente en Alemania.</p>
-      </div>
-      <div class="grid grid-3" style="margin-bottom:48px;">
-        <div class="step-card" style="text-align:center;">
-          <div style="font-size:2rem;margin-bottom:16px;color:var(--gold-600);display:flex;justify-content:center;"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><line x1="12" y1="6" x2="12" y2="8"/><line x1="12" y1="16" x2="12" y2="18"/></svg></div>
-          <h3 class="step-title">Comisiones Competitivas</h3>
-          <p class="step-desc">Hasta el 15% de comisión por cada candidato que firme contrato con una empresa alemana a través de tu agencia.</p>
-        </div>
-        <div class="step-card" style="text-align:center;">
-          <div style="font-size:2rem;margin-bottom:16px;color:var(--gold-600);display:flex;justify-content:center;"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="6" height="6" rx="1"/><rect x="16" y="2" width="6" height="6" rx="1"/><rect x="9" y="16" width="6" height="6" rx="1"/><path d="M5 8v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8"/><path d="M12 14v2"/></svg></div>
-          <h3 class="step-title">Rastreo en Tiempo Real</h3>
-          <p class="step-desc">Portal privado para ver el avance de cada uno de tus candidatos referidos dentro del pipeline de JN Palabras.</p>
-        </div>
-        <div class="step-card" style="text-align:center;">
-          <div style="font-size:2rem;margin-bottom:16px;color:var(--gold-600);display:flex;justify-content:center;"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg></div>
-          <h3 class="step-title">Herramientas y Soporte</h3>
-          <p class="step-desc">Acceso a materiales de marketing, guías técnicas de elegibilidad y soporte directo de nuestro equipo en Heidelberg.</p>
+      <div class="contact-item">
+        <div class="contact-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
+        <div class="contact-details">
+          <h5>Correo Electrónico</h5>
+          <p>info@jnpalabras.com</p>
         </div>
       </div>
-      <div style="text-align:center;">
-        <button class="btn btn-primary btn-xl" onclick="openModal('modal-aliado')" style="display:inline-flex;align-items:center;gap:10px;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 15h2a2 2 0 1 0 0-4h-3c-.6 0-1.1.2-1.4.6L3 17"/><path d="m7 21 1.6-1.4c.4-.4.4-1 0-1.4l-2.2-2.2c-.4-.4-1-.4-1.4 0L2 18"/><path d="m15 9-1.6 1.4c-.4.4-.4 1 0 1.4l2.2 2.2c.4.4 1 .4 1.4 0L20 12"/><path d="M13 9h-2a2 2 0 1 0 0 4h3c.6 0 1.1-.2 1.4-.6L21 7"/></svg> Registrarme como Aliado</button>
+      <div class="contact-item">
+        <div class="contact-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg></div>
+        <div class="contact-details">
+          <h5>Teléfono</h5>
+          <p>+49 6221 000 000</p>
+        </div>
+      </div>
+      
+      <div class="contact-social">
+        <a href="#" class="social-btn">in</a>
+        <a href="#" class="social-btn">f</a>
+        <a href="#" class="social-btn">ig</a>
       </div>
     </div>
-  </section>
-
-  <!-- ── TESTIMONIOS ────────────────────────────────────────── -->
-  <section class="section section-alt" aria-labelledby="testimonios-title">
-    <div class="container">
-      <div class="section-header">
-        <div class="section-eyebrow">Historias Reales</div>
-        <h2 class="section-title" id="testimonios-title">Profesionales que ya Trabajan en Alemania</h2>
-      </div>
-      <div class="grid grid-3">
-        <article class="card card-hover" style="border-top:3px solid var(--gold-500);">
-          <div class="card-body">
-            <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;">
-              <div class="avatar avatar-lg" style="background:linear-gradient(135deg,var(--slate-700),var(--slate-900));">MR</div>
-              <div>
-                <div style="font-weight:700;color:var(--slate-900);">Dr. Miguel Ramírez</div>
-                <div style="font-size:.8125rem;color:var(--slate-500);">Argentina 🇦🇷 · Cirugía General</div>
-                <div style="font-size:.75rem;color:var(--gold-600);font-weight:600;">🏥 Klinikum Stuttgart</div>
-              </div>
-            </div>
-            <blockquote style="font-size:.9375rem;color:var(--slate-700);line-height:1.7;font-style:italic;">"En 14 meses pasé de mi consulta en Buenos Aires a trabajar como Cirujano General en el Klinikum Stuttgart. JN Palabras gestionó cada detalle con una profesionalidad impecable."</blockquote>
-            <div style="margin-top:16px;display:flex;gap:8px;">
-              <span class="badge badge-info">Nivel C1</span>
-              <span class="badge badge-success">✅ Colocado/a</span>
-            </div>
-          </div>
-        </article>
-
-        <article class="card card-hover" style="border-top:3px solid var(--gold-500);">
-          <div class="card-body">
-            <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;">
-              <div class="avatar avatar-lg" style="background:linear-gradient(135deg,var(--slate-700),var(--slate-900));">AS</div>
-              <div>
-                <div style="font-weight:700;color:var(--slate-900);">Dra. Ana Souza</div>
-                <div style="font-size:.8125rem;color:var(--slate-500);">Brasil 🇧🇷 · Anestesiología</div>
-                <div style="font-size:.75rem;color:var(--gold-600);font-weight:600;">🏥 LMU München</div>
-              </div>
-            </div>
-            <blockquote style="font-size:.9375rem;color:var(--slate-700);line-height:1.7;font-style:italic;">"El programa de idioma fue la clave. Las clases especializadas en terminología médica alemana me dieron la seguridad para superar la Fachsprachenprüfung a la primera."</blockquote>
-            <div style="margin-top:16px;display:flex;gap:8px;">
-              <span class="badge badge-info">Nivel C1</span>
-              <span class="badge badge-success">✅ Colocado/a</span>
-            </div>
-          </div>
-        </article>
-
-        <article class="card card-hover" style="border-top:3px solid var(--gold-500);">
-          <div class="card-body">
-            <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;">
-              <div class="avatar avatar-lg" style="background:linear-gradient(135deg,var(--slate-700),var(--slate-900));">RK</div>
-              <div>
-                <div style="font-weight:700;color:var(--slate-900);">Rosa Kim, Enfermera</div>
-                <div style="font-size:.8125rem;color:var(--slate-500);">Filipinas 🇵🇭 · Enfermería UCI</div>
-                <div style="font-size:.75rem;color:var(--gold-600);font-weight:600;">🏥 Charité Berlin</div>
-              </div>
-            </div>
-            <blockquote style="font-size:.9375rem;color:var(--slate-700);line-height:1.7;font-style:italic;">"Temía que el proceso cultural fuera muy difícil. El coaching intercultural de JN Palabras me preparó perfectamente. Hoy me siento parte del equipo de la Charité."</blockquote>
-            <div style="margin-top:16px;display:flex;gap:8px;">
-              <span class="badge badge-info">Nivel B2</span>
-              <span class="badge badge-success">✅ Colocado/a</span>
-            </div>
-          </div>
-        </article>
-      </div>
-    </div>
-  </section>
-
-  <!-- ── GDPR / CUMPLIMIENTO ─────────────────────────────────── -->
-  <section class="section section-wine" id="gdpr" aria-labelledby="gdpr-title">
-    <div class="container">
-      <div class="section-header">
-        <div class="section-eyebrow" style="color:var(--gold-400);">Seguridad y Privacidad</div>
-        <h2 class="section-title" id="gdpr-title">Cumplimiento GDPR / DSGVO</h2>
-        <p class="section-desc">Tu información personal y profesional es tratada con el máximo rigor legal bajo el Reglamento General de Protección de Datos de la Unión Europea.</p>
-      </div>
-      <div class="grid grid-4">
-        <div class="step-card" style="background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.08);">
-          <div style="font-size:1.75rem;margin-bottom:12px;color:var(--gold-400);"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
-          <h3 style="font-size:1rem;font-weight:700;color:#fff;margin-bottom:8px;">Encriptación Total</h3>
-          <p style="font-size:.875rem;color:var(--slate-400);line-height:1.65;">Todos los documentos y perfiles se encriptan en tránsito y en reposo. Protocolo AES-256.</p>
-        </div>
-
-        <div class="step-card" style="background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.08);">
-          <div style="font-size:1.75rem;margin-bottom:12px;color:var(--gold-400);"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg></div>
-          <h3 style="font-size:1rem;font-weight:700;color:#fff;margin-bottom:8px;">Servidores en la UE</h3>
-          <p style="font-size:.875rem;color:var(--slate-400);line-height:1.65;">Datos almacenados exclusivamente en centros de datos certificados en Fráncfort (AWS eu-central-1).</p>
-        </div>
-
-        <div class="step-card" style="background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.08);">
-          <div style="font-size:1.75rem;margin-bottom:12px;color:var(--gold-400);"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
-          <h3 style="font-size:1rem;font-weight:700;color:#fff;margin-bottom:8px;">Registro de Auditoría</h3>
-          <p style="font-size:.875rem;color:var(--slate-400);line-height:1.65;">Registro completo de todos los accesos a datos sensibles. Trazabilidad garantizada.</p>
-        </div>
-
-        <div class="step-card" style="background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.08);">
-          <div style="font-size:1.75rem;margin-bottom:12px;color:var(--gold-400);"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></div>
-          <h3 style="font-size:1rem;font-weight:700;color:#fff;margin-bottom:8px;">Derecho al Olvido</h3>
-          <p style="font-size:.875rem;color:var(--slate-400);line-height:1.65;">Solicita la eliminación completa de tus datos en cualquier momento. Cumplimiento Art. 17 RGPD.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ── CONTACTO ───────────────────────────────────────────── -->
-  <section class="section" id="contact" aria-labelledby="contact-title">
-    <div class="container">
-      <div class="section-header">
-        <div class="section-eyebrow">Hablemos</div>
-        <h2 class="section-title" id="contact-title">¿Listo para Comenzar?</h2>
-        <p class="section-desc">Escríbenos o llámanos directamente. Nuestro equipo en Heidelberg responde en menos de 24 horas hábiles.</p>
-      </div>
-      <div class="grid grid-2" style="gap:48px;max-width:900px;margin:0 auto;">
-        <div>
-          <div style="display:flex;flex-direction:column;gap:20px;">
-            <div style="display:flex;gap:16px;align-items:flex-start;">
-              <div style="width:44px;height:44px;border-radius:var(--radius-md);background:var(--gold-100);color:var(--gold-700);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></div>
-              <div>
-                <div style="font-size:.8125rem;font-weight:700;color:var(--slate-500);letter-spacing:.04em;text-transform:uppercase;margin-bottom:2px;">Dirección</div>
-                <div style="font-size:.9375rem;font-weight:600;color:var(--slate-900);">Heidelberg, Baden-Württemberg, Alemania</div>
-              </div>
-            </div>
-
-            <div style="display:flex;gap:16px;align-items:flex-start;">
-              <div style="width:44px;height:44px;border-radius:var(--radius-md);background:var(--gold-100);color:var(--gold-700);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
-              <div>
-                <div style="font-size:.8125rem;font-weight:700;color:var(--slate-500);letter-spacing:.04em;text-transform:uppercase;margin-bottom:2px;">Email</div>
-                <div style="font-size:.9375rem;font-weight:600;color:var(--slate-900);">info@jnpalabras.com</div>
-              </div>
-            </div>
-
-            <div style="display:flex;gap:16px;align-items:flex-start;">
-              <div style="width:44px;height:44px;border-radius:var(--radius-md);background:var(--gold-100);color:var(--gold-700);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg></div>
-              <div>
-                <div style="font-size:.8125rem;font-weight:700;color:var(--slate-500);letter-spacing:.04em;text-transform:uppercase;margin-bottom:2px;">Teléfono / WhatsApp</div>
-                <div style="font-size:.9375rem;font-weight:600;color:var(--slate-900);">+49 6221 000 000</div>
-              </div>
-            </div>
-
-            <div style="display:flex;gap:16px;align-items:flex-start;">
-              <div style="width:44px;height:44px;border-radius:var(--radius-md);background:var(--gold-100);color:var(--gold-700);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
-              <div>
-                <div style="font-size:.8125rem;font-weight:700;color:var(--slate-500);letter-spacing:.04em;text-transform:uppercase;margin-bottom:2px;">Horario de atención</div>
-                <div style="font-size:.9375rem;font-weight:600;color:var(--slate-900);">Lun–Vie 09:00–18:00 CET</div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <form style="display:flex;flex-direction:column;gap:16px;" onsubmit="submitContact(event)">
+    
+    <div class="contact-redesign-form animate-fadeInUp delay-200">
+      <form onsubmit="submitContact(event)">
+        <div class="form-group-row">
           <div class="form-group">
-            <label class="form-label" for="contact-nombre">Tu nombre</label>
-            <input class="form-input" type="text" id="contact-nombre" placeholder="Dr./Dra. Nombre Apellido" required>
+            <label for="c-name">Nombre Completo</label>
+            <input type="text" id="c-name" required placeholder="Ej. Dra. María Pérez">
           </div>
           <div class="form-group">
-            <label class="form-label" for="contact-correo">Correo electrónico</label>
-            <input class="form-input" type="email" id="contact-correo" placeholder="correo@empresa.de" required>
+            <label for="c-email">Correo</label>
+            <input type="email" id="c-email" required placeholder="correo@ejemplo.com">
           </div>
-          <div class="form-group">
-            <label class="form-label" for="contact-tipo">Soy...</label>
-            <select class="form-select" id="contact-tipo">
-              <option>Profesional buscando trabajar en Alemania</option>
-              <option>Empresa buscando talento</option>
-              <option>Agencia de reclutamiento internacional</option>
-              <option>Otra consulta</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="contact-mensaje">Mensaje</label>
-            <textarea class="form-textarea" id="contact-mensaje" placeholder="Cuéntanos brevemente tu situación y cómo podemos ayudarte..." required></textarea>
-          </div>
-          <div style="font-size:.75rem;color:var(--slate-500);">Al enviar este formulario aceptas nuestra <a href="#gdpr" onclick="scrollToSection('gdpr')" style="color:var(--gold-600);">política de privacidad</a> conforme al RGPD.</div>
-          <button type="submit" class="btn btn-primary btn-lg" style="justify-content:center;display:inline-flex;align-items:center;gap:8px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Enviar Mensaje</button>
-        </form>
-      </div>
+        </div>
+        <div class="form-group" style="margin-bottom:24px;">
+          <label for="c-subject">Motivo</label>
+          <select id="c-subject">
+            <option>Quiero trabajar en Alemania</option>
+            <option>Empresa buscando talento</option>
+            <option>Otra consulta</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="c-message">Mensaje</label>
+          <textarea id="c-message" required placeholder="Cuéntanos sobre tu situación..."></textarea>
+        </div>
+        <button type="submit" class="btn-redesign-submit">Enviar Mensaje</button>
+      </form>
     </div>
   </section>
 
-  <!-- ── FOOTER ─────────────────────────────────────────────── -->
-  <footer class="public-footer" role="contentinfo">
-    <div class="container">
-      <div class="footer-grid">
-        <div>
-          <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
-            <img src="/logo.png" alt="JN Palabras Logo" style="height: 40px; width: auto; border-radius: 6px;">
-            <div>
-              <div class="footer-brand-name">JN Palabras</div>
-              <div style="font-size:.7rem;color:var(--slate-500);letter-spacing:.06em;">HEIDELBERG · DEUTSCHLAND</div>
-            </div>
-          </div>
-          <p class="footer-brand-desc">Consultora internacional especializada en la captación, reclutamiento e integración socio-laboral de profesionales cualificados de todo el mundo en empresas de Alemania.</p>
-          <div style="display:flex;gap:12px;">
-            <div style="width:36px;height:36px;border-radius:8px;background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;font-size:1.1rem;cursor:pointer;">in</div>
-            <div style="width:36px;height:36px;border-radius:8px;background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;font-size:1.1rem;cursor:pointer;">📘</div>
-            <div style="width:36px;height:36px;border-radius:8px;background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;font-size:1.1rem;cursor:pointer;">📷</div>
-          </div>
-        </div>
-        <div>
-          <div class="footer-col-title">Para Candidatos</div>
-          <a href="#eligibilidad" class="footer-link" onclick="scrollToSection('eligibilidad')">Test de Elegibilidad</a>
-          <a href="#proceso" class="footer-link" onclick="scrollToSection('proceso')">Programa de 4 Pasos</a>
-          <a class="footer-link" onclick="showLogin()">Portal del Candidato</a>
-          <a href="#contact" class="footer-link" onclick="scrollToSection('contact')">Contactar Asesor</a>
-        </div>
-        <div>
-          <div class="footer-col-title">Para Empresas</div>
-          <a href="#hospitales" class="footer-link" onclick="scrollToSection('hospitales')">Solicitar Talento</a>
-          <a class="footer-link" onclick="openModal('modal-hospital')">Publicar Vacante</a>
-          <a class="footer-link" onclick="showLogin()">Portal de Empresa</a>
-          <a href="#contact" class="footer-link" onclick="scrollToSection('contact')">Contacto B2B</a>
-        </div>
-        <div>
-          <div class="footer-col-title">Empresa</div>
-          <a href="#aliados" class="footer-link" onclick="scrollToSection('aliados')">Programa de Aliados</a>
-          <a href="#gdpr" class="footer-link" onclick="scrollToSection('gdpr')">GDPR / DSGVO</a>
-          <a href="#" class="footer-link">Política de Privacidad</a>
-          <a href="#" class="footer-link">Aviso Legal (Impressum)</a>
-        </div>
+  <!-- FOOTER REDESIGN -->
+  <footer class="public-footer-redesign">
+    <div class="footer-redesign-grid">
+      <div class="footer-brand">
+        <img src="/logo.png" alt="JN Palabras" style="height: 48px; border-radius: 4px; filter: grayscale(100%) brightness(200%);">
+        <p>Tu aliado estratégico para la captación, homologación e integración socio-laboral en el sistema de salud alemán.</p>
       </div>
-      <div class="footer-bottom">
-        <div class="footer-legal">
-          © 2025 JN Palabras GmbH · Heidelberg, Baden-Württemberg, Deutschland · 
-          <a href="#" onclick="scrollToSection('gdpr')">Privacidad</a>
-          <a href="#">Impressum</a>
-          <a href="#">Cookies</a>
-        </div>
-        <div style="font-size:.8125rem;color:var(--slate-600);">Regulado bajo RGPD · Datos almacenados en UE 🇪🇺</div>
+      <div class="footer-col">
+        <h5>Candidatos</h5>
+        <ul>
+          <li><a href="#" onclick="openApplicationOffcanvas()">Test de Elegibilidad</a></li>
+          <li><a href="#proceso" onclick="scrollToSection('proceso')">Nuestro Proceso</a></li>
+          <li><a href="#" onclick="showLogin()">Portal de Candidato</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h5>Empresa</h5>
+        <ul>
+          <li><a href="#about" onclick="scrollToSection('about')">Sobre Nosotros</a></li>
+          <li><a href="#contact" onclick="scrollToSection('contact')">Contacto</a></li>
+          <li><a href="#">Privacidad (RGPD)</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <div>&copy; 2025 JN Palabras GmbH. Todos los derechos reservados.</div>
+      <div class="footer-bottom-links">
+        <a href="#">Impressum</a>
+        <a href="#">Cookies</a>
       </div>
     </div>
   </footer>
@@ -552,6 +316,37 @@
 <!-- ══════════════════════════════════════════════════════════
      MODALES GLOBALES
      ══════════════════════════════════════════════════════════ -->
+
+<!-- Modal Edit Profile -->
+<div class="modal-overlay" id="modal-edit-profile" role="dialog" aria-modal="true" aria-labelledby="modal-ep-title">
+  <div class="modal" style="max-width:500px;">
+    <div class="modal-header">
+      <h3 class="modal-title" id="modal-ep-title" style="display:flex;align-items:center;gap:8px;">Modificar Perfil</h3>
+      <button class="modal-close" onclick="closeModal('modal-edit-profile')" aria-label="Cerrar">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="ep-form" style="display:flex;flex-direction:column;gap:16px;" onsubmit="event.preventDefault(); saveProfile();">
+        <input type="hidden" id="ep-id">
+        <div class="form-group">
+          <label class="form-label" for="ep-nombre">Nombre completo</label>
+          <input class="form-input" type="text" id="ep-nombre" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="ep-correo">Correo electrónico</label>
+          <input class="form-input" type="email" id="ep-correo" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="ep-pass">Nueva contraseña (opcional)</label>
+          <input class="form-input" type="password" id="ep-pass" placeholder="Dejar en blanco para no cambiar">
+        </div>
+        <div class="modal-footer" style="padding:0;border:none;margin-top:10px;">
+          <button type="submit" class="btn btn-primary" style="flex:1;">Guardar Cambios</button>
+          <button type="button" class="btn btn-outline" onclick="closeModal('modal-edit-profile')" style="flex:1;">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
 
 <!-- Modal Registro Candidato -->
 <div class="modal-overlay" id="modal-registro-candidato" role="dialog" aria-modal="true" aria-labelledby="modal-reg-title">
@@ -576,9 +371,19 @@
             <input class="form-input" id="reg-pais" placeholder="Colombia, México..." required>
           </div>
         </div>
+        <div class="grid grid-2" style="gap:12px; margin-bottom:12px;">
+          <div class="form-group">
+            <label class="form-label" for="reg-correo">Correo electrónico *</label>
+            <input class="form-input" type="email" id="reg-correo" placeholder="tu@correo.com" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="reg-telefono">Teléfono</label>
+            <input class="form-input" type="tel" id="reg-telefono" placeholder="+57 300 000 0000">
+          </div>
+        </div>
         <div class="form-group">
-          <label class="form-label" for="reg-correo">Correo electrónico *</label>
-          <input class="form-input" type="email" id="reg-correo" placeholder="tu@correo.com" required>
+          <label class="form-label" for="reg-edad">Edad</label>
+          <input class="form-input" type="number" id="reg-edad" placeholder="Ej. 28">
         </div>
         <div class="grid grid-2" style="gap:12px;">
           <div class="form-group">
@@ -728,10 +533,61 @@
   </div>
 </div>
 
+<!-- Modal Edit Profile -->
+<div class="modal-overlay" id="modal-edit-profile">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="modal-title">✏️ Editar Mi Perfil</h3>
+      <button class="modal-close" onclick="closeModal('modal-edit-profile')">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="edit-profile-form" style="display:flex;flex-direction:column;gap:16px;">
+        <input type="hidden" id="ep-id">
+        <div class="form-group">
+          <label class="form-label">Nombre completo</label>
+          <input class="form-input" id="ep-nombre" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Correo electrónico</label>
+          <input class="form-input" type="email" id="ep-correo" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nueva Contraseña (Opcional)</label>
+          <input class="form-input" type="password" id="ep-pass" placeholder="Dejar en blanco para no cambiar">
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-edit-profile')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveProfile()">Guardar Perfil</button>
+    </div>
+  </div>
+</div>
+
 <!-- ══════════════════════════════════════════════════════════
      SCRIPTS
      ══════════════════════════════════════════════════════════ -->
-<script type="module" src="/src/main.js"></script>
+  <script src="src/db.js"></script>
+  <script src="src/icons.js"></script>
+  <script src="src/mockData.js"></script>
+  <script src="src/main.js"></script>
+
+  <!-- OFFCANVAS INTERACTIVO -->
+  <div class="offcanvas-overlay" id="application-overlay" onclick="closeApplicationOffcanvas()"></div>
+  <div class="offcanvas" id="application-offcanvas">
+    <div class="offcanvas-header">
+      <div class="offcanvas-title">Evaluación de Perfil</div>
+      <button class="offcanvas-close-btn" onclick="closeApplicationOffcanvas()">✕</button>
+    </div>
+    <!-- Aquí renderizaremos la barra de progreso -->
+    <div style="padding: 0 24px;">
+      <div class="test-progress-bar" id="eligibility-progress" style="margin-bottom: 0;"></div>
+    </div>
+    <div class="offcanvas-body" id="application-offcanvas-content">
+      <!-- Se llenará dinámicamente -->
+    </div>
+  </div>
+
 <script>
   // Funciones adicionales de formularios públicos
   function submitContact(e) {

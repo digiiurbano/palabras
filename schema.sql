@@ -18,7 +18,7 @@ CREATE TABLE usuarios (
     nombre            VARCHAR(150)  NOT NULL,
     correo            VARCHAR(255)  NOT NULL UNIQUE,
     contrasena_hash   TEXT          NOT NULL, -- bcrypt hash, nunca texto plano
-    rol               VARCHAR(20)   NOT NULL CHECK (rol IN ('Admin','Asesor','Profesor','Candidato','Empresa','Socio')),
+    roles             JSONB         NOT NULL DEFAULT '[]'::jsonb, -- Arreglo de roles ej: ["Admin", "Profesor"]
     avatar_url        TEXT,
     activo            BOOLEAN       DEFAULT TRUE,
     ultimo_acceso     TIMESTAMPTZ,

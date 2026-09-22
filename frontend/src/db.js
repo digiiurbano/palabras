@@ -1,59 +1,64 @@
+
 // URL del backend: usa VITE_API_URL en producción o localhost en desarrollo
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const API_URL = 'http://localhost:3030';
 
 const OFFICIAL_USERS = [
   {
-    id: 'u-admin-001', nombre: 'Ana García', rol: 'Admin',
+    id: 'u-admin-001', nombre: 'Ana García', roles: ['Admin'],
     correo: 'admin@jnpalabras.com', contrasena: 'JNPalabrasAdmin2026!',
     avatar: 'AG', activo: true, fecha_creacion: '2024-01-15'
   },
   {
-    id: 'u-asesor-001', nombre: 'Carlos Martínez', rol: 'Asesor',
+    id: 'u-asesor-001', nombre: 'Carlos Martínez', roles: ['Asesor'],
     correo: 'asesor@jnpalabras.com', contrasena: 'JNPalabrasAsesor2026!',
     avatar: 'CM', activo: true, fecha_creacion: '2024-02-10'
   },
   {
-    id: 'u-prof-001', nombre: 'Dra. Elena Weber', rol: 'Profesor',
+    id: 'u-prof-001', nombre: 'Dra. Elena Weber', roles: ['Profesor'],
     correo: 'profesor@jnpalabras.com', contrasena: 'JNPalabrasProfesor2026!',
     avatar: 'EW', activo: true, fecha_creacion: '2024-02-20'
   },
   {
-    id: 'u-cand-001', nombre: 'Dr. Javier Torres', rol: 'Candidato',
+    id: 'u-cand-001', nombre: 'Dr. Javier Torres', roles: ['Candidato'],
     correo: 'candidato@jnpalabras.com', contrasena: 'JNPalabrasCandidato2026!',
     avatar: 'JT', activo: true, fecha_creacion: '2024-03-05'
   },
   {
-    id: 'u-emp-001', nombre: 'Klinikum Stuttgart', rol: 'Empresa',
+    id: 'u-emp-001', nombre: 'Klinikum Stuttgart', roles: ['Empresa'],
     correo: 'empresa@jnpalabras.com', contrasena: 'JNPalabrasEmpresa2026!',
     avatar: 'KS', activo: true, fecha_creacion: '2024-01-20'
   },
   {
-    id: 'u-socio-001', nombre: 'Laura Rodríguez (MediLink)', rol: 'Socio',
+    id: 'u-socio-001', nombre: 'Laura Rodríguez (MediLink)', roles: ['Socio'],
     correo: 'socio@jnpalabras.com', contrasena: 'JNPalabrasSocio2026!',
     avatar: 'LR', activo: true, fecha_creacion: '2024-03-01'
   }
 ];
 
-export const DB = {
+const DB = {
   data: null,
 
   async init() {
+    // Inicializar con INITIAL_DATA por si la conexión falla (fallback en memoria, no persistente localmente)
+    if (!this.data) {
+      this.data = JSON.parse(JSON.stringify(INITIAL_DATA));
+    }
+
+    // Intentar sincronizar el estado base con el backend (solo como scaffolding, 
+    // las entidades reales se obtendrán por sus endpoints REST)
     try {
       const res = await fetch(`${API_URL}/api/db`);
       if (res.ok) {
         this.data = await res.json();
-      } else {
-        throw new Error(`HTTP error ${res.status}`);
       }
     } catch (e) {
-      console.warn("Backend no alcanzable. Usando almacenamiento local con usuarios oficiales.");
-      this.data = { usuarios: OFFICIAL_USERS };
+      console.warn("Backend no alcanzable. Usando fallback en memoria.");
     }
   },
 
   get() {
-    if (!this.data || !this.data.usuarios) {
-      this.data = { usuarios: OFFICIAL_USERS, ...(this.data || {}) };
+    if (!this.data) {
+      this.data = JSON.parse(JSON.stringify(INITIAL_DATA));
     }
     return this.data;
   },
@@ -64,13 +69,14 @@ export const DB = {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
-    }).catch(e => console.warn("Modo offline: guardado localmente en cliente"));
+    }).catch(() => console.warn("Modo offline: no se pudo guardar en backend"));
   },
 
   reset() {
+    this.data = JSON.parse(JSON.stringify(INITIAL_DATA));
     fetch(`${API_URL}/api/reset`, { method: 'POST' })
       .then(() => window.location.reload())
-      .catch(console.error);
+      .catch(() => window.location.reload());
   },
 
   // ── USUARIOS ──────────────────────────────────────────────────
@@ -96,7 +102,8 @@ export const DB = {
     }
 
     // 2. Buscar en memoria/local de la DB
-    let user = this.getUsuarios().find(u => u.correo === correo && u.contrasena === contrasena);
+    const list = await this.getUsuarios();
+    let user = list.find(u => u.correo === correo && u.contrasena === contrasena);
     
     // 3. Fallback directo a las credenciales oficiales embebidas
     if (!user) {
@@ -106,15 +113,36 @@ export const DB = {
     return user;
   },
 
-  findUsuarioById(id) {
-    let user = this.getUsuarios().find(u => u.id === id);
+  async findUsuarioById(id) {
+    try {
+      const res = await fetch(`${API_URL}/api/users/${id}`);
+      if (res.ok) {
+        return await res.json();
+      }
+    } catch (e) {}
+    
+    const list = await this.getUsuarios();
+    let user = list.find(u => u.id === id);
     if (!user) {
       user = OFFICIAL_USERS.find(u => u.id === id);
     }
     return user;
   },
 
-  createUsuario(data) {
+  async createUsuario(data) {
+    try {
+      const res = await fetch(`${API_URL}/api/users`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      if (res.ok) {
+        return await res.json();
+      }
+    } catch (e) {
+      console.error("Fallo al crear usuario en backend, fallback local");
+    }
+    
     const db = this.get();
     const nuevo = { ...data, id: 'u-' + Date.now(), fecha_creacion: new Date().toISOString(), activo: true };
     if (!db.usuarios) db.usuarios = [...OFFICIAL_USERS];
@@ -123,7 +151,16 @@ export const DB = {
     return nuevo;
   },
 
-  updateUsuario(id, data) {
+  async updateUsuario(id, data) {
+    try {
+      const res = await fetch(`${API_URL}/api/users/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      if (res.ok) return;
+    } catch (e) {}
+
     const db = this.get();
     if (!db.usuarios) db.usuarios = [...OFFICIAL_USERS];
     const idx = db.usuarios.findIndex(u => u.id === id);
@@ -131,7 +168,14 @@ export const DB = {
     this.save(db);
   },
 
-  deleteUsuario(id) {
+  async deleteUsuario(id) {
+    try {
+      const res = await fetch(`${API_URL}/api/users/${id}`, {
+        method: 'DELETE'
+      });
+      if (res.ok) return;
+    } catch (e) {}
+
     const db = this.get();
     if (!db.usuarios) db.usuarios = [...OFFICIAL_USERS];
     db.usuarios = db.usuarios.filter(u => u.id !== id);
@@ -139,38 +183,114 @@ export const DB = {
   },
 
   // ── SESIÓN ────────────────────────────────────────────────────
-  getSession() { return this.get().session; },
+  getSession() { 
+    try {
+      const stored = localStorage.getItem('jnpalabras_session');
+      return stored ? JSON.parse(stored) : null;
+    } catch(e) { return null; }
+  },
 
   setSession(usuario) {
-    const db = this.get();
-    db.session = usuario;
-    this.save(db);
+    try {
+      localStorage.setItem('jnpalabras_session', JSON.stringify(usuario));
+    } catch(e) {}
   },
 
   clearSession() {
-    const db = this.get();
-    db.session = null;
-    this.save(db);
+    try {
+      localStorage.removeItem('jnpalabras_session');
+    } catch(e) {}
   },
 
   // ── CANDIDATOS ────────────────────────────────────────────────
-  getCandidatos() { return this.get().candidatos || []; },
+  getCandidatos() {
+    return this.get().candidatos || [];
+  },
 
-  getCandidatoById(id) { return this.getCandidatos().find(c => c.id === id); },
+  getCandidatoById(id) {
+    const list = this.getCandidatos();
+    return list.find(c => c.id === id);
+  },
 
-  getCandidatosByEstado(estado) { return this.getCandidatos().filter(c => c.estado_proceso === estado); },
+  getCandidatosByEstado(estado) {
+    const list = this.getCandidatos();
+    return list.filter(c => c.estado_proceso === estado);
+  },
 
-  getCandidatosBySocio(id_socio) { return this.getCandidatos().filter(c => c.id_socio === id_socio); },
+  getCandidatosBySocio(id_socio) {
+    const list = this.getCandidatos();
+    return list.filter(c => c.id_socio === id_socio);
+  },
 
-  updateCandidato(id, data) {
+  async createCandidato(data) {
+    try {
+      const res = await fetch(`${API_URL}/api/candidatos`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      if (res.ok) {
+        const nuevo = await res.json();
+        const db = this.get();
+        if (!db.candidatos) db.candidatos = [];
+        db.candidatos.push(nuevo);
+        return nuevo;
+      }
+    } catch(e) {
+      console.warn('Error creando candidato en API, guardando en memoria');
+    }
+    
+    // Fallback
+    const db = this.get();
+    const nuevo = { ...data, id: 'c-' + Date.now(), fecha_alta: new Date().toISOString().split('T')[0], consentimiento_gdpr: true };
+    if (!db.candidatos) db.candidatos = [];
+    db.candidatos.push(nuevo);
+    this.save(db);
+    return nuevo;
+  },
+
+  async updateCandidato(id, data) {
+    try {
+      const res = await fetch(`${API_URL}/api/candidatos/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      if (res.ok) {
+        const editado = await res.json();
+        // Update local memory copy
+        const db = this.get();
+        if (db.candidatos) {
+          const idx = db.candidatos.findIndex(c => c.id === id);
+          if (idx !== -1) db.candidatos[idx] = editado;
+        }
+        return editado;
+      }
+    } catch(e) {}
     const db = this.get();
     const idx = db.candidatos.findIndex(c => c.id === id);
     if (idx !== -1) db.candidatos[idx] = { ...db.candidatos[idx], ...data };
     this.save(db);
+    return db.candidatos[idx];
   },
 
-  getCV(id_candidato) {
-    const cand = this.getCandidatoById(id_candidato);
+  async deleteCandidato(id) {
+    try {
+      const res = await fetch(`${API_URL}/api/candidatos/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        const db = this.get();
+        if (db.candidatos) db.candidatos = db.candidatos.filter(c => c.id !== id);
+        return true;
+      }
+    } catch(e) {}
+    const db = this.get();
+    db.candidatos = db.candidatos.filter(c => c.id !== id);
+    this.save(db);
+    return true;
+  },
+
+  async getCV(id_candidato) {
+    const cand = await this.getCandidatoById(id_candidato);
     if (!cand) return null;
     if (cand.cv_data) return JSON.parse(JSON.stringify(cand.cv_data));
 
@@ -256,23 +376,6 @@ export const DB = {
       this.save(db);
     }
     return cvData;
-  },
-
-  createCandidato(data) {
-    const db = this.get();
-    const nuevo = { ...data, id: 'c-' + Date.now(), fecha_alta: new Date().toISOString().split('T')[0], consentimiento_gdpr: true };
-    db.candidatos.push(nuevo);
-    db.kpis.total_candidatos++;
-    db.kpis.candidatos_activos++;
-    db.kpis.nuevos_este_mes++;
-    this.save(db);
-    this.addNotificacion({
-      id_usuario_dest: 'u-asesor-001',
-      tipo: 'Nuevo_Candidato',
-      titulo: 'Nuevo candidato registrado',
-      mensaje: `${data.nombre} (${data.pais}, ${data.especialidad}) se ha registrado como nuevo lead.`
-    });
-    return nuevo;
   },
 
   // ── DOCUMENTOS ────────────────────────────────────────────────

@@ -1,0 +1,149 @@
+{
+  "usuarios": [
+    {
+      "id": "u-admin-001",
+      "nombre": "Ana García",
+      "roles": [
+        "Admin"
+      ],
+      "correo": "admin@jnpalabras.com",
+      "contrasena": "JNPalabrasAdmin2026!",
+      "avatar": "AG",
+      "activo": true,
+      "fecha_creacion": "2024-01-15",
+      "ultimo_acceso": "2026-09-16T20:53:40.885Z"
+    },
+    {
+      "id": "u-asesor-001",
+      "nombre": "Carlos Martínez",
+      "roles": [
+        "Asesor"
+      ],
+      "correo": "asesor@jnpalabras.com",
+      "contrasena": "JNPalabrasAsesor2026!",
+      "avatar": "CM",
+      "activo": true,
+      "fecha_creacion": "2024-02-10"
+    },
+    {
+      "id": "u-prof-001",
+      "nombre": "Dra. Elena Weber",
+      "roles": [
+        "Profesor"
+      ],
+      "correo": "profesor@jnpalabras.com",
+      "contrasena": "JNPalabrasProfesor2026!",
+      "avatar": "EW",
+      "activo": true,
+      "fecha_creacion": "2024-02-20"
+    }
+  ],
+  "candidatos": [],
+  "kanban_columns": [
+    {
+      "id": "Lead Nuevo",
+      "label": "Lead Nuevo",
+      "color": "#64748b",
+      "icon": "🆕"
+    },
+    {
+      "id": "Idioma",
+      "label": "Idioma",
+      "color": "#3b82f6",
+      "icon": "🗣️"
+    },
+    {
+      "id": "Homologación",
+      "label": "Homologación",
+      "color": "#8b5cf6",
+      "icon": "📋"
+    },
+    {
+      "id": "Postulación",
+      "label": "Postulación",
+      "color": "#f59e0b",
+      "icon": "📤"
+    },
+    {
+      "id": "Entrevista Agendada",
+      "label": "Entrevista",
+      "color": "#ec4899",
+      "icon": "📅"
+    },
+    {
+      "id": "Trámite Visado",
+      "label": "Trámite Visado",
+      "color": "#06b6d4",
+      "icon": "🛂"
+    },
+    {
+      "id": "Colocado",
+      "label": "Colocado 🎉",
+      "color": "#10b981",
+      "icon": "✅"
+    }
+  ],
+  "documentos": [],
+  "doc_categorias": [
+    {
+      "cat": "Pasaporte",
+      "icono": "🛂",
+      "requerido": true
+    },
+    {
+      "cat": "Título Universitario",
+      "icono": "🎓",
+      "requerido": true
+    },
+    {
+      "cat": "Notas Académicas",
+      "icono": "📊",
+      "requerido": true
+    },
+    {
+      "cat": "Certificado de Idioma",
+      "icono": "🗣️",
+      "requerido": true
+    },
+    {
+      "cat": "Antecedentes Penales",
+      "icono": "📋",
+      "requerido": true
+    },
+    {
+      "cat": "Certificado Nacimiento",
+      "icono": "📜",
+      "requerido": true
+    },
+    {
+      "cat": "Foto Carnet",
+      "icono": "📷",
+      "requerido": false
+    },
+    {
+      "cat": "Especialidad",
+      "icono": "🏥",
+      "requerido": false
+    }
+  ],
+  "empresas": [],
+  "vacantes": [],
+  "grupos": [],
+  "inscripciones": [],
+  "calificaciones": [],
+  "materiales": [],
+  "matchings": [],
+  "entrevistas": [],
+  "socios": [],
+  "comisiones": [],
+  "notas": [],
+  "notificaciones": [],
+  "kpis": {
+    "totalCandidatos": 0,
+    "colocados": 0,
+    "vacantesActivas": 0,
+    "ingresosEstimados": 0,
+    "tasaExito": 0
+  },
+  "session": null
+}

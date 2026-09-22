@@ -4,513 +4,154 @@
  */
 
 const { isPostgresConfigured, query } = require('./db/pool');
+const fs = require('fs');
+const path = require('path');
 
 let memoryDB = null;
+const dbFilePath = path.join(__dirname, 'db', 'data.json');
 
 const INITIAL_DATA = {
-  // ── USUARIOS OFICIALES ─────────────────────────────────────────
-  usuarios: [
+  "usuarios": [
     {
-      id: 'u-admin-001', nombre: 'Ana García', rol: 'Admin',
-      correo: 'admin@jnpalabras.com', contrasena: 'JNPalabrasAdmin2026!',
-      avatar: 'AG', activo: true, fecha_creacion: '2024-01-15',
-      ultimo_acceso: new Date().toISOString()
+      "id": "u-admin-001",
+      "nombre": "Ana García",
+      "roles": ["Admin"],
+      "correo": "admin@jnpalabras.com",
+      "contrasena": "JNPalabrasAdmin2026!",
+      "avatar": "AG",
+      "activo": true,
+      "fecha_creacion": "2024-01-15",
+      "ultimo_acceso": "2026-09-16T20:53:40.885Z"
     },
     {
-      id: 'u-asesor-001', nombre: 'Carlos Martínez', rol: 'Asesor',
-      correo: 'asesor@jnpalabras.com', contrasena: 'JNPalabrasAsesor2026!',
-      avatar: 'CM', activo: true, fecha_creacion: '2024-02-10'
+      "id": "u-asesor-001",
+      "nombre": "Carlos Martínez",
+      "roles": ["Asesor"],
+      "correo": "asesor@jnpalabras.com",
+      "contrasena": "JNPalabrasAsesor2026!",
+      "avatar": "CM",
+      "activo": true,
+      "fecha_creacion": "2024-02-10"
     },
     {
-      id: 'u-prof-001', nombre: 'Dra. Elena Weber', rol: 'Profesor',
-      correo: 'profesor@jnpalabras.com', contrasena: 'JNPalabrasProfesor2026!',
-      avatar: 'EW', activo: true, fecha_creacion: '2024-02-20'
-    },
-    {
-      id: 'u-cand-001', nombre: 'Dr. Javier Torres', rol: 'Candidato',
-      correo: 'candidato@jnpalabras.com', contrasena: 'JNPalabrasCandidato2026!',
-      avatar: 'JT', activo: true, fecha_creacion: '2024-03-05'
-    },
-    {
-      id: 'u-emp-001', nombre: 'Klinikum Stuttgart', rol: 'Empresa',
-      correo: 'empresa@jnpalabras.com', contrasena: 'JNPalabrasEmpresa2026!',
-      avatar: 'KS', activo: true, fecha_creacion: '2024-01-20'
-    },
-    {
-      id: 'u-socio-001', nombre: 'Laura Rodríguez (MediLink)', rol: 'Socio',
-      correo: 'socio@jnpalabras.com', contrasena: 'JNPalabrasSocio2026!',
-      avatar: 'LR', activo: true, fecha_creacion: '2024-03-01'
+      "id": "u-prof-001",
+      "nombre": "Dra. Elena Weber",
+      "roles": ["Profesor"],
+      "correo": "profesor@jnpalabras.com",
+      "contrasena": "JNPalabrasProfesor2026!",
+      "avatar": "EW",
+      "activo": true,
+      "fecha_creacion": "2024-02-20"
     }
   ],
-
-  // ── CANDIDATOS ────────────────────────────────────────────────
-  candidatos: [
+  "candidatos": [],
+  "kanban_columns": [
     {
-      id: 'c-001', id_usuario: 'u-cand-001',
-      nombre: 'Dr. Javier Torres', pais: 'Colombia',
-      especialidad: 'Medicina General', nivel_aleman: 'B2',
-      estado_proceso: 'Idioma', estado_homologacion: 'En Trámite',
-      anos_exp: 5, id_socio: 'u-socio-001',
-      consentimiento_gdpr: true, video_url: null,
-      foto: 'JT', fecha_alta: '2024-03-05',
-      cv_data: {
-        personal: {
-          vorname: 'Javier',
-          name: 'Torres Martínez',
-          beruf: 'Facharzt für Allgemeinmedizin / Arzt',
-          geburtsdatum: '14/05/1990',
-          adresse: 'Carrera 45 #102-18, Apto 502, Bogotá D.C., Kolumbien',
-          nationalitaet: 'kolumbianisch',
-          familienstand: 'Ledig',
-          telefon: '(+57) 3105558921',
-          email: 'candidato@jnpalabras.com',
-          foto: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&w=400&q=80'
-        },
-        profil: 'Engagierter und erfahrener Allgemeinmediziner mit fundierter klinischer Praxis in der Notfallaufnahme, stationären Patientenversorgung und ambulanten Diagnostik. Hohe Motivation zur beruflichen Integration im deutschen Gesundheitssystem mit Approbationsanerkennung in Bearbeitung.',
-        werdegang: [
-          {
-            zeitraum: '01/02/2021 – AKTUELL',
-            titel: 'ALLGEMEINARZT / NOTFALLMEDIZIN - HOSPITAL UNIVERSITARIO SAN IGNACIO',
-            beschreibung: 'Leitung von Notfallbehandlungen bei Erwachsenen und Kindern. Durchführung von kardiopulmonalen Reanimationen (ACLS), Ultraschall FAST, endotrachealen Intubationen und Patientenstabilisierung.'
-          },
-          {
-            zeitraum: '15/01/2018 – 30/01/2021',
-            titel: 'STATIONSARZT INNERE MEDIZIN - CLÍNICA DEL COUNTRY',
-            beschreibung: 'Stationäre Betreuung von multimorbiden Patienten, Visitenleitung, Erstellung von Therapieplänen, Lumbalpunktionen, Pleurapunktionen und Entlassungsberichten.'
-          }
-        ],
-        ausbildung: [
-          {
-            zeitraum: '15/01/2011 – 15/12/2017',
-            beschreibung: 'Studium der Humanmedizin (Médico Cirujano),\nPontificia Universidad Javeriana, Bogotá, Kolumbien'
-          }
-        ],
-        sprachen: [
-          { sprache: 'Spanisch', niveau: 'Muttersprache' },
-          { sprache: 'Deutsch', niveau: 'B2 (Goethe-Zertifikat B2 / FSP Vorbereitung)' },
-          { sprache: 'Englisch', niveau: 'B2 (Fließend)' }
-        ]
-      }
+      "id": "Lead Nuevo",
+      "label": "Lead Nuevo",
+      "color": "#64748b",
+      "icon": "🆕"
     },
     {
-      id: 'c-002', id_usuario: null,
-      nombre: 'Dra. María López', pais: 'México',
-      especialidad: 'Cardiología', nivel_aleman: 'B1',
-      estado_proceso: 'Homologación', estado_homologacion: 'Pendiente',
-      anos_exp: 8, id_socio: null,
-      consentimiento_gdpr: true, video_url: null,
-      foto: 'ML', fecha_alta: '2024-03-12'
+      "id": "Idioma",
+      "label": "Idioma",
+      "color": "#3b82f6",
+      "icon": "🗣️"
     },
     {
-      id: 'c-003', id_usuario: null,
-      nombre: 'Enf. Maira Coronel', pais: 'Colombia',
-      especialidad: 'Gesundheits- und Krankenpflege', nivel_aleman: 'B2',
-      estado_proceso: 'Idioma', estado_homologacion: 'En Trámite',
-      anos_exp: 7, id_socio: 'u-socio-001',
-      consentimiento_gdpr: true, video_url: null,
-      foto: 'MC', fecha_alta: '2024-03-20',
-      cv_data: {
-        personal: {
-          vorname: 'Maira Alejandra',
-          name: 'Coronel López',
-          beruf: 'Gesundheits- und Krankenschwester',
-          geburtsdatum: '01/10/1994',
-          adresse: 'Straße 27 #55b-35, Wohnung 306, Gebäude Brisas de Santillana, Lage San Antonio de Pereira, 054040, Rionegro, Antioquia, Kolumbien',
-          nationalitaet: 'kolumbianisch',
-          familienstand: 'Ledig',
-          telefon: '(+57) 3127016458',
-          email: 'maira9426@hotmail.com',
-          foto: 'https://images.unsplash.com/photo-1594824813501-447545163148?auto=format&fit=crop&w=400&q=80'
-        },
-        profil: 'Ich bin eine proaktive professionelle Krankenschwester mit der Fähigkeit, Institutionen und Gesundheitsprogramme zu leiten, indem ich mein Wissen und meine kreativen Fähigkeiten einsetze. Ich genieße ständiges Lernen, was für meine berufliche Laufbahn von großem Vorteil ist, da ich der Innovation und der Verbesserung der Aufgaben und Prozesse, in die ich involviert bin, besondere Aufmerksamkeit schenke. Ich bin eine ehrliche, engagierte, verantwortlich Person in meiner Arbeit, mit einer guten Einstellung zu allen Menschen um mich herum, ich komme gut mit der Arbeit im Team zurecht.',
-        werdegang: [
-          {
-            zeitraum: '30/07/2017 – 01/08/2018',
-            titel: 'KRANKENSCHWESTER IPSI OUTTAJIAPULEE',
-            beschreibung: 'Krankenschwester in ländlichen Gebieten.\nEin- und Ausreisekontrolle, Kontrolle von Drogen, Beratungen zur Wachstums und Entwicklungskontrolle, Familienplanung, Aufklärungsgespräche zur Prävention und Verhütung.'
-          },
-          {
-            zeitraum: '30/10/2018 – 26/02/2019',
-            titel: 'KRANKENSCHWESTER im KRANKENHAUS NUESTRA SEÑORA DE LOS REMEDIOS',
-            beschreibung: 'Notfallkrankenschwester, zuständig für den Beobachtungsbereich, Pädiatrie und Erwachsene. Durchführen von Verwaltungsfunktionen und Pflegeverfahren, wie z. B. das Platzieren von Blasenkathetern.'
-          },
-          {
-            zeitraum: '14/03/2019 – 26/07/2020',
-            titel: 'KRANKENSCHWESTER INTENSIVMEDIZIN VON TOLIMA',
-            beschreibung: 'Krankenschwester im Bereich der Intensivpflege, zuständig für Pflegeverfahren wie die Durchführung von Elektrokardiogrammen, das Verabreichen von Medikamenten, die Unterstützung eines Intensivarztes bei Eingriffen, Wundverbänden und Verwaltungsverfahren.'
-          },
-          {
-            zeitraum: '13/11/2020 – 24/08/2023',
-            titel: 'KRANKENSCHWESTER KLINIK SAN JUAN DE DIOS',
-            beschreibung: 'Krankenschwester im Bereich der Intensivpflege, zuständig für Pflegeverfahren wie die Durchführung von Elektrokardiogrammen, das Verabreichen von Medikamenten, die Unterstützung eines Intensivarztes bei Eingriffen, Wundverbänden und Verwaltungsverfahren.'
-          },
-          {
-            zeitraum: '24/08/2023 – 24/02/2024',
-            titel: 'GESUNDHEITS- UND KRANKENSCHWESTER SALUD EN CASA SURA',
-            beschreibung: 'Krankenschwester in der häuslichen Pflege, verantwortlich für Pflegeaktivitäten wie Hausbesuche bei palliativen, chronischen und hundertjährigen Patienten. von Herzkatheter empfangen und liefern. Führen von Indikatoren. Organisieren von Schichtplänen von Pflegehilfskräften. Und andere administrative Verfahren.'
-          },
-          {
-            zeitraum: '15/07/2024 – AKTUELL',
-            titel: 'GESUNDHEITS- UND KRANKENSCHWESTER FRESENIUS MEDICAL CARE',
-            beschreibung: 'Krankenschwester im Hämodialyseraum. Verantwortlich für Pflegeaktivitäten wie: Überführung von Maschinen auf die Intensivstation. Hämodialyseraumbestellung aufgeben. Schicht aktivieren. Heparinvorbereitung. Dialyseraumauftrag überprüfen. Maschinenwaschprüfung. Überwachung und Kontrolle der Probenahme. Verbinden und Trennen der Patienten von der Dialysemaschine.'
-          }
-        ],
-        ausbildung: [
-          {
-            zeitraum: '20/01/2012 – 27/06/2017',
-            beschreibung: 'Ausbildung zur Krankenschwester,\nHochschule Popular del Cesar, Valledupar, Kolumbien'
-          },
-          {
-            zeitraum: '20/01/2006 – 04/12/2011',
-            beschreibung: 'Abitur, Hochschule Juan Mejía Gómez\nChiriguana, Kolumbien'
-          }
-        ],
-        sprachen: [
-          { sprache: 'Spanisch', niveau: 'Muttersprache' },
-          { sprache: 'Deutsch', niveau: 'B2 (Goethe-Zertifikat B2)' },
-          { sprache: 'Englisch', niveau: 'B1 (Grundkenntnisse Medizin)' }
-        ]
-      }
+      "id": "Homologación",
+      "label": "Homologación",
+      "color": "#8b5cf6",
+      "icon": "📋"
     },
     {
-      id: 'c-004', id_usuario: null,
-      nombre: 'Dr. Ahmed Hassan', pais: 'Siria',
-      especialidad: 'Pediatría', nivel_aleman: 'B2',
-      estado_proceso: 'Postulación', estado_homologacion: 'Reconocimiento Parcial',
-      anos_exp: 10, id_socio: null,
-      consentimiento_gdpr: true, video_url: null,
-      foto: 'AH', fecha_alta: '2024-02-28'
+      "id": "Postulación",
+      "label": "Postulación",
+      "color": "#f59e0b",
+      "icon": "📤"
     },
     {
-      id: 'c-005', id_usuario: null,
-      nombre: 'Dra. Ana Souza', pais: 'Brasil',
-      especialidad: 'Anestesiología', nivel_aleman: 'C1',
-      estado_proceso: 'Entrevista Agendada', estado_homologacion: 'Aprobado',
-      anos_exp: 12, id_socio: null,
-      consentimiento_gdpr: true, video_url: null,
-      foto: 'AS', fecha_alta: '2024-02-10'
+      "id": "Entrevista Agendada",
+      "label": "Entrevista",
+      "color": "#ec4899",
+      "icon": "📅"
     },
     {
-      id: 'c-006', id_usuario: null,
-      nombre: 'Dr. Carlos Vega', pais: 'Perú',
-      especialidad: 'Neurología', nivel_aleman: 'B1',
-      estado_proceso: 'Lead Nuevo', estado_homologacion: 'Pendiente',
-      anos_exp: 6, id_socio: 'u-socio-001',
-      consentimiento_gdpr: true, video_url: null,
-      foto: 'CV', fecha_alta: '2024-04-01'
+      "id": "Trámite Visado",
+      "label": "Trámite Visado",
+      "color": "#06b6d4",
+      "icon": "🛂"
     },
     {
-      id: 'c-007', id_usuario: null,
-      nombre: 'Dra. Sofia Petrov', pais: 'Ucrania',
-      especialidad: 'Medicina General', nivel_aleman: 'B2',
-      estado_proceso: 'Trámite Visado', estado_homologacion: 'Aprobado',
-      anos_exp: 7, id_socio: null,
-      consentimiento_gdpr: true, video_url: null,
-      foto: 'SP', fecha_alta: '2024-01-18'
-    },
-    {
-      id: 'c-008', id_usuario: null,
-      nombre: 'Dr. Miguel Ramírez', pais: 'Argentina',
-      especialidad: 'Cirugía General', nivel_aleman: 'C1',
-      estado_proceso: 'Colocado', estado_homologacion: 'Aprobado',
-      anos_exp: 15, id_socio: null,
-      consentimiento_gdpr: true, video_url: null,
-      foto: 'MR', fecha_alta: '2023-11-05'
+      "id": "Colocado",
+      "label": "Colocado 🎉",
+      "color": "#10b981",
+      "icon": "✅"
     }
   ],
-
-  // ── ESTADOS KANBAN (orden del pipeline) ────────────────────
-  kanban_columns: [
-    { id: 'Lead Nuevo',           label: 'Lead Nuevo',           color: '#64748b', icon: '🆕' },
-    { id: 'Idioma',               label: 'Idioma',               color: '#3b82f6', icon: '🗣️' },
-    { id: 'Homologación',         label: 'Homologación',         color: '#8b5cf6', icon: '📋' },
-    { id: 'Postulación',          label: 'Postulación',          color: '#f59e0b', icon: '📤' },
-    { id: 'Entrevista Agendada',  label: 'Entrevista',           color: '#ec4899', icon: '📅' },
-    { id: 'Trámite Visado',       label: 'Trámite Visado',       color: '#06b6d4', icon: '🛂' },
-    { id: 'Colocado',             label: 'Colocado 🎉',          color: '#10b981', icon: '✅' }
-  ],
-
-  // ── DOCUMENTOS ────────────────────────────────────────────────
-  documentos: [
+  "documentos": [],
+  "doc_categorias": [
     {
-      id: 'd-001', id_candidato: 'c-001', nombre: 'Pasaporte_Torres.pdf',
-      categoria: 'Pasaporte', estado: 'Aprobado',
-      comentario: '', fecha: '2024-03-06', tamano: '2.3 MB'
+      "cat": "Pasaporte",
+      "icono": "🛂",
+      "requerido": true
     },
     {
-      id: 'd-002', id_candidato: 'c-001', nombre: 'Titulo_Medicina_Torres.pdf',
-      categoria: 'Título Universitario', estado: 'En Revisión',
-      comentario: '', fecha: '2024-03-08', tamano: '4.1 MB'
+      "cat": "Título Universitario",
+      "icono": "🎓",
+      "requerido": true
     },
     {
-      id: 'd-003', id_candidato: 'c-001', nombre: 'Cert_B2_Goethe.pdf',
-      categoria: 'Certificado de Idioma', estado: 'Pendiente',
-      comentario: '', fecha: '2024-03-10', tamano: '1.2 MB'
+      "cat": "Notas Académicas",
+      "icono": "📊",
+      "requerido": true
     },
     {
-      id: 'd-004', id_candidato: 'c-001', nombre: 'Notas_Academicas.pdf',
-      categoria: 'Notas Académicas', estado: 'Rechazado',
-      comentario: 'El documento está en inglés. Por favor suba la versión apostillada en alemán o español con traducción oficial.',
-      fecha: '2024-03-09', tamano: '3.5 MB'
+      "cat": "Certificado de Idioma",
+      "icono": "🗣️",
+      "requerido": true
     },
     {
-      id: 'd-005', id_candidato: 'c-001', nombre: 'Antecedentes_Penales.pdf',
-      categoria: 'Antecedentes Penales', estado: 'Pendiente',
-      comentario: '', fecha: null, tamano: null
+      "cat": "Antecedentes Penales",
+      "icono": "📋",
+      "requerido": true
+    },
+    {
+      "cat": "Certificado Nacimiento",
+      "icono": "📜",
+      "requerido": true
+    },
+    {
+      "cat": "Foto Carnet",
+      "icono": "📷",
+      "requerido": false
+    },
+    {
+      "cat": "Especialidad",
+      "icono": "🏥",
+      "requerido": false
     }
   ],
-
-  // ── CATEGORÍAS DE DOCUMENTOS REQUERIDOS ─────────────────────
-  doc_categorias: [
-    { cat: 'Pasaporte',             icono: '🛂', requerido: true  },
-    { cat: 'Título Universitario',  icono: '🎓', requerido: true  },
-    { cat: 'Notas Académicas',      icono: '📊', requerido: true  },
-    { cat: 'Certificado de Idioma', icono: '🗣️', requerido: true  },
-    { cat: 'Antecedentes Penales',  icono: '📋', requerido: true  },
-    { cat: 'Certificado Nacimiento',icono: '📜', requerido: true  },
-    { cat: 'Foto Carnet',           icono: '📷', requerido: false },
-    { cat: 'Especialidad',          icono: '🏥', requerido: false }
-  ],
-
-  // ── EMPRESAS ──────────────────────────────────────────────────
-  empresas: [
-    {
-      id: 'e-001', id_usuario: 'u-emp-001',
-      nombre: 'Tech Solutions GmbH', tipo: 'Empresa de Tecnología',
-      region: 'Baden-Württemberg', plazas: 5,
-      contacto: 'Dr. Hans Müller', correo: 'rrhh@techsolutions.de',
-      telefono: '+49 711 000 001', camas: 2200, activo: true
-    },
-    {
-      id: 'e-002', id_usuario: null,
-      nombre: 'Berlin Innovate', tipo: 'Empresa B2B',
-      region: 'Berlin', plazas: 2,
-      contacto: 'Frau Schmidt', correo: 'personal@charite.de',
-      telefono: '+49 30 000 002', camas: 3500, activo: true
-    },
-    {
-      id: 'e-003', id_usuario: null,
-      nombre: 'Bavaria Automotive', tipo: 'Ingeniería',
-      region: 'Bayern', plazas: 10,
-      contacto: 'Hr. Fischer', correo: 'stellen@bavaria-auto.de',
-      telefono: '+49 89 000 003', camas: 1800, activo: true
-    }
-  ],
-
-  // ── VACANTES ──────────────────────────────────────────────────
-  vacantes: [
-    {
-      id: 'v-001', id_empresa: 'e-001', empresa: 'Tech Solutions GmbH',
-      titulo: 'Desarrollador Backend', especialidad: 'Desarrollo de Software',
-      nivel_aleman: 'B2', requiere_fsp: true,
-      sueldo_min: 4500, sueldo_max: 5800, moneda: 'EUR',
-      tipo_contrato: 'Indefinido', jornada: 'Completa',
-      vacantes: 2, estado: 'Abierta',
-      fecha: '2024-03-01'
-    },
-    {
-      id: 'v-002', id_empresa: 'e-001', empresa: 'Tech Solutions GmbH',
-      titulo: 'Ingeniero de Software Senior', especialidad: 'Desarrollo de Software',
-      nivel_aleman: 'C1', requiere_fsp: true,
-      sueldo_min: 6000, sueldo_max: 8500, moneda: 'EUR',
-      tipo_contrato: 'Indefinido', jornada: 'Completa',
-      vacantes: 1, estado: 'Abierta',
-      fecha: '2024-02-15'
-    },
-    {
-      id: 'v-003', id_empresa: 'e-001', empresa: 'Tech Solutions GmbH',
-      titulo: 'Analista de Datos', especialidad: 'IT',
-      nivel_aleman: 'B2', requiere_fsp: false,
-      sueldo_min: 3200, sueldo_max: 4000, moneda: 'EUR',
-      tipo_contrato: 'Indefinido', jornada: 'Guardia',
-      vacantes: 3, estado: 'Abierta',
-      fecha: '2024-03-10'
-    },
-    {
-      id: 'v-004', id_empresa: 'e-002', empresa: 'Charité Berlin',
-      titulo: 'Pediatra', especialidad: 'Pediatría',
-      nivel_aleman: 'B2', requiere_fsp: true,
-      sueldo_min: 5000, sueldo_max: 6500, moneda: 'EUR',
-      tipo_contrato: 'Indefinido', jornada: 'Completa',
-      vacantes: 2, estado: 'Abierta',
-      fecha: '2024-03-18'
-    },
-    {
-      id: 'v-005', id_empresa: 'e-003', empresa: 'Bavaria Automotive',
-      titulo: 'Anestesiólogo Senior', especialidad: 'Anestesiología',
-      nivel_aleman: 'C1', requiere_fsp: true,
-      sueldo_min: 7000, sueldo_max: 9500, moneda: 'EUR',
-      tipo_contrato: 'Indefinido', jornada: 'Completa',
-      vacantes: 1, estado: 'Pausada',
-      fecha: '2024-02-01'
-    }
-  ],
-
-  // ── GRUPOS DE CLASE ───────────────────────────────────────────
-  grupos: [
-    {
-      id: 'g-001', id_profesor: 'u-prof-001', profesor: 'Dra. Elena Weber',
-      nombre: 'Grupo B2 Medicina – Jul 2025', nivel: 'B2',
-      modalidad: 'Online', horario: 'Lun/Mié 18:00–20:00 CET',
-      enlace: 'https://meet.google.com/jnp-b2-med', max_alumnos: 10,
-      activos: 6, inicio: '2025-07-01', fin: '2025-12-31'
-    },
-    {
-      id: 'g-002', id_profesor: 'u-prof-001', profesor: 'Dra. Elena Weber',
-      nombre: 'Grupo A2 Enfermería – Jun 2025', nivel: 'A2',
-      modalidad: 'Online', horario: 'Mar/Jue 17:00–19:00 CET',
-      enlace: 'https://meet.google.com/jnp-a2-enf', max_alumnos: 12,
-      activos: 4, inicio: '2025-06-01', fin: '2025-11-30'
-    },
-    {
-      id: 'g-003', id_profesor: 'u-prof-001', profesor: 'Dra. Elena Weber',
-      nombre: 'Grupo FSP Preparación – May 2025', nivel: 'FSP',
-      modalidad: 'Online', horario: 'Vie 15:00–18:00 CET',
-      enlace: 'https://meet.google.com/jnp-fsp-prep', max_alumnos: 8,
-      activos: 5, inicio: '2025-05-01', fin: '2025-07-31'
-    }
-  ],
-
-  // ── ALUMNOS POR GRUPO ─────────────────────────────────────────
-  inscripciones: [
-    { id: 'i-001', id_grupo: 'g-001', id_candidato: 'c-001', nota_ultima: 7.8, asistencia: 92, en_riesgo: false },
-    { id: 'i-002', id_grupo: 'g-001', id_candidato: 'c-004', nota_ultima: 8.5, asistencia: 88, en_riesgo: false },
-    { id: 'i-003', id_grupo: 'g-001', id_candidato: 'c-007', nota_ultima: 5.2, asistencia: 60, en_riesgo: true  },
-    { id: 'i-004', id_grupo: 'g-002', id_candidato: 'c-003', nota_ultima: 7.0, asistencia: 95, en_riesgo: false },
-    { id: 'i-005', id_grupo: 'g-003', id_candidato: 'c-005', nota_ultima: 9.1, asistencia: 100, en_riesgo: false },
-    { id: 'i-006', id_grupo: 'g-003', id_candidato: 'c-002', nota_ultima: 6.5, asistencia: 75, en_riesgo: true  }
-  ],
-
-  // ── CALIFICACIONES ────────────────────────────────────────────
-  calificaciones: [
-    { id: 'cal-001', id_inscripcion: 'i-001', tipo: 'Examen Simulacro', nivel: 'B2', fecha: '2025-06-15', nota: 7.8, max: 10, aprobado: true },
-    { id: 'cal-002', id_inscripcion: 'i-002', tipo: 'Examen Simulacro', nivel: 'B2', fecha: '2025-06-15', nota: 8.5, max: 10, aprobado: true },
-    { id: 'cal-003', id_inscripcion: 'i-003', tipo: 'Examen Simulacro', nivel: 'B2', fecha: '2025-06-15', nota: 5.2, max: 10, aprobado: false, en_riesgo: true },
-    { id: 'cal-004', id_inscripcion: 'i-005', tipo: 'FSP', nivel: 'FSP', fecha: '2025-07-01', nota: 9.1, max: 10, aprobado: true }
-  ],
-
-  // ── MATERIALES ────────────────────────────────────────────────
-  materiales: [
-    { id: 'm-001', id_grupo: 'g-001', titulo: 'Vocabulario Técnico B2', tipo: 'PDF', fecha: '2025-06-10', url: '#' },
-    { id: 'm-002', id_grupo: 'g-001', titulo: 'Simulacro Entrevista', tipo: 'Video', fecha: '2025-06-15', url: '#' },
-    { id: 'm-003', id_grupo: 'g-001', titulo: 'Guía Cultural: Cultura Corporativa Alemana', tipo: 'Guía Cultural', fecha: '2025-06-20', url: '#' },
-    { id: 'm-004', id_grupo: 'g-003', titulo: 'Simulacro FSP Completo', tipo: 'PDF', fecha: '2025-06-25', url: '#' }
-  ],
-
-  // ── MATCHINGS ─────────────────────────────────────────────────
-  matchings: [
-    { id: 'match-001', id_candidato: 'c-005', id_vacante: 'v-005', puntuacion: 94, estado: 'Entrevista Solicitada', fecha: '2024-03-22' },
-    { id: 'match-002', id_candidato: 'c-004', id_vacante: 'v-004', puntuacion: 88, estado: 'Sugerido', fecha: '2024-03-20' },
-    { id: 'match-003', id_candidato: 'c-008', id_vacante: 'v-001', puntuacion: 79, estado: 'Contratado', fecha: '2024-01-15' }
-  ],
-
-  // ── ENTREVISTAS ───────────────────────────────────────────────
-  entrevistas: [
-    {
-      id: 'ent-001', id_matching: 'match-001',
-      fecha_propuesta: '2025-07-28T10:00:00',
-      fecha_confirmada: '2025-07-28T10:00:00',
-      enlace: 'https://meet.google.com/jnp-entrevista-001',
-      estado: 'Confirmada',
-      empresa: 'Bavaria Automotive',
-      candidato: 'Dra. Ana Souza',
-      vacante: 'Anestesiólogo Senior'
-    }
-  ],
-
-  // ── SOCIOS ────────────────────────────────────────────────────
-  socios: [
-    {
-      id: 's-001', id_usuario: 'u-socio-001',
-      nombre: 'MediLink Colombia', pais: 'Colombia',
-      contacto: 'Laura Rodríguez', porcentaje: 12.5,
-      tipo_acuerdo: 'No Exclusivo', activo: true,
-      referidos_total: 3, colocados: 1,
-      comisiones_acumuladas: 7500, comisiones_cobradas: 2500,
-      comisiones_pendientes: 5000
-    }
-  ],
-
-  // ── COMISIONES ────────────────────────────────────────────────
-  comisiones: [
-    {
-      id: 'com-001', id_socio: 's-001', id_candidato: 'c-008',
-      candidato: 'Dr. Miguel Ramírez', empresa: 'Tech Solutions GmbH',
-      monto: 2500, moneda: 'EUR', estado: 'Pagada',
-      fecha_devengamiento: '2024-01-20', fecha_pago: '2024-02-15'
-    },
-    {
-      id: 'com-002', id_socio: 's-001', id_candidato: 'c-003',
-      candidato: 'Ing. Rosa Kim', empresa: '—',
-      monto: 2500, moneda: 'EUR', estado: 'Devengada',
-      fecha_devengamiento: '2024-04-10', fecha_pago: null
-    },
-    {
-      id: 'com-003', id_socio: 's-001', id_candidato: 'c-006',
-      candidato: 'Dr. Carlos Vega', empresa: '—',
-      monto: 2500, moneda: 'EUR', estado: 'Devengada',
-      fecha_devengamiento: '2024-04-05', fecha_pago: null
-    }
-  ],
-
-  // ── NOTAS DE SEGUIMIENTO ──────────────────────────────────────
-  notas: [
-    {
-      id: 'n-001', id_candidato: 'c-001', asesor: 'Carlos Martínez',
-      tipo: 'Llamada', contenido: 'Llamada de bienvenida. Candidato muy motivado. Comenzará curso B2 el 1 de julio.',
-      fecha: '2024-03-06'
-    },
-    {
-      id: 'n-002', id_candidato: 'c-001', asesor: 'Carlos Martínez',
-      tipo: 'Nota Interna', contenido: 'Título pendiente de apostilla. Recordar al candidato en próxima sesión.',
-      fecha: '2024-03-09'
-    }
-  ],
-
-  // ── NOTIFICACIONES ────────────────────────────────────────────
-  notificaciones: [
-    {
-      id: 'notif-001', id_usuario_dest: 'u-cand-001',
-      tipo: 'Documento_Rechazado', titulo: 'Documento rechazado',
-      mensaje: 'Tus Notas Académicas requieren corrección. Por favor revisa los comentarios de tu asesor.',
-      leida: false, fecha: new Date(Date.now() - 2 * 3600000).toISOString()
-    },
-    {
-      id: 'notif-002', id_usuario_dest: 'u-asesor-001',
-      tipo: 'Nuevo_Candidato', titulo: 'Nuevo candidato registrado',
-      mensaje: 'Dr. Carlos Vega (Perú, Neurología) se ha registrado a través del test de elegibilidad.',
-      leida: false, fecha: new Date(Date.now() - 5 * 3600000).toISOString()
-    },
-    {
-      id: 'notif-003', id_usuario_dest: 'u-emp-001',
-      tipo: 'Entrevista_Agendada', titulo: 'Entrevista confirmada',
-      mensaje: 'Entrevista con Dra. Ana Souza (Anestesiología) confirmada para el 28 de julio a las 10:00 CET.',
-      leida: false, fecha: new Date(Date.now() - 1 * 3600000).toISOString()
-    },
-    {
-      id: 'notif-004', id_usuario_dest: 'u-admin-001',
-      tipo: 'Comision_Registrada', titulo: 'Nueva comisión devengada',
-      mensaje: 'MediLink Colombia ha generado una nueva comisión por candidato referido.',
-      leida: true, fecha: new Date(Date.now() - 24 * 3600000).toISOString()
-    }
-  ],
-
-  // ── KPIs (para el Admin) ──────────────────────────────────────
-  kpis: {
-    total_candidatos: 8,
-    candidatos_activos: 7,
-    colocados: 1,
-    tasa_colocacion: 12.5,
-    vacantes_activas: 4,
-    empresas_clientes: 3,
-    ingresos_proyectados: 42000,
-    ingresos_cobrados: 2500,
-    comisiones_pagadas: 2500,
-    nuevos_este_mes: 3
+  "empresas": [],
+  "vacantes": [],
+  "grupos": [],
+  "inscripciones": [],
+  "calificaciones": [],
+  "materiales": [],
+  "matchings": [],
+  "entrevistas": [],
+  "socios": [],
+  "comisiones": [],
+  "notas": [],
+  "notificaciones": [],
+  "kpis": {
+    "totalCandidatos": 0,
+    "colocados": 0,
+    "vacantesActivas": 0,
+    "ingresosEstimados": 0,
+    "tasaExito": 0
   },
-
-  // ── SESIÓN ACTIVA ─────────────────────────────────────────────
-  session: null
+  "session": null
 };
 
 // ── API DEL MOCK DB ──────────────────────────────────────────────
@@ -518,22 +159,30 @@ const DB = {
   // Inicializar o cargar desde localStorage
   init() {
     if (!memoryDB) {
-      memoryDB = JSON.parse(JSON.stringify(INITIAL_DATA));
+      try {
+        if (fs.existsSync(dbFilePath)) {
+          memoryDB = JSON.parse(fs.readFileSync(dbFilePath, 'utf8'));
+        } else {
+          memoryDB = JSON.parse(JSON.stringify(INITIAL_DATA));
+          fs.mkdirSync(path.dirname(dbFilePath), { recursive: true });
+          fs.writeFileSync(dbFilePath, JSON.stringify(memoryDB, null, 2));
+        }
+      } catch (err) {
+        memoryDB = JSON.parse(JSON.stringify(INITIAL_DATA));
+      }
     }
   },
 
   // Leer todo
   get() {
-    if (!memoryDB) {
-      memoryDB = JSON.parse(JSON.stringify(INITIAL_DATA));
-    }
+    this.init();
     return memoryDB;
   },
 
   async getAsync() {
     if (isPostgresConfigured()) {
       try {
-        const usersRes = await query('SELECT id, nombre, correo, rol, avatar_url AS avatar, activo, fecha_creacion FROM usuarios;');
+        const usersRes = await query('SELECT id, nombre, correo, roles, avatar_url AS avatar, activo, fecha_creacion FROM usuarios;');
         const candRes = await query('SELECT * FROM candidatos;');
         const empRes = await query('SELECT * FROM empresas;');
         const vacRes = await query('SELECT * FROM vacantes;');
@@ -557,6 +206,10 @@ const DB = {
   // Guardar todo
   save(data) {
     memoryDB = data;
+    try {
+      fs.mkdirSync(path.dirname(dbFilePath), { recursive: true });
+      fs.writeFileSync(dbFilePath, JSON.stringify(memoryDB, null, 2));
+    } catch (err) {}
   },
 
   async saveAsync(data) {
@@ -566,6 +219,7 @@ const DB = {
   // Reset a datos iniciales
   reset() {
     memoryDB = JSON.parse(JSON.stringify(INITIAL_DATA));
+    this.save(memoryDB);
   },
 
   async resetAsync() {
@@ -573,15 +227,34 @@ const DB = {
   },
 
   // ── USUARIOS ──────────────────────────────────────────────────
+  async getAllUsuariosAsync() {
+    if (isPostgresConfigured()) {
+      try {
+        const res = await query('SELECT id, nombre, correo, roles, avatar_url AS avatar, activo, fecha_creacion FROM usuarios ORDER BY fecha_creacion DESC;');
+        return res.rows;
+      } catch (err) {
+        console.warn('⚠️ Query error en PostgreSQL getAllUsuariosAsync, usando fallback in-memory:', err.message);
+      }
+    }
+    return this.get().usuarios || [];
+  },
+
   getUsuarios() { return this.get().usuarios; },
 
   async findUsuario(correo, contrasena) {
     if (isPostgresConfigured()) {
       try {
-        const res = await query('SELECT id, nombre, correo, rol, avatar_url AS avatar, activo FROM usuarios WHERE correo = $1 LIMIT 1;', [correo]);
+        const res = await query(`
+          SELECT id, nombre, correo, roles, avatar_url AS avatar, activo 
+          FROM usuarios 
+          WHERE correo = $1 
+            AND (contrasena_hash = crypt($2, contrasena_hash) OR contrasena_hash = $2)
+          LIMIT 1;
+        `, [correo, contrasena]);
         if (res.rows.length > 0) {
           return res.rows[0];
         }
+        return null;
       } catch (err) {
         console.warn('⚠️ Query error en PostgreSQL findUsuario, usando fallback in-memory:', err.message);
       }
@@ -592,7 +265,7 @@ const DB = {
   async findUsuarioById(id) {
     if (isPostgresConfigured()) {
       try {
-        const res = await query('SELECT id, nombre, correo, rol, avatar_url AS avatar, activo FROM usuarios WHERE id = $1 LIMIT 1;', [id]);
+        const res = await query('SELECT id, nombre, correo, roles, avatar_url AS avatar, activo FROM usuarios WHERE id = $1 LIMIT 1;', [id]);
         if (res.rows.length > 0) {
           return res.rows[0];
         }
@@ -603,6 +276,29 @@ const DB = {
     return this.getUsuarios().find(u => u.id === id);
   },
 
+  async createUsuarioAsync(data) {
+    const fallbackId = 'u-' + Date.now();
+    if (isPostgresConfigured()) {
+      try {
+        const res = await query(`
+          INSERT INTO usuarios (nombre, correo, contrasena_hash, roles, avatar_url, activo)
+          VALUES ($1, $2, crypt($3, gen_salt('bf')), $4, $5, true)
+          RETURNING id, nombre, correo, roles, avatar_url AS avatar, activo, fecha_creacion;
+        `, [data.nombre, data.correo, data.contrasena, JSON.stringify(data.roles || ['Candidato']), data.avatar]);
+        return res.rows[0];
+      } catch (err) {
+        console.error('⚠️ Error insertando en PostgreSQL createUsuarioAsync:', err.message);
+        throw err;
+      }
+    }
+    // Fallback in-memory
+    const db = this.get();
+    const nuevo = { ...data, id: fallbackId, fecha_creacion: new Date().toISOString(), activo: true };
+    db.usuarios.push(nuevo);
+    this.save(db);
+    return nuevo;
+  },
+
   createUsuario(data) {
     const db = this.get();
     const nuevo = { ...data, id: 'u-' + Date.now(), fecha_creacion: new Date().toISOString(), activo: true };
@@ -611,11 +307,59 @@ const DB = {
     return nuevo;
   },
 
+  async updateUsuarioAsync(id, data) {
+    if (isPostgresConfigured()) {
+      try {
+        const res = await query(`
+          UPDATE usuarios 
+          SET nombre = COALESCE($1, nombre),
+              correo = COALESCE($2, correo),
+              roles = COALESCE($3, roles),
+              avatar_url = COALESCE($4, avatar_url),
+              activo = COALESCE($5, activo),
+              fecha_actualizacion = NOW()
+          WHERE id = $6
+          RETURNING id, nombre, correo, roles, avatar_url AS avatar, activo, fecha_creacion;
+        `, [data.nombre, data.correo, JSON.stringify(data.roles), data.avatar, data.activo, id]);
+        return res.rows[0];
+      } catch (err) {
+        console.error('⚠️ Error actualizando en PostgreSQL updateUsuarioAsync:', err.message);
+        throw err;
+      }
+    }
+    // Fallback in-memory
+    const db = this.get();
+    const idx = db.usuarios.findIndex(u => u.id === id);
+    if (idx !== -1) {
+      db.usuarios[idx] = { ...db.usuarios[idx], ...data };
+      this.save(db);
+      return db.usuarios[idx];
+    }
+    return null;
+  },
+
   updateUsuario(id, data) {
     const db = this.get();
     const idx = db.usuarios.findIndex(u => u.id === id);
     if (idx !== -1) db.usuarios[idx] = { ...db.usuarios[idx], ...data };
     this.save(db);
+  },
+
+  async deleteUsuarioAsync(id) {
+    if (isPostgresConfigured()) {
+      try {
+        await query('DELETE FROM usuarios WHERE id = $1;', [id]);
+        return true;
+      } catch (err) {
+        console.error('⚠️ Error borrando en PostgreSQL deleteUsuarioAsync:', err.message);
+        throw err;
+      }
+    }
+    // Fallback in-memory
+    const db = this.get();
+    db.usuarios = db.usuarios.filter(u => u.id !== id);
+    this.save(db);
+    return true;
   },
 
   deleteUsuario(id) {
@@ -640,13 +384,100 @@ const DB = {
   },
 
   // ── CANDIDATOS ────────────────────────────────────────────────
+  async getCandidatosAsync() {
+    if (isPostgresConfigured()) {
+      try {
+        const res = await query(`
+          SELECT 
+            id, id_usuario, nombre_completo AS nombre, pais_origen AS pais, 
+            especialidad_medica AS especialidad, nivel_aleman_actual AS nivel_aleman,
+            estado_proceso, estado_homologacion, id_socio_referidor AS id_socio,
+            foto_url AS foto, anos_experiencia AS anos_exp,
+            consentimiento_gdpr, fecha_creacion AS fecha_alta
+          FROM candidatos 
+          ORDER BY fecha_creacion DESC;
+        `);
+        return res.rows;
+      } catch (err) {
+        console.warn('⚠️ Query error en PostgreSQL getCandidatosAsync, usando fallback in-memory:', err.message);
+      }
+    }
+    return this.get().candidatos || [];
+  },
+
   getCandidatos() { return this.get().candidatos; },
+
+  async getCandidatoByIdAsync(id) {
+    if (isPostgresConfigured()) {
+      try {
+        const res = await query('SELECT * FROM candidatos WHERE id = $1 LIMIT 1;', [id]);
+        if (res.rows.length > 0) return res.rows[0];
+      } catch (err) {
+        console.warn('⚠️ Query error en PostgreSQL getCandidatoByIdAsync:', err.message);
+      }
+    }
+    return this.getCandidatoById(id);
+  },
 
   getCandidatoById(id) { return this.get().candidatos.find(c => c.id === id); },
 
+  async getCandidatosByEstadoAsync(estado) {
+    if (isPostgresConfigured()) {
+      try {
+        const res = await query('SELECT * FROM candidatos WHERE estado_proceso = $1;', [estado]);
+        return res.rows;
+      } catch (err) {
+        console.warn('⚠️ Query error en PostgreSQL getCandidatosByEstadoAsync:', err.message);
+      }
+    }
+    return this.getCandidatosByEstado(estado);
+  },
+
   getCandidatosByEstado(estado) { return this.get().candidatos.filter(c => c.estado_proceso === estado); },
 
+  async getCandidatosBySocioAsync(id_socio) {
+    if (isPostgresConfigured()) {
+      try {
+        const res = await query('SELECT * FROM candidatos WHERE id_socio = $1;', [id_socio]);
+        return res.rows;
+      } catch (err) {
+        console.warn('⚠️ Query error en PostgreSQL getCandidatosBySocioAsync:', err.message);
+      }
+    }
+    return this.getCandidatosBySocio(id_socio);
+  },
+
   getCandidatosBySocio(id_socio) { return this.get().candidatos.filter(c => c.id_socio === id_socio); },
+
+  async updateCandidatoAsync(id, data) {
+    if (isPostgresConfigured()) {
+      try {
+        const res = await query(`
+          UPDATE candidatos 
+          SET nombre = COALESCE($1, nombre),
+              correo = COALESCE($2, correo),
+              telefono = COALESCE($3, telefono),
+              pais = COALESCE($4, pais),
+              especialidad = COALESCE($5, especialidad),
+              nivel_aleman = COALESCE($6, nivel_aleman),
+              estado_proceso = COALESCE($7, estado_proceso),
+              id_asesor = COALESCE($8, id_asesor),
+              id_socio = COALESCE($9, id_socio),
+              comentarios_asesor = COALESCE($10, comentarios_asesor),
+              foto = COALESCE($11, foto)
+          WHERE id = $12
+          RETURNING *;
+        `, [data.nombre, data.correo, data.telefono, data.pais, data.especialidad, data.nivel_aleman, data.estado_proceso, data.id_asesor, data.id_socio, data.comentarios_asesor, data.foto, id]);
+        return res.rows[0];
+      } catch (err) {
+        console.error('⚠️ Error actualizando en PostgreSQL updateCandidatoAsync:', err.message);
+        throw err;
+      }
+    }
+    // Fallback in-memory
+    this.updateCandidato(id, data);
+    return this.getCandidatoById(id);
+  },
 
   updateCandidato(id, data) {
     const db = this.get();
@@ -743,6 +574,39 @@ const DB = {
     return cvData;
   },
 
+  async createCandidatoAsync(data) {
+    if (isPostgresConfigured()) {
+      try {
+        const res = await query(`
+          INSERT INTO candidatos (
+            id_usuario, nombre, correo, telefono, pais, 
+            especialidad, nivel_aleman, estado_proceso, id_asesor, id_socio
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+          RETURNING *;
+        `, [
+          data.id_usuario || null, data.nombre, data.correo, data.telefono, data.pais,
+          data.especialidad, data.nivel_aleman, data.estado_proceso || 'Aplica', data.id_asesor || null, data.id_socio || null
+        ]);
+        
+        // Actualizar KPIs si es posible (en PostgreSQL sería una consulta aparte o se calcula)
+        
+        // Notificación al asesor
+        this.addNotificacion({
+          id_usuario_dest: data.id_asesor || 'u-asesor-001',
+          tipo: 'Nuevo_Candidato',
+          titulo: 'Nuevo candidato registrado',
+          mensaje: `${data.nombre} (${data.pais}, ${data.especialidad}) se ha registrado como nuevo lead.`
+        });
+        
+        return res.rows[0];
+      } catch (err) {
+        console.error('⚠️ Error insertando en PostgreSQL createCandidatoAsync:', err.message);
+        throw err;
+      }
+    }
+    return this.createCandidato(data);
+  },
+
   createCandidato(data) {
     const db = this.get();
     const nuevo = { ...data, id: 'c-' + Date.now(), fecha_alta: new Date().toISOString().split('T')[0], consentimiento_gdpr: true };
@@ -759,6 +623,22 @@ const DB = {
       mensaje: `${data.nombre} (${data.pais}, ${data.especialidad}) se ha registrado como nuevo lead.`
     });
     return nuevo;
+  },
+  
+  async deleteCandidatoAsync(id) {
+    if (isPostgresConfigured()) {
+      try {
+        await query('DELETE FROM candidatos WHERE id = $1;', [id]);
+        return true;
+      } catch (err) {
+        console.error('⚠️ Error borrando en PostgreSQL deleteCandidatoAsync:', err.message);
+        throw err;
+      }
+    }
+    const db = this.get();
+    db.candidatos = db.candidatos.filter(c => c.id !== id);
+    this.save(db);
+    return true;
   },
 
   // ── DOCUMENTOS ────────────────────────────────────────────────
