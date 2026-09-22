@@ -3634,5 +3634,5 @@ window.switchRole = function(newRole) {
   document.body.className = `theme-${newRole.toLowerCase()}`;
   renderSidebar(newRole);
   renderDashboard(newRole);
-  renderHeader();
+  renderAppShell();
 };
