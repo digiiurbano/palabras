@@ -36,6 +36,7 @@ CREATE TABLE candidatos (
     id                    UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     id_usuario            UUID NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
     nombre_completo       VARCHAR(200) NOT NULL,
+    correo                VARCHAR(255),
     fecha_nacimiento      DATE,
     pais_origen           VARCHAR(100),
     nacionalidad          VARCHAR(100),
@@ -64,6 +65,9 @@ CREATE TABLE candidatos (
     fecha_consentimiento  TIMESTAMPTZ,
     -- Metadatos
     notas_internas        TEXT, -- Solo visible para Admin/Asesor
+    edad                  INTEGER,
+    puntaje_elegibilidad  INTEGER,
+    respuestas_elegibilidad JSONB,
     fecha_creacion        TIMESTAMPTZ DEFAULT NOW(),
     fecha_actualizacion   TIMESTAMPTZ DEFAULT NOW()
 );

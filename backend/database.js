@@ -590,20 +590,29 @@ const DB = {
       try {
         const res = await query(`
           UPDATE candidatos 
-          SET nombre = COALESCE($1, nombre),
+          SET nombre_completo = COALESCE($1, nombre_completo),
               correo = COALESCE($2, correo),
               telefono = COALESCE($3, telefono),
-              pais = COALESCE($4, pais),
-              especialidad = COALESCE($5, especialidad),
-              nivel_aleman = COALESCE($6, nivel_aleman),
+              pais_origen = COALESCE($4, pais_origen),
+              especialidad_medica = COALESCE($5, especialidad_medica),
+              nivel_aleman_actual = COALESCE($6, nivel_aleman_actual),
               estado_proceso = COALESCE($7, estado_proceso),
               id_asesor = COALESCE($8, id_asesor),
-              id_socio = COALESCE($9, id_socio),
-              comentarios_asesor = COALESCE($10, comentarios_asesor),
-              foto = COALESCE($11, foto)
-          WHERE id = $12
+              id_socio_referidor = COALESCE($9, id_socio_referidor),
+              notas_internas = COALESCE($10, notas_internas),
+              foto_url = COALESCE($11, foto_url),
+              edad = COALESCE($12, edad),
+              puntaje_elegibilidad = COALESCE($13, puntaje_elegibilidad),
+              respuestas_elegibilidad = COALESCE($14, respuestas_elegibilidad)
+          WHERE id = $15
           RETURNING *;
-        `, [data.nombre, data.correo, data.telefono, data.pais, data.especialidad, data.nivel_aleman, data.estado_proceso, data.id_asesor, data.id_socio, data.comentarios_asesor, data.foto, id]);
+        `, [
+          data.nombre, data.correo, data.telefono, data.pais, 
+          data.especialidad, data.nivel_aleman, data.estado_proceso, 
+          data.id_asesor, data.id_socio, data.comentarios_asesor || data.notas_internas, 
+          data.foto, data.edad, data.puntaje_elegibilidad, 
+          data.respuestas_elegibilidad ? JSON.stringify(data.respuestas_elegibilidad) : null, id
+        ]);
         return res.rows[0];
       } catch (err) {
         console.error('⚠️ Error actualizando en PostgreSQL updateCandidatoAsync:', err.message);
@@ -715,13 +724,17 @@ const DB = {
       try {
         const res = await query(`
           INSERT INTO candidatos (
-            id_usuario, nombre, correo, telefono, pais, 
-            especialidad, nivel_aleman, estado_proceso, id_asesor, id_socio
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            id_usuario, nombre_completo, correo, telefono, pais_origen, 
+            especialidad_medica, nivel_aleman_actual, estado_proceso,
+            edad, puntaje_elegibilidad, respuestas_elegibilidad,
+            notas_internas, id_asesor, id_socio_referidor
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
           RETURNING *;
         `, [
-          data.id_usuario || null, data.nombre, data.correo, data.telefono, data.pais,
-          data.especialidad, data.nivel_aleman, data.estado_proceso || 'Aplica', data.id_asesor || null, data.id_socio || null
+          data.id_usuario || null, data.nombre, data.correo || null, data.telefono || null, data.pais,
+          data.especialidad, data.nivel_aleman, data.estado_proceso || 'Lead_Nuevo',
+          data.edad ? parseInt(data.edad, 10) : null, data.puntaje_elegibilidad || null, data.respuestas_elegibilidad ? JSON.stringify(data.respuestas_elegibilidad) : null,
+          data.notas_internas || null, data.id_asesor || null, data.id_socio || null
         ]);
         
         // Actualizar KPIs si es posible (en PostgreSQL sería una consulta aparte o se calcula)
@@ -747,9 +760,9 @@ const DB = {
     const db = this.get();
     const nuevo = { ...data, id: 'c-' + Date.now(), fecha_alta: new Date().toISOString().split('T')[0], consentimiento_gdpr: true };
     db.candidatos.push(nuevo);
-    db.kpis.total_candidatos++;
-    db.kpis.candidatos_activos++;
-    db.kpis.nuevos_este_mes++;
+    db.kpis.totalCandidatos = (db.kpis.totalCandidatos || 0) + 1;
+    // db.kpis.candidatos_activos doesn't exist in data.json, ignoring
+    // db.kpis.nuevos_este_mes doesn't exist either
     this.save(db);
     // Notificación al asesor
     this.addNotificacion({

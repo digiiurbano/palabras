@@ -368,7 +368,7 @@
           </div>
           <div class="form-group">
             <label class="form-label" for="reg-pais">País de origen *</label>
-            <input class="form-input" id="reg-pais" placeholder="Colombia, México..." required>
+            <input class="form-input" id="reg-pais" placeholder="Colombia, México..." required oninput="updatePhoneCode(this.value, 'reg-telefono')">
           </div>
         </div>
         <div class="grid grid-2" style="gap:12px; margin-bottom:12px;">
@@ -385,25 +385,9 @@
           <label class="form-label" for="reg-edad">Edad</label>
           <input class="form-input" type="number" id="reg-edad" placeholder="Ej. 28">
         </div>
-        <div class="grid grid-2" style="gap:12px;">
-          <div class="form-group">
-            <label class="form-label" for="reg-spec">Especialidad</label>
-            <select class="form-select" id="reg-spec">
-              <option>Desarrollo de Software</option>
-              <option>Ingeniería Mecánica</option>
-              <option>Medicina General</option>
-              <option>Enfermería</option>
-              <option>Finanzas / Contabilidad</option>
-              <option>Otra</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="reg-nivel">Nivel alemán actual</label>
-            <select class="form-select" id="reg-nivel">
-              <option>Ninguno</option><option>A1</option><option>A2</option>
-              <option>B1</option><option>B2</option><option>C1</option>
-            </select>
-          </div>
+        <div class="form-group">
+          <label class="form-label" for="reg-comentarios">Comentarios adicionales</label>
+          <textarea class="form-input" id="reg-comentarios" rows="3" placeholder="Si tienes alguna duda o comentario adicional, escríbelo aquí..."></textarea>
         </div>
         <div style="font-size:.8125rem;color:var(--slate-500);">
           Al registrarte aceptas que JN Palabras trate tus datos conforme al <a href="#gdpr" style="color:var(--gold-600);">RGPD/DSGVO</a> con finalidad de intermediación laboral.

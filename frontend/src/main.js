@@ -2964,7 +2964,7 @@ function renderSocioRegistro() {
       <div class="card-body">
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
           <div class="form-group"><label class="form-label">Nombre completo</label><input class="form-input" id="sc-nombre" placeholder="Nombre completo"></div>
-          <div class="form-group"><label class="form-label">País de origen</label><input class="form-input" id="sc-pais" placeholder="Colombia, México..."></div>
+          <div class="form-group"><label class="form-label">País de origen</label><input class="form-input" id="sc-pais" placeholder="Colombia, México..." oninput="updatePhoneCode(this.value, 'sc-tel')"></div>
           <div class="form-group"><label class="form-label">Especialidad médica</label>
             <select class="form-select" id="sc-spec">
               <option>Medicina General</option><option>Cardiología</option><option>Pediatría</option>
@@ -3332,7 +3332,10 @@ function renderApplicationStep() {
     }
 
     container.innerHTML = `
-      <div class="test-step-label">${stepData.label}</div>
+      <div class="test-step-label" style="display: flex; justify-content: space-between; align-items: center;">
+        <span>${stepData.label}</span>
+        ${step > 0 ? `<button onclick="prevApplicationStep()" style="background:none; border:none; color:var(--primary-600); cursor:pointer; font-weight:600; font-size:14px; padding: 0;">← Volver</button>` : ''}
+      </div>
       <div class="test-question interactive-question" style="font-size:1.5rem; margin-bottom:24px;">${stepData.question}</div>
       <div class="test-options">
         ${options.map(opt => `
@@ -3351,9 +3354,47 @@ function selectAppOption(questionId, value, el) {
   $$('#application-offcanvas-content .test-option').forEach(o => o.classList.remove('selected'));
   if (el) el.classList.add('selected');
 
-  setTimeout(() => {
-    nextApplicationStep();
-  }, 400);
+  const text = el ? el.innerText.toLowerCase() : '';
+  const isOtros = text.includes('otro') || text.includes('otra');
+
+  if (isOtros) {
+    let container = document.getElementById('otros-input-container');
+    if (!container) {
+      container = document.createElement('div');
+      container.id = 'otros-input-container';
+      container.style.cssText = 'margin-top:16px; display:flex; flex-direction:column; gap:12px; animation: fadeIn 0.3s ease;';
+      container.innerHTML = `
+        <input type="text" id="otros-input-field" class="form-control" placeholder="Por favor especifica..." style="width:100%; padding:12px; border:1px solid var(--slate-300); border-radius:8px; font-size:1rem;" autocomplete="off" onkeydown="if(event.key==='Enter') submitOtrosOption('${questionId}', '${value}')">
+        <button class="btn btn-primary" onclick="submitOtrosOption('${questionId}', '${value}')" style="width:100%">Continuar</button>
+      `;
+      const optionsDiv = document.querySelector('#application-offcanvas-content .test-options');
+      optionsDiv.parentNode.insertBefore(container, optionsDiv.nextSibling);
+    }
+    setTimeout(() => {
+      document.getElementById('otros-input-field')?.focus();
+    }, 100);
+  } else {
+    const existing = document.getElementById('otros-input-container');
+    if (existing) existing.remove();
+
+    setTimeout(() => {
+      nextApplicationStep();
+    }, 400);
+  }
+}
+
+function submitOtrosOption(questionId, value) {
+  const inputVal = document.getElementById('otros-input-field')?.value.trim();
+  if (!inputVal) {
+    if (typeof showToast === 'function') {
+      showToast('Atención', 'Por favor especifica tu respuesta.', 'error');
+    } else {
+      alert('Por favor especifica tu respuesta.');
+    }
+    return;
+  }
+  State.appAnswers[questionId + '_especificacion'] = inputVal;
+  nextApplicationStep();
 }
 
 function nextApplicationStep() {
@@ -3361,6 +3402,13 @@ function nextApplicationStep() {
   if (State.appStep >= OFF_CANVAS_STEPS.length) {
     showApplicationResult();
   } else {
+    renderApplicationStep();
+  }
+}
+
+function prevApplicationStep() {
+  if (State.appStep > 0) {
+    State.appStep--;
     renderApplicationStep();
   }
 }
@@ -3426,6 +3474,37 @@ function showApplicationResult() {
 // Ensure the new functions are available globally if index.html calls them
 window.openApplicationOffcanvas = openApplicationOffcanvas;
 window.closeApplicationOffcanvas = closeApplicationOffcanvas;
+window.prevApplicationStep = prevApplicationStep;
+window.submitOtrosOption = submitOtrosOption;
+
+function updatePhoneCode(pais, phoneInputId) {
+  const normalized = pais.trim().toLowerCase();
+  const phoneInput = document.getElementById(phoneInputId);
+  if (!phoneInput) return;
+
+  const countryCodes = {
+    'ecuador': '+593', 'colombia': '+57', 'mexico': '+52', 'méxico': '+52',
+    'peru': '+51', 'perú': '+51', 'chile': '+56', 'argentina': '+54',
+    'bolivia': '+591', 'venezuela': '+58', 'paraguay': '+595', 'uruguay': '+598',
+    'brasil': '+55', 'españa': '+34', 'costa rica': '+506', 'panama': '+507',
+    'panamá': '+507', 'guatemala': '+502', 'honduras': '+504', 'el salvador': '+503',
+    'nicaragua': '+505', 'cuba': '+53', 'dominicana': '+1', 'estados unidos': '+1',
+    'alemania': '+49'
+  };
+
+  const code = countryCodes[normalized];
+  if (code) {
+    const currentVal = phoneInput.value.trim();
+    if (!currentVal) {
+      phoneInput.value = code + ' ';
+    } else if (currentVal.match(/^\+\d+/)) {
+      phoneInput.value = currentVal.replace(/^\+\d+/, code);
+    } else {
+      phoneInput.value = code + ' ' + currentVal;
+    }
+  }
+}
+window.updatePhoneCode = updatePhoneCode;
 
 function openRegistrationModal() {
   openModal('modal-registro-candidato');
@@ -3469,10 +3548,11 @@ function rejectGdpr() {
 // ──────────────────────────────────────────────────────────────────
 async function submitRegistration(e) {
   e?.preventDefault();
-  const nombre = $('reg-nombre')?.value.trim();
-  const pais   = $('reg-pais')?.value.trim();
-  const correo = $('reg-correo')?.value.trim();
-  const spec   = $('reg-spec')?.value;
+  const nombre = ($('reg-nombre')?.value || '').trim();
+  const pais   = ($('reg-pais')?.value || '').trim();
+  const correo = ($('reg-correo')?.value || '').trim();
+  const comentarios = ($('reg-comentarios')?.value || '').trim();
+  
   if (!nombre || !correo || !pais) { showToast('Error','Por favor completa todos los campos requeridos.','error'); return; }
   
   // Calcular puntaje
@@ -3487,15 +3567,16 @@ async function submitRegistration(e) {
   await DB.createCandidato({ 
     nombre, 
     pais, 
-    especialidad: spec, 
-    nivel_aleman: $('reg-nivel')?.value || 'Ninguno', 
+    especialidad: 'Ver Test', 
+    nivel_aleman: 'Ver Test', 
     estado_proceso: 'Lead Nuevo', 
     estado_homologacion: 'Pendiente', 
     foto: getInitials(nombre), 
     anos_exp: 0,
     correo,
-    telefono: $('reg-telefono')?.value.trim() || '',
-    edad: $('reg-edad')?.value.trim() || '',
+    notas_internas: comentarios,
+    telefono: ($('reg-telefono')?.value || '').trim(),
+    edad: ($('reg-edad')?.value || '').trim(),
     puntaje_elegibilidad: totalScore,
     respuestas_elegibilidad: { ...State.appAnswers }
   });
