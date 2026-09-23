@@ -33,8 +33,8 @@ const dbFile = path.join(distPath, 'src', 'db.js');
 if (fs.existsSync(dbFile)) {
   let content = fs.readFileSync(dbFile, 'utf8');
   const apiUrl = process.env.VITE_API_URL || '';
-  // Reemplazamos `import.meta.env.VITE_API_URL` por la URL de producción (o undefined)
-  content = content.replace(/import\.meta\.env\.VITE_API_URL/g, apiUrl ? `'${apiUrl}'` : 'undefined');
+  // Reemplazamos `window.VITE_API_URL` por la URL de producción (o undefined)
+  content = content.replace(/window\.VITE_API_URL/g, apiUrl ? `'${apiUrl}'` : 'undefined');
   fs.writeFileSync(dbFile, content);
   console.log('Replaced VITE_API_URL in dist/src/db.js');
 }

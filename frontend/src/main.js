@@ -3528,8 +3528,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Navegación pública
   window.addEventListener('scroll', handleNavScroll);
 
-  // Login form
-  $('login-form')?.addEventListener('submit', handleLogin);
+  // Login form (handled by inline onsubmit in HTML)
 
   // GDPR banner
   if (!localStorage.getItem('jnp_gdpr')) {
@@ -3575,7 +3574,6 @@ window.toggleNotifPanel = toggleNotifPanel;
 window.marcarNotifLeidas = marcarNotifLeidas;
 window.showTab = showTab;
 window.filterBlindCards = filterBlindCards;
-window.selectEligibilityOption = selectEligibilityOption;
 window.openRegistrationModal = openRegistrationModal;
 // Dashboard inline handlers
 window.editUser = editUser;

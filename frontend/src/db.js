@@ -1,6 +1,10 @@
 
 // URL del backend: usa VITE_API_URL en producción o localhost en desarrollo
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3030';
+let apiUrl = 'http://localhost:3030';
+if (typeof window !== 'undefined' && window.VITE_API_URL) {
+  apiUrl = window.VITE_API_URL;
+}
+const API_URL = apiUrl;
 
 const OFFICIAL_USERS = [
   {

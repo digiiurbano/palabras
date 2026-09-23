@@ -42,6 +42,36 @@ const INITIAL_DATA = {
       "avatar": "EW",
       "activo": true,
       "fecha_creacion": "2024-02-20"
+    },
+    {
+      "id": "u-cand-001",
+      "nombre": "Dr. Javier Torres",
+      "roles": ["Candidato"],
+      "correo": "candidato@jnpalabras.com",
+      "contrasena": "JNPalabrasCandidato2026!",
+      "avatar": "JT",
+      "activo": true,
+      "fecha_creacion": "2024-03-05"
+    },
+    {
+      "id": "u-emp-001",
+      "nombre": "Klinikum Stuttgart",
+      "roles": ["Empresa"],
+      "correo": "empresa@jnpalabras.com",
+      "contrasena": "JNPalabrasEmpresa2026!",
+      "avatar": "KS",
+      "activo": true,
+      "fecha_creacion": "2024-01-20"
+    },
+    {
+      "id": "u-socio-001",
+      "nombre": "Laura Rodríguez (MediLink)",
+      "roles": ["Socio"],
+      "correo": "socio@jnpalabras.com",
+      "contrasena": "JNPalabrasSocio2026!",
+      "avatar": "LR",
+      "activo": true,
+      "fecha_creacion": "2024-03-01"
     }
   ],
   "candidatos": [],
