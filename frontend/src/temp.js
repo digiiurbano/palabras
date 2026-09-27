@@ -1,4 +1,4 @@
-const INITIAL_DATA = {
+module.exports = {
   "usuarios": [
     {
       "id": "u-admin-001",
@@ -41,46 +41,40 @@ const INITIAL_DATA = {
       "icon": "🆕"
     },
     {
-      "id": "1er contacto, reclutamiento",
-      "label": "1er contacto, reclutamiento",
+      "id": "Idioma",
+      "label": "Idioma",
       "color": "#3b82f6",
-      "icon": "📞"
-    },
-    {
-      "id": "Suficiencia del idioma",
-      "label": "Suficiencia del idioma",
-      "color": "#8b5cf6",
       "icon": "🗣️"
     },
     {
-      "id": "Entrevista Laboral y firma del contrato",
-      "label": "Entrevista Laboral y firma del contrato",
-      "color": "#ec4899",
-      "icon": "🤝"
+      "id": "Homologación",
+      "label": "Homologación",
+      "color": "#8b5cf6",
+      "icon": "📋"
     },
     {
-      "id": "Procesamiento de visa",
-      "label": "Procesamiento de visa",
+      "id": "Postulación",
+      "label": "Postulación",
       "color": "#f59e0b",
+      "icon": "📤"
+    },
+    {
+      "id": "Entrevista Agendada",
+      "label": "Entrevista",
+      "color": "#ec4899",
+      "icon": "📅"
+    },
+    {
+      "id": "Trámite Visado",
+      "label": "Trámite Visado",
+      "color": "#06b6d4",
       "icon": "🛂"
     },
     {
-      "id": "Fase Pre viaje",
-      "label": "Fase Pre viaje",
-      "color": "#14b8a6",
-      "icon": "✈️"
-    },
-    {
-      "id": "En Destino",
-      "label": "En Destino",
-      "color": "#eab308",
-      "icon": "📍"
-    },
-    {
-      "id": "Inserción exitosa",
-      "label": "Inserción exitosa",
+      "id": "Colocado",
+      "label": "Colocado 🎉",
       "color": "#10b981",
-      "icon": "🎉"
+      "icon": "✅"
     }
   ],
   "documentos": [],

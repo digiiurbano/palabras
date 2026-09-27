@@ -48,9 +48,9 @@ CREATE TABLE candidatos (
     estado_homologacion   VARCHAR(30) DEFAULT 'Pendiente' CHECK (estado_homologacion IN (
                               'Pendiente','En_Tramite','Reconocimiento_Parcial','Aprobado','Rechazado'
                           )),
-    estado_proceso        VARCHAR(40) DEFAULT 'Lead_Nuevo' CHECK (estado_proceso IN (
-                              'Lead_Nuevo','Idioma','Homologacion','Postulacion',
-                              'Entrevista_Agendada','Tramite_Visado','Colocado','Inactivo'
+    estado_proceso        VARCHAR(100) DEFAULT 'Lead Nuevo' CHECK (estado_proceso IN (
+                              'Lead Nuevo','1er contacto, reclutamiento','Suficiencia del idioma','Entrevista Laboral y firma del contrato',
+                              'Procesamiento de visa','Fase Pre viaje','En Destino','Inserción exitosa','Inactivo'
                           )),
     -- Referencias a archivos (URLs encriptadas / S3 EU)
     cv_url                TEXT, -- Encriptado en tránsito, almacenado servidor UE

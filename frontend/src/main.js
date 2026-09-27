@@ -7,6 +7,63 @@
 
 
 // ──────────────────────────────────────────────────────────────────
+
+// ──────────────────────────────────────────────────────────────────
+// GUÍAS POR FASE (CHECKLISTS)
+// ──────────────────────────────────────────────────────────────────
+const PHASE_GUIDES = {
+  'Lead Nuevo': [
+    'Revisión inicial del CV y respuestas del test',
+    'Asignación a un asesor de reclutamiento'
+  ],
+  '1er contacto, reclutamiento': [
+    'Agendar y realizar llamada de primer contacto',
+    'Explicar el proceso general y costos',
+    'Solicitar documentación básica (Pasaporte, Títulos)'
+  ],
+  'Suficiencia del idioma': [
+    'Evaluar nivel actual de alemán',
+    'Inscripción en curso de alemán (si aplica)',
+    'Obtener certificado B2 de alemán'
+  ],
+  'Entrevista Laboral y firma del contrato': [
+    'Preparación para entrevista',
+    'Agendar entrevista con empleador alemán',
+    'Revisión y firma del contrato laboral'
+  ],
+  'Procesamiento de visa': [
+    'Reunir documentos para visado',
+    'Solicitar cita en la embajada',
+    'Obtener aprobación de visa'
+  ],
+  'Fase Pre viaje': [
+    'Comprar pasajes aéreos',
+    'Organizar alojamiento inicial en Alemania',
+    'Sesión de orientación pre-viaje'
+  ],
+  'En Destino': [
+    'Llegada a Alemania y traslado al alojamiento',
+    'Registro en la ciudad (Anmeldung)',
+    'Abrir cuenta bancaria y seguro médico'
+  ],
+  'Inserción exitosa': [
+    'Inicio de labores en el empleador',
+    'Firma del acta de finalización del proceso',
+    'Seguimiento a 1 mes de inicio'
+  ]
+};
+
+window.togglePhaseChecklist = function(candidatoId, fase, index) {
+  const c = DB.getCandidatoById(candidatoId);
+  if (!c) return;
+  if (!c.fase_checklists) c.fase_checklists = {};
+  if (!c.fase_checklists[fase]) c.fase_checklists[fase] = [];
+  
+  c.fase_checklists[fase][index] = !c.fase_checklists[fase][index];
+  DB.updateCandidato(candidatoId, { fase_checklists: c.fase_checklists });
+  openCandidateDetail(candidatoId); // re-render
+};
+
 // ESTADO GLOBAL
 // ──────────────────────────────────────────────────────────────────
 const State = {
@@ -1424,6 +1481,96 @@ function openCandidateDetail(id) {
       <button class="btn btn-danger btn-sm" onclick="rejectCandidate('${id}')">Rechazar</button>
     </div>
     ` : ''}
+    ${c.respuestas_elegibilidad ? `
+    <div style="margin-bottom:20px;">
+      <div style="font-size:.8125rem;font-weight:700;color:var(--slate-700);margin-bottom:10px;letter-spacing:.04em;text-transform:uppercase;">📝 Respuestas formulario aplicación</div>
+      <div style="background:var(--slate-50);border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:12px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:0.875rem;">
+          ${Object.entries(c.respuestas_elegibilidad).map(([key, val]) => {
+            const labels = {
+              degree_check: 'Título Universitario',
+              sector: 'Sector Profesional',
+              profession: 'Profesión',
+              age: 'Edad',
+              education_level: 'Nivel Educativo',
+              experience: 'Años de Experiencia',
+              german: 'Nivel de Alemán',
+              location: 'Ubicación',
+              marital: 'Estado Civil',
+              spec: 'Especialidad',
+              otros: 'Otros (Especificado)'
+            };
+            const label = labels[key] || key;
+            
+            // Format fallback for old test records that stored raw ids/values
+            if (val === 'yes') val = 'Sí';
+            if (val === 'no') val = 'No';
+            if (val === 'salud') val = 'Salud / Medicina';
+            if (val === 'ingenieria') val = 'Ingeniería';
+            if (val === 'it') val = 'Tecnología (IT)';
+            if (val === 'educacion') val = 'Educación';
+            if (val === 'oficios') val = 'Artesanos / Oficios';
+            if (val === 'otros') val = 'Otros';
+
+            if (!isNaN(Number(val)) && val !== '') {
+              const v = Number(val);
+              if (key === 'profession') {
+                if (v === 5) val = 'Salud (Médico/Enfermería/etc.)';
+                else if (v === 4) val = 'Ingeniería/IT/Oficios';
+                else if (v === 3) val = 'Educación';
+                else if (v === 2) val = 'Otra';
+              } else if (key === 'age') {
+                if (v === 4) val = '18 - 30 Años';
+                else if (v === 3) val = '30 - 35 Años';
+                else if (v === 2) val = '35 - 40 Años';
+                else if (v === 1) val = '40 Años o más';
+              } else if (key === 'education_level') {
+                if (v === 5) val = 'Licenciatura / Posgrado';
+                else if (v === 4) val = 'Técnico / Formación';
+                else if (v === 3) val = 'Otro';
+              } else if (key === 'experience') {
+                if (v === 3) val = '4 Años o más';
+                else if (v === 2) val = '2 - 4 Años';
+                else if (v === 1) val = '1 - 2 Años';
+                else if (v === 0) val = 'Sin Experiencia';
+              } else if (key === 'german') {
+                if (v === 5) val = 'C2+ / Lengua Materna';
+                else if (v === 4) val = 'C1 / C2';
+                else if (v === 3) val = 'B1 / B2';
+                else if (v === 1) val = 'A1 / A2 / Ninguno';
+              } else if (key === 'location') {
+                if (v === 4) val = 'Europa';
+                else if (v === 3) val = 'Latinoamérica / Resto del Mundo';
+              } else if (key === 'marital') {
+                if (v === 1) val = 'Casado/a';
+                else if (v === 2) val = 'Soltero/a';
+              }
+            }
+            
+            return `<div><strong style="color:var(--slate-600);">${label}:</strong> <span style="color:var(--slate-900);">${val}</span></div>`;
+          }).join('')}
+        </div>
+      </div>
+    </div>
+    ` : ''}
+    
+    <!-- GUÍA DE FASE -->
+    <div style="margin-bottom:20px;">
+      <div style="font-size:.8125rem;font-weight:700;color:var(--slate-700);margin-bottom:10px;letter-spacing:.04em;text-transform:uppercase;">📌 Guía de la Fase: ${c.estado_proceso}</div>
+      <div style="background:var(--slate-50);border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:12px;">
+        ${(PHASE_GUIDES[c.estado_proceso] || []).map((tarea, index) => {
+          const checklists = c.fase_checklists || {};
+          const isChecked = checklists[c.estado_proceso] && checklists[c.estado_proceso][index] ? true : false;
+          return `
+            <div style="display:flex; align-items:center; gap:10px; padding:6px 0;">
+              <input type="checkbox" style="width:16px; height:16px; cursor:pointer;" ${isChecked ? 'checked' : ''} onchange="togglePhaseChecklist('${id}', '${c.estado_proceso}', ${index})">
+              <span style="font-size:0.875rem; color:${isChecked ? 'var(--slate-400)' : 'var(--slate-700)'}; text-decoration:${isChecked ? 'line-through' : 'none'};">${tarea}</span>
+            </div>
+          `;
+        }).join('') || '<div style="font-size:0.875rem; color:var(--slate-500);">No hay tareas definidas para esta fase.</div>'}
+      </div>
+    </div>
+
     <div style="margin-bottom:20px;">
       <div style="font-size:.8125rem;font-weight:700;color:var(--slate-700);margin-bottom:10px;letter-spacing:.04em;text-transform:uppercase;">📁 Documentos del Expediente</div>
       ${docs.map(d => `
@@ -3023,7 +3170,7 @@ function downloadTemplate()     { showToast('Descarga', 'Plantilla Excel disponi
 function renderSocioReferidos() {
   const socio = DB.getSocioByUsuario(State.currentUser.id) || DB.getSocios()[0];
   const referidos = DB.getCandidatosBySocio(State.currentUser.id);
-  const stageWidth = { 'Lead Nuevo':15,'Idioma':30,'Homologación':45,'Postulación':60,'Entrevista Agendada':75,'Trámite Visado':88,'Colocado':100 };
+  const stageWidth = { 'Lead Nuevo':12, '1er contacto, reclutamiento':25, 'Suficiencia del idioma':37, 'Entrevista Laboral y firma del contrato':50, 'Procesamiento de visa':62, 'Fase Pre viaje':75, 'En Destino':87, 'Inserción exitosa':100 };
 
   return `
     <div class="page-header">
@@ -3050,7 +3197,7 @@ function renderSocioReferidos() {
                   <div class="referral-stage-fill" style="width:${stageWidth[c.estado_proceso]||0}%;"></div>
                 </div>
               </div>
-              <span class="badge ${c.estado_proceso==='Colocado'?'badge-success':'badge-slate'}">${stageWidth[c.estado_proceso]||0}%</span>
+              <span class="badge ${c.estado_proceso==='Inserción exitosa'?'badge-success':'badge-slate'}">${stageWidth[c.estado_proceso]||0}%</span>
             </div>
           `).join('')}
         </div>
@@ -3288,7 +3435,7 @@ function closeApplicationOffcanvas() {
 
 function initApplicationOffcanvas() {
   State.appStep = 0;
-  State.appAnswers = {};
+  State.appAnswers = {}; State.appAnswersLabels = {};
   renderApplicationStep();
 }
 
@@ -3350,7 +3497,7 @@ function renderApplicationStep() {
 }
 
 function selectAppOption(questionId, value, el) {
-  State.appAnswers[questionId] = value;
+  State.appAnswers[questionId] = value; State.appAnswersLabels = State.appAnswersLabels || {}; if (el) State.appAnswersLabels[questionId] = el.innerText.trim();
   $$('#application-offcanvas-content .test-option').forEach(o => o.classList.remove('selected'));
   if (el) el.classList.add('selected');
 
@@ -3519,7 +3666,7 @@ function countryFlag(pais) {
 }
 
 function getEstadoColor(estado) {
-  return { 'Lead Nuevo':'var(--slate-500)','Idioma':'var(--info)','Homologación':'#8b5cf6','Postulación':'var(--gold-600)','Entrevista Agendada':'#ec4899','Trámite Visado':'var(--info)','Colocado':'var(--success)' }[estado] || 'var(--slate-500)';
+  return { 'Lead Nuevo':'var(--slate-500)','1er contacto, reclutamiento':'var(--info)','Suficiencia del idioma':'#8b5cf6','Entrevista Laboral y firma del contrato':'#ec4899','Procesamiento de visa':'var(--gold-600)','Fase Pre viaje':'#14b8a6','En Destino':'#eab308','Inserción exitosa':'var(--success)' }[estado] || 'var(--slate-500)';
 }
 
 function scrollToSection(id) {
@@ -3578,7 +3725,7 @@ async function submitRegistration(e) {
     telefono: ($('reg-telefono')?.value || '').trim(),
     edad: ($('reg-edad')?.value || '').trim(),
     puntaje_elegibilidad: totalScore,
-    respuestas_elegibilidad: { ...State.appAnswers }
+    respuestas_elegibilidad: { ...(State.appAnswersLabels || State.appAnswers) }
   });
   
   // Limpiar respuestas para futuras aplicaciones

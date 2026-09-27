@@ -208,7 +208,14 @@ const DB = {
 
   // ── CANDIDATOS ────────────────────────────────────────────────
   getCandidatos() {
-    return this.get().candidatos || [];
+    const list = this.get().candidatos || [];
+    return list.map(c => ({
+      ...c,
+      nombre: c.nombre || c.nombre_completo,
+      pais: c.pais || c.pais_origen,
+      especialidad: c.especialidad || c.especialidad_medica,
+      nivel_aleman: c.nivel_aleman || c.nivel_aleman_actual
+    }));
   },
 
   getCandidatoById(id) {
