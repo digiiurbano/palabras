@@ -162,12 +162,23 @@ function showToast(title, message, type = 'info', duration = 4000) {
 
 function openModal(id) {
   const overlay = $(id);
-  if (overlay) { overlay.classList.add('visible'); State.modalOpen = id; }
+  if (overlay) { 
+    overlay.classList.add('visible'); 
+    overlay.classList.add('open');
+    State.modalOpen = id; 
+  }
 }
 
 function closeModal(id) {
   const overlay = $(id);
-  if (overlay) { overlay.classList.remove('visible'); State.modalOpen = null; }
+  if (overlay) { 
+    overlay.classList.remove('visible'); 
+    overlay.classList.remove('open');
+    State.modalOpen = null; 
+    if (id && (id.startsWith('modal-add-candidate') || id.startsWith('modal-chat') || id.startsWith('modal-schedule') || id.startsWith('modal-candidate-dossier') || id.startsWith('modal-edit-candidate'))) {
+      overlay.remove();
+    }
+  }
 }
 
 // ──────────────────────────────────────────────────────────────────
@@ -3056,8 +3067,8 @@ function openEditCandidateModal(id) {
   const resp = c.respuestas_elegibilidad || {};
 
   const modalHtml = `
-    <div class="modal-overlay open" id="modal-edit-candidate-quick" role="dialog" aria-modal="true" style="z-index:9999;">
-      <div class="modal-card" style="max-width:760px;width:95%;border-radius:24px;padding:28px;max-height:90vh;overflow-y:auto;">
+    <div class="modal-overlay visible open" id="modal-edit-candidate-quick" role="dialog" aria-modal="true" style="z-index:9999;" onclick="if(event.target===this) closeModal('modal-edit-candidate-quick')">
+      <div class="modal modal-card" style="max-width:760px;width:95%;border-radius:24px;padding:28px;max-height:90vh;overflow-y:auto;background:#ffffff;">
         <div class="modal-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;padding:0 0 16px 0;border-bottom:1px solid #e2e8f0;">
           <div>
             <h3 style="font-family:var(--font-heading);color:var(--wine-800);font-size:1.35rem;margin:0;">Editar Perfil y Formulario de Aplicación</h3>
@@ -3267,8 +3278,8 @@ function openAddCandidateNoteModal(id) {
   if (!c) return;
 
   const modalHtml = `
-    <div class="modal-overlay open" id="modal-add-candidate-note-dialog" role="dialog" aria-modal="true" style="z-index:9999;">
-      <div class="modal-card" style="max-width:520px;border-radius:24px;padding:28px;">
+    <div class="modal-overlay visible open" id="modal-add-candidate-note-dialog" role="dialog" aria-modal="true" style="z-index:9999;" onclick="if(event.target===this) closeModal('modal-add-candidate-note-dialog')">
+      <div class="modal modal-card" style="max-width:520px;border-radius:24px;padding:28px;background:#ffffff;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
           <div>
             <h3 style="font-family:var(--font-heading);color:var(--wine-800);font-size:1.3rem;margin:0;">Añadir Nota Interna</h3>
@@ -3349,8 +3360,8 @@ function openCandidateChatModal(id) {
   const initials = getInitials(c.nombre);
 
   const modalHtml = `
-    <div class="modal-overlay open" id="modal-chat-candidate-dialog" role="dialog" aria-modal="true" style="z-index:9999;">
-      <div class="modal-card" style="max-width:580px;border-radius:24px;padding:0;overflow:hidden;display:flex;flex-direction:column;height:620px;">
+    <div class="modal-overlay visible open" id="modal-chat-candidate-dialog" role="dialog" aria-modal="true" style="z-index:9999;" onclick="if(event.target===this) closeModal('modal-chat-candidate-dialog')">
+      <div class="modal modal-card" style="max-width:580px;border-radius:24px;padding:0;overflow:hidden;display:flex;flex-direction:column;height:620px;background:#ffffff;">
         <!-- Header Chat -->
         <div style="background:#801020;color:#ffffff;padding:18px 24px;display:flex;align-items:center;justify-content:space-between;">
           <div style="display:flex;align-items:center;gap:14px;">
@@ -3473,8 +3484,8 @@ function openScheduleInterviewModal(id) {
   const defaultDateTime = tomorrow.toISOString().slice(0, 16);
 
   const modalHtml = `
-    <div class="modal-overlay open" id="modal-schedule-interview-dialog" role="dialog" aria-modal="true" style="z-index:9999;">
-      <div class="modal-card" style="max-width:560px;border-radius:24px;padding:28px;">
+    <div class="modal-overlay visible open" id="modal-schedule-interview-dialog" role="dialog" aria-modal="true" style="z-index:9999;" onclick="if(event.target===this) closeModal('modal-schedule-interview-dialog')">
+      <div class="modal modal-card" style="max-width:560px;border-radius:24px;padding:28px;background:#ffffff;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
           <div>
             <h3 style="font-family:var(--font-heading);color:var(--wine-800);font-size:1.3rem;margin:0;">Agendar Entrevista</h3>
@@ -3585,8 +3596,8 @@ function openCandidateDossierModal(id, initialTab = 'cv') {
   const initials = getInitials(c.nombre);
 
   const modalHtml = `
-    <div class="modal-overlay open" id="modal-candidate-dossier-dialog" role="dialog" aria-modal="true" style="z-index:9999;">
-      <div class="modal-card" style="max-width:860px;width:95%;border-radius:24px;padding:0;overflow:hidden;max-height:90vh;display:flex;flex-direction:column;">
+    <div class="modal-overlay visible open" id="modal-candidate-dossier-dialog" role="dialog" aria-modal="true" style="z-index:9999;" onclick="if(event.target===this) closeModal('modal-candidate-dossier-dialog')">
+      <div class="modal modal-card" style="max-width:860px;width:95%;border-radius:24px;padding:0;overflow:hidden;max-height:90vh;display:flex;flex-direction:column;background:#ffffff;">
         <!-- Header -->
         <div style="background:#801020;color:#ffffff;padding:20px 28px;display:flex;align-items:center;justify-content:space-between;">
           <div style="display:flex;align-items:center;gap:16px;">
@@ -6920,3 +6931,22 @@ window.renderAsesorDashboard = renderAsesorDashboard;
 window.renderAsesorKanban = renderAsesorKanban;
 window.filterKanbanCandidates = filterKanbanCandidates;
 window.exportKanbanCSV = exportKanbanCSV;
+window.openCandidateCVModal = openCandidateCVModal;
+window.openCandidateDossierModal = openCandidateDossierModal;
+window.openAddCandidateNoteModal = openAddCandidateNoteModal;
+window.saveCandidateNoteFromModal = saveCandidateNoteFromModal;
+window.openCandidateChatModal = openCandidateChatModal;
+window.sendCandidateChatMessage = sendCandidateChatMessage;
+window.insertQuickChatMsg = insertQuickChatMsg;
+window.openScheduleInterviewModal = openScheduleInterviewModal;
+window.saveScheduledInterview = saveScheduledInterview;
+window.openEditCandidateModal = openEditCandidateModal;
+window.saveCandidateProfileEdit = saveCandidateProfileEdit;
+window.switchDossierTab = switchDossierTab;
+window.quickAddCandidateNote = quickAddCandidateNote;
+window.quickSendMessage = quickSendMessage;
+window.quickScheduleInterview = quickScheduleInterview;
+window.closeCandidateProfile = closeCandidateProfile;
+window.exportCandidateProfilePDF = exportCandidateProfilePDF;
+window.openCandidateDetail = openCandidateDetail;
+
