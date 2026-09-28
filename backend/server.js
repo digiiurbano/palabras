@@ -2,7 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const DB = require('./database.js');
-const { isPostgresConfigured } = require('./db/pool');
+const { isPostgresConfigured, query } = require('./db/pool');
 
 const app = express();
 
@@ -35,15 +35,24 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// Endpoint de estado del sistema y BD
+// Endpoint de estado del sistema y BD con Heartbeat a PostgreSQL
 app.get('/api/health', async (req, res) => {
   const pgActive = isPostgresConfigured();
+  let dbStatus = 'ok';
+  if (pgActive) {
+    try {
+      await query('SELECT 1;');
+    } catch (e) {
+      dbStatus = 'error: ' + e.message;
+    }
+  }
   res.json({
     status: 'online',
     timestamp: new Date().toISOString(),
     database: {
       type: pgActive ? 'PostgreSQL' : 'In-Memory (Mock / Local Fallback)',
-      active: true
+      active: pgActive ? (dbStatus === 'ok') : true,
+      dbStatus
     }
   });
 });
