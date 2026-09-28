@@ -143,12 +143,19 @@ function showPublic() {
   $('login-screen').classList.remove('active');
   document.body.className = '';
   State.currentView = 'public';
+  try {
+    localStorage.setItem('jnp_current_view', 'public');
+    const hash = window.location.hash.replace('#', '').trim();
+    if (hash && typeof getRoleForView === 'function' && getRoleForView(hash)) {
+      window.history.replaceState(null, '', window.location.pathname);
+    }
+  } catch(e) {}
   
   const loginBtn = $('nav-login-btn');
   if (loginBtn) {
     if (State.currentUser) {
       loginBtn.textContent = 'Mi Perfil';
-      loginBtn.onclick = showApp;
+      loginBtn.onclick = () => showApp();
     } else {
       loginBtn.textContent = 'Iniciar Sesión';
       loginBtn.onclick = showLogin;
@@ -162,14 +169,23 @@ function showLogin() {
   $('login-screen').classList.add('active');
   document.body.className = '';
   State.currentView = 'login';
+  try {
+    localStorage.setItem('jnp_current_view', 'login');
+    if (window.location.hash !== '#login') {
+      window.history.replaceState(null, '', '#login');
+    }
+  } catch(e) {}
 }
 
-function showApp() {
+function showApp(view = null) {
   $('public-site').style.display = 'none';
   $('login-screen').classList.remove('active');
   $('app-shell').classList.add('active');
   State.currentView = 'app';
-  renderAppShell();
+  try {
+    localStorage.setItem('jnp_current_view', 'app');
+  } catch(e) {}
+  renderAppShell(view);
 }
 
 // ──────────────────────────────────────────────────────────────────
@@ -189,8 +205,12 @@ async function handleLogin(e) {
   
   if (user) {
     State.currentUser = user;
-  if (user && !State.activeRole) State.activeRole = (user.roles && user.roles.length > 0) ? user.roles[0] : 'Candidato';
+    if (user && !State.activeRole) State.activeRole = (user.roles && user.roles.length > 0) ? user.roles[0] : 'Candidato';
     State.currentSidebar = null;
+    try {
+      localStorage.setItem('jnp_active_role', State.activeRole);
+      localStorage.removeItem('jnp_current_sidebar');
+    } catch(e) {}
     DB.setSession(user);
     showToast('Bienvenido/a', `Hola ${user.nombre.split(' ')[0]}! Has iniciado sesión como ${State.activeRole}.`, 'success');
     showApp();
@@ -204,6 +224,12 @@ function handleLogout() {
   State.currentUser = null;
   State.activeRole = null;
   State.currentSidebar = null;
+  try {
+    localStorage.removeItem('jnp_current_sidebar');
+    localStorage.removeItem('jnp_active_role');
+    localStorage.removeItem('jnp_current_view');
+    if (window.location.hash) window.history.replaceState(null, '', window.location.pathname);
+  } catch(e) {}
   DB.clearSession();
   showPublic();
   showToast('Sesión cerrada', 'Has cerrado sesión exitosamente.', 'info');
@@ -258,7 +284,7 @@ async function saveProfile() {
 // ──────────────────────────────────────────────────────────────────
 // APP SHELL RENDER
 // ──────────────────────────────────────────────────────────────────
-function renderAppShell() {
+function renderAppShell(view = null) {
   const user = State.currentUser;
   if (!user) { showLogin(); return; }
 
@@ -310,7 +336,7 @@ function renderAppShell() {
 
   // Sidebar + contenido
   renderSidebar(State.activeRole);
-  renderDashboard(State.activeRole);
+  renderDashboard(State.activeRole, view || State.currentSidebar);
 }
 
 // Cerrar panel notif al hacer clic fuera — registrado una sola vez
@@ -438,6 +464,16 @@ const SIDEBAR_MENUS = {
   ]
 };
 
+function getRoleForView(viewId) {
+  if (!viewId) return null;
+  for (const [role, items] of Object.entries(SIDEBAR_MENUS)) {
+    if (items.some(item => item.id === viewId)) {
+      return role;
+    }
+  }
+  return null;
+}
+
 function renderSidebar(rol) {
   const user = State.currentUser;
   const items = SIDEBAR_MENUS[rol] || [];
@@ -480,7 +516,23 @@ function renderSidebar(rol) {
 }
 
 function navigateTo(id) {
+  if (!id) return;
   State.currentSidebar = id;
+  const roleForId = getRoleForView(id);
+  if (roleForId && State.currentUser) {
+    const userRoles = State.currentUser.roles || [];
+    if (userRoles.includes(roleForId) || userRoles.includes('Admin')) {
+      State.activeRole = roleForId;
+      try { localStorage.setItem('jnp_active_role', roleForId); } catch(e) {}
+    }
+  }
+  try {
+    localStorage.setItem('jnp_current_sidebar', id);
+    localStorage.setItem('jnp_current_view', 'app');
+    if (window.location.hash !== '#' + id) {
+      window.history.replaceState(null, '', '#' + id);
+    }
+  } catch(e) {}
   renderSidebar(State.activeRole);
   renderDashboard(State.activeRole, id);
 }
@@ -489,14 +541,26 @@ function navigateTo(id) {
 // DASHBOARD ROUTER
 // ──────────────────────────────────────────────────────────────────
 async function renderDashboard(rol, view = null) {
-  let id = view || State.currentSidebar || SIDEBAR_MENUS[rol]?.[0]?.id;
-  
-  // Validar permisos (Role-Based Access Control básico)
   const allowedViews = SIDEBAR_MENUS[rol]?.map(menu => menu.id) || [];
-  if (!allowedViews.includes(id)) {
-    id = SIDEBAR_MENUS[rol]?.[0]?.id; // Fallback al inicio del rol
-    State.currentSidebar = id;
+  const hashView = window.location.hash.replace('#', '').trim();
+  const savedView = localStorage.getItem('jnp_current_sidebar');
+
+  let id = view || State.currentSidebar;
+  if (!id || !allowedViews.includes(id)) {
+    if (hashView && allowedViews.includes(hashView)) id = hashView;
+    else if (savedView && allowedViews.includes(savedView)) id = savedView;
+    else id = allowedViews[0];
   }
+
+  State.currentSidebar = id;
+  try {
+    localStorage.setItem('jnp_current_sidebar', id);
+    localStorage.setItem('jnp_active_role', rol);
+    localStorage.setItem('jnp_current_view', 'app');
+    if (window.location.hash !== '#' + id) {
+      window.history.replaceState(null, '', '#' + id);
+    }
+  } catch(e) {}
 
   const container = $('main-content');
   if (!container) return;
@@ -897,7 +961,7 @@ window.toggleRoleFields = function(prefix) {
   if(socFields) socFields.style.display = isSocio ? 'flex' : 'none';
 };
 
-function createUser() {
+async function createUser() {
   if (!State.currentUser.roles.includes('Admin')) { showToast('Error', 'No tienes permisos para esta acción.', 'error'); return; }
   const nombre = $('nu-nombre')?.value.trim();
   const correo = $('nu-correo')?.value.trim();
@@ -932,16 +996,16 @@ function createUser() {
     };
   }
 
-  DB.createUsuario(payload);
+  await DB.createUsuario(payload);
   closeModal('modal-new-user');
   showToast('Usuario creado', `${nombre} fue registrado con ${roles.length} rol(es).`, 'success');
   navigateTo('admin-users');
 }
 
-function deleteUser(id) {
+async function deleteUser(id) {
   if (State.activeRole !== 'Admin') { showToast('Error', 'No tienes permisos para esta acción.', 'error'); return; }
   if (!confirm('¿Eliminar este usuario? Esta acción no se puede deshacer.')) return;
-  DB.deleteUsuario(id);
+  await DB.deleteUsuario(id);
   showToast('Usuario eliminado', 'El usuario fue eliminado del sistema.', 'warning');
   navigateTo('admin-users');
 }
@@ -1038,9 +1102,15 @@ async function saveUser() {
   
   try {
     await DB.updateUsuario(id, updateData);
+    if (State.currentUser && (State.currentUser.id === id || State.currentUser.correo === correo)) {
+      State.currentUser = { ...State.currentUser, ...updateData };
+      DB.setSession(State.currentUser);
+      renderAppShell();
+    } else {
+      navigateTo('admin-users'); // refrescar la vista
+    }
     closeModal('modal-edit-user');
     showToast('Éxito', 'Usuario actualizado correctamente.', 'success');
-    navigateTo('admin-users'); // refrescar la vista
   } catch(e) {
     console.error(e);
     showToast('Error', 'Ocurrió un error al actualizar el usuario.', 'error');
@@ -3670,7 +3740,11 @@ function getEstadoColor(estado) {
 }
 
 function scrollToSection(id) {
-  const el = $(id) || document.querySelector(`[data-section="${id}"]`);
+  let targetId = id;
+  if (id === 'contacto') targetId = 'contact';
+  if (id === 'nosotros') targetId = 'about';
+  if (id === 'inicio') targetId = 'hero';
+  const el = $(targetId) || document.getElementById(targetId) || document.querySelector(`[data-section="${targetId}"]`);
   if (el) el.scrollIntoView({ behavior:'smooth', block:'start' });
 }
 
@@ -3742,16 +3816,110 @@ async function submitRegistration(e) {
 document.addEventListener('DOMContentLoaded', async () => {
   await DB.init();
 
-  // Check sesión activa
   const session = DB.getSession();
+  const rawHash = window.location.hash.replace('#', '').trim();
+  const savedView = localStorage.getItem('jnp_current_view');
+  const savedRole = localStorage.getItem('jnp_active_role');
+  const savedSidebar = localStorage.getItem('jnp_current_sidebar');
+
+  const publicSections = ['about', 'nosotros', 'proceso', 'contact', 'contacto', 'eligibilidad', 'hero', 'inicio', 'public'];
+
   if (session) {
     if (session.rol && !session.roles) session.roles = [session.rol];
-    State.currentUser = session;
-    State.activeRole = (session.roles && session.roles.length > 0) ? session.roles[0] : 'Candidato';
-    showApp();
+    const users = DB.getUsuarios();
+    const updatedUser = users.find(u => u.id === session.id || (session.correo && u.correo === session.correo));
+    State.currentUser = updatedUser ? { ...session, ...updatedUser } : session;
+    DB.setSession(State.currentUser);
+
+    // Determinar rol activo
+    let activeRole = savedRole;
+    const roleFromHash = getRoleForView(rawHash);
+    const userRoles = State.currentUser.roles || [];
+    const isAdmin = userRoles.includes('Admin');
+
+    if (roleFromHash && (userRoles.includes(roleFromHash) || isAdmin)) {
+      activeRole = roleForView;
+    } else if (!activeRole || (!userRoles.includes(activeRole) && !isAdmin)) {
+      activeRole = userRoles.length > 0 ? userRoles[0] : 'Candidato';
+    }
+    State.activeRole = activeRole;
+    try { localStorage.setItem('jnp_active_role', activeRole); } catch(e) {}
+
+    // Evaluar si el usuario estaba o desea estar en la vista pública
+    const isPublicHash = publicSections.includes(rawHash);
+    const isDashboardHash = !!getRoleForView(rawHash);
+
+    if (rawHash === 'login') {
+      showLogin();
+    } else if (isPublicHash || (savedView === 'public' && !isDashboardHash)) {
+      showPublic();
+      if (rawHash && rawHash !== 'public' && rawHash !== 'inicio') {
+        setTimeout(() => scrollToSection(rawHash), 150);
+      }
+    } else {
+      const allowed = (SIDEBAR_MENUS[State.activeRole] || []).map(m => m.id);
+      let targetSidebar = null;
+
+      if (rawHash && allowed.includes(rawHash)) {
+        targetSidebar = rawHash;
+      } else if (savedSidebar && allowed.includes(savedSidebar)) {
+        targetSidebar = savedSidebar;
+      } else {
+        targetSidebar = allowed[0];
+      }
+
+      State.currentSidebar = targetSidebar;
+      showApp(targetSidebar);
+    }
   } else {
-    showPublic();
+    // Sin sesión
+    if (rawHash === 'login' || savedView === 'login') {
+      showLogin();
+    } else {
+      showPublic();
+      if (rawHash && publicSections.includes(rawHash)) {
+        setTimeout(() => scrollToSection(rawHash), 150);
+      }
+    }
   }
+
+  window.addEventListener('hashchange', () => {
+    const hash = window.location.hash.replace('#', '').trim();
+    if (!hash) {
+      if (State.currentView === 'public') {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+      return;
+    }
+
+    if (hash === 'login') {
+      showLogin();
+      return;
+    }
+
+    if (publicSections.includes(hash)) {
+      if (State.currentView !== 'public') {
+        showPublic();
+      }
+      scrollToSection(hash);
+      return;
+    }
+
+    const roleForView = getRoleForView(hash);
+    if (roleForView && State.currentUser) {
+      const userRoles = State.currentUser.roles || [];
+      const isAdmin = userRoles.includes('Admin');
+      if ((userRoles.includes(roleForView) || isAdmin) && State.activeRole !== roleForView) {
+        State.activeRole = roleForView;
+        try { localStorage.setItem('jnp_active_role', roleForView); } catch(e) {}
+      }
+      if (State.currentView !== 'app') {
+        showApp(hash);
+      } else if (hash !== State.currentSidebar) {
+        navigateTo(hash);
+      }
+    }
+  });
 
   // Navegación pública
   window.addEventListener('scroll', handleNavScroll);
@@ -3857,8 +4025,20 @@ window.removeSprachenItem = removeSprachenItem;
 
 window.switchRole = function(newRole) {
   State.activeRole = newRole;
+  try {
+    localStorage.setItem('jnp_active_role', newRole);
+    localStorage.setItem('jnp_current_view', 'app');
+  } catch(e) {}
   document.body.className = `theme-${newRole.toLowerCase()}`;
-  renderSidebar(newRole);
-  renderDashboard(newRole);
-  renderAppShell();
+  const firstItem = SIDEBAR_MENUS[newRole]?.[0]?.id;
+  State.currentSidebar = firstItem;
+  try {
+    if (firstItem) {
+      localStorage.setItem('jnp_current_sidebar', firstItem);
+      window.history.replaceState(null, '', '#' + firstItem);
+    }
+  } catch(e) {}
+  renderAppShell(firstItem);
 };
+
+window.getRoleForView = getRoleForView;

@@ -1,6 +1,6 @@
 
 // URL del backend: usa VITE_API_URL en producción o localhost en desarrollo
-let apiUrl = 'http://localhost:3030';
+let apiUrl = 'http://localhost:3000';
 if (typeof window !== 'undefined' && window.VITE_API_URL) {
   apiUrl = window.VITE_API_URL;
 }
@@ -8,32 +8,32 @@ const API_URL = apiUrl;
 
 const OFFICIAL_USERS = [
   {
-    id: 'u-admin-001', nombre: 'Ana García', roles: ['Admin'],
+    id: 'a0000000-0000-0000-0000-000000000001', nombre: 'Ana García', roles: ['Admin'],
     correo: 'admin@jnpalabras.com', contrasena: 'JNPalabrasAdmin2026!',
     avatar: 'AG', activo: true, fecha_creacion: '2024-01-15'
   },
   {
-    id: 'u-asesor-001', nombre: 'Carlos Martínez', roles: ['Asesor'],
+    id: 'a0000000-0000-0000-0000-000000000002', nombre: 'Carlos Martínez', roles: ['Asesor'],
     correo: 'asesor@jnpalabras.com', contrasena: 'JNPalabrasAsesor2026!',
     avatar: 'CM', activo: true, fecha_creacion: '2024-02-10'
   },
   {
-    id: 'u-prof-001', nombre: 'Dra. Elena Weber', roles: ['Profesor'],
+    id: 'a0000000-0000-0000-0000-000000000003', nombre: 'Dra. Elena Weber', roles: ['Profesor'],
     correo: 'profesor@jnpalabras.com', contrasena: 'JNPalabrasProfesor2026!',
     avatar: 'EW', activo: true, fecha_creacion: '2024-02-20'
   },
   {
-    id: 'u-cand-001', nombre: 'Dr. Javier Torres', roles: ['Candidato'],
+    id: 'a0000000-0000-0000-0000-000000000004', nombre: 'Dr. Javier Torres', roles: ['Candidato'],
     correo: 'candidato@jnpalabras.com', contrasena: 'JNPalabrasCandidato2026!',
     avatar: 'JT', activo: true, fecha_creacion: '2024-03-05'
   },
   {
-    id: 'u-emp-001', nombre: 'Klinikum Stuttgart', roles: ['Empresa'],
+    id: 'a0000000-0000-0000-0000-000000000005', nombre: 'Klinikum Stuttgart', roles: ['Empresa'],
     correo: 'empresa@jnpalabras.com', contrasena: 'JNPalabrasEmpresa2026!',
     avatar: 'KS', activo: true, fecha_creacion: '2024-01-20'
   },
   {
-    id: 'u-socio-001', nombre: 'Laura Rodríguez (MediLink)', roles: ['Socio'],
+    id: 'a0000000-0000-0000-0000-000000000006', nombre: 'Laura Rodríguez (MediLink)', roles: ['Socio'],
     correo: 'socio@jnpalabras.com', contrasena: 'JNPalabrasSocio2026!',
     avatar: 'LR', activo: true, fecha_creacion: '2024-03-01'
   }
@@ -134,6 +134,7 @@ const DB = {
   },
 
   async createUsuario(data) {
+    let nuevo = null;
     try {
       const res = await fetch(`${API_URL}/api/users`, {
         method: 'POST',
@@ -141,49 +142,68 @@ const DB = {
         body: JSON.stringify(data)
       });
       if (res.ok) {
-        return await res.json();
+        nuevo = await res.json();
       }
     } catch (e) {
       console.error("Fallo al crear usuario en backend, fallback local");
     }
     
     const db = this.get();
-    const nuevo = { ...data, id: 'u-' + Date.now(), fecha_creacion: new Date().toISOString(), activo: true };
+    if (!nuevo) {
+      nuevo = { ...data, id: 'u-' + Date.now(), fecha_creacion: new Date().toISOString(), activo: true };
+    }
     if (!db.usuarios) db.usuarios = [...OFFICIAL_USERS];
-    db.usuarios.push(nuevo);
+    const existingIdx = db.usuarios.findIndex(u => u.id === nuevo.id);
+    if (existingIdx !== -1) {
+      db.usuarios[existingIdx] = { ...db.usuarios[existingIdx], ...nuevo };
+    } else {
+      db.usuarios.push(nuevo);
+    }
     this.save(db);
     return nuevo;
   },
 
   async updateUsuario(id, data) {
+    let editado = null;
     try {
       const res = await fetch(`${API_URL}/api/users/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
       });
-      if (res.ok) return;
-    } catch (e) {}
+      if (res.ok) {
+        editado = await res.json();
+      }
+    } catch (e) {
+      console.warn("Fallo al actualizar usuario en backend, aplicando cambio local");
+    }
 
     const db = this.get();
     if (!db.usuarios) db.usuarios = [...OFFICIAL_USERS];
-    const idx = db.usuarios.findIndex(u => u.id === id);
-    if (idx !== -1) db.usuarios[idx] = { ...db.usuarios[idx], ...data };
+    const idx = db.usuarios.findIndex(u => u.id === id || (data && data.correo && u.correo === data.correo));
+    if (idx !== -1) {
+      db.usuarios[idx] = editado ? { ...db.usuarios[idx], ...editado } : { ...db.usuarios[idx], ...data };
+    } else if (editado) {
+      db.usuarios.push(editado);
+    }
     this.save(db);
+    return db.usuarios[idx] || editado;
   },
 
   async deleteUsuario(id) {
     try {
-      const res = await fetch(`${API_URL}/api/users/${id}`, {
+      await fetch(`${API_URL}/api/users/${id}`, {
         method: 'DELETE'
       });
-      if (res.ok) return;
-    } catch (e) {}
+    } catch (e) {
+      console.warn("Fallo al eliminar usuario en backend, aplicando cambio local");
+    }
 
     const db = this.get();
     if (!db.usuarios) db.usuarios = [...OFFICIAL_USERS];
     db.usuarios = db.usuarios.filter(u => u.id !== id);
     this.save(db);
+    return true;
   },
 
   // ── SESIÓN ────────────────────────────────────────────────────

@@ -2,7 +2,7 @@
   "usuarios": [
     {
       "id": "a0000000-0000-0000-0000-000000000001",
-      "nombre": "Ana García (Admin)",
+      "nombre": "Admin JN Palabras",
       "correo": "admin@jnpalabras.com",
       "roles": [
         "Admin"
