@@ -266,9 +266,13 @@ async function saveProfile() {
   if (pass) updateData.contrasena = pass;
   
   try {
-    await DB.updateUsuario(id, updateData);
-    State.currentUser.nombre = nombre;
-    State.currentUser.correo = correo;
+    const updated = await DB.updateUsuario(id, updateData);
+    if (updated && typeof updated === 'object') {
+      State.currentUser = { ...State.currentUser, ...updated, nombre, correo };
+    } else {
+      State.currentUser.nombre = nombre;
+      State.currentUser.correo = correo;
+    }
     if (pass) State.currentUser.contrasena = pass;
     DB.setSession(State.currentUser);
     
@@ -1466,6 +1470,31 @@ async function guardarNuevoCandidato() {
   renderDashboard(State.activeRole, 'asesor-kanban');
 }
 
+function getDragAfterElement(container, y) {
+  const draggableElements = [...container.querySelectorAll('.kanban-card:not(.dragging)')];
+  return draggableElements.reduce((closest, child) => {
+    const box = child.getBoundingClientRect();
+    const offset = y - box.top - box.height / 2;
+    if (offset < 0 && offset > closest.offset) {
+      return { offset: offset, element: child };
+    } else {
+      return closest;
+    }
+  }, { offset: Number.NEGATIVE_INFINITY }).element;
+}
+
+function updateKanbanCounters(board) {
+  const b = board || $('kanban-board');
+  if (!b) return;
+  b.querySelectorAll('.kanban-col').forEach(col => {
+    const countBadge = col.querySelector('.kanban-col-count');
+    const zone = col.querySelector('.kanban-drop-zone');
+    if (countBadge && zone) {
+      countBadge.textContent = zone.querySelectorAll('.kanban-card').length;
+    }
+  });
+}
+
 function initKanban() {
   const board = $('kanban-board');
   if (!board) return;
@@ -1479,6 +1508,9 @@ function initKanban() {
     draggedFromCol = card.dataset.col;
     card.classList.add('dragging');
     e.dataTransfer.effectAllowed = 'move';
+    try {
+      e.dataTransfer.setData('text/plain', draggedId);
+    } catch(err) {}
   });
 
   board.addEventListener('dragend', e => {
@@ -1489,24 +1521,78 @@ function initKanban() {
 
   board.addEventListener('dragover', e => {
     e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
     const zone = e.target.closest('.kanban-drop-zone');
-    if (zone) { $$('.kanban-drop-zone').forEach(z => z.classList.remove('dragover')); zone.classList.add('dragover'); }
+    if (zone) {
+      $$('.kanban-drop-zone').forEach(z => { if (z !== zone) z.classList.remove('dragover'); });
+      zone.classList.add('dragover');
+    }
   });
 
-  board.addEventListener('drop', e => {
+  board.addEventListener('dragleave', e => {
+    const zone = e.target.closest('.kanban-drop-zone');
+    if (zone && !zone.contains(e.relatedTarget)) {
+      zone.classList.remove('dragover');
+    }
+  });
+
+  board.addEventListener('drop', async e => {
     e.preventDefault();
+    $$('.kanban-drop-zone').forEach(z => z.classList.remove('dragover'));
+
     const zone = e.target.closest('.kanban-drop-zone');
     if (!zone || !draggedId) return;
+
     const newCol = zone.dataset.col;
-    if (newCol && newCol !== draggedFromCol) {
-      DB.updateCandidato(draggedId, { estado_proceso: newCol });
-      const c = DB.getCandidatoById(draggedId);
-      showToast('Candidato movido', `${c?.nombre} → ${newCol}`, 'success');
-      if (newCol === 'Colocado') {
-        showToast('🎉 ¡Colocación exitosa!', `${c?.nombre} ha sido colocado exitosamente en Alemania.`, 'success', 6000);
-        DB.addNotificacion({ id_usuario_dest: c?.id_usuario || 'u-cand-001', tipo: 'Visado_Aprobado', titulo: '¡Felicitaciones! Estás colocado/a', mensaje: 'Has completado exitosamente el proceso de JN Palabras. ¡Bienvenido/a a Alemania!' });
+    const prevCol = draggedFromCol;
+
+    if (newCol && newCol !== prevCol) {
+      const card = board.querySelector(`.kanban-card[data-id="${draggedId}"]`);
+      if (card) {
+        card.dataset.col = newCol;
+        card.classList.remove('dragging');
+
+        // Ubicar en la posición exacta soltada
+        const afterElement = getDragAfterElement(zone, e.clientY);
+        if (afterElement == null) {
+          zone.appendChild(card);
+        } else {
+          zone.insertBefore(card, afterElement);
+        }
+
+        // Micro-animación fluida de respuesta inmediata
+        card.classList.add('card-drop-pop');
+        setTimeout(() => card.classList.remove('card-drop-pop'), 350);
       }
-      navigateTo('asesor-kanban');
+
+      // Actualizar contadores numéricos de columnas inmediatamente (0ms)
+      updateKanbanCounters(board);
+
+      // Sincronización asíncrona optimista en segundo plano
+      try {
+        await DB.updateCandidato(draggedId, { estado_proceso: newCol });
+        const c = DB.getCandidatoById(draggedId);
+        showToast('Candidato movido', `${c?.nombre || 'Candidato'} → ${newCol}`, 'success');
+        if (newCol === 'Colocado') {
+          showToast('🎉 ¡Colocación exitosa!', `${c?.nombre || 'Candidato'} ha sido colocado exitosamente en Alemania.`, 'success', 6000);
+          DB.addNotificacion({
+            id_usuario_dest: c?.id_usuario || 'u-cand-001',
+            tipo: 'Visado_Aprobado',
+            titulo: '¡Felicitaciones! Estás colocado/a',
+            mensaje: 'Has completado exitosamente el proceso de JN Palabras. ¡Bienvenido/a a Alemania!'
+          });
+        }
+      } catch (err) {
+        console.error('Error al mover candidato:', err);
+        // Rollback visual si la sincronización falla
+        if (card && prevCol) {
+          card.dataset.col = prevCol;
+          const origZone = board.querySelector(`.kanban-drop-zone[data-col="${prevCol}"]`);
+          if (origZone) origZone.appendChild(card);
+          updateKanbanCounters(board);
+        }
+        showToast('Error', 'No se pudo sincronizar el cambio de estado.', 'error');
+      }
     }
   });
 }

@@ -10,6 +10,24 @@ const path = require('path');
 let memoryDB = null;
 const dbFilePath = path.join(__dirname, 'db', 'data.json');
 
+const IS_UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const LEGACY_USER_MAP = {
+  'u-admin-001': 'a0000000-0000-0000-0000-000000000001',
+  'u-asesor-001': 'a0000000-0000-0000-0000-000000000002',
+  'u-prof-001': 'a0000000-0000-0000-0000-000000000003',
+  'u-cand-001': 'a0000000-0000-0000-0000-000000000004',
+  'u-emp-001': 'a0000000-0000-0000-0000-000000000005',
+  'u-socio-001': 'a0000000-0000-0000-0000-000000000006'
+};
+
+function resolveUserId(id) {
+  if (!id) return null;
+  if (IS_UUID_REGEX.test(id)) return id;
+  if (LEGACY_USER_MAP[id]) return LEGACY_USER_MAP[id];
+  return null;
+}
+
+
 const INITIAL_DATA = {
   "usuarios": [
     {
@@ -308,15 +326,19 @@ const DB = {
   async findUsuarioById(id) {
     if (isPostgresConfigured()) {
       try {
-        const res = await query('SELECT id, nombre, correo, roles, avatar_url AS avatar, activo FROM usuarios WHERE id = $1 LIMIT 1;', [id]);
-        if (res.rows.length > 0) {
-          return res.rows[0];
+        const resolvedId = resolveUserId(id);
+        if (resolvedId) {
+          const res = await query('SELECT id, nombre, correo, roles, avatar_url AS avatar, activo FROM usuarios WHERE id = $1 LIMIT 1;', [resolvedId]);
+          if (res.rows.length > 0) return res.rows[0];
+        } else {
+          const res = await query('SELECT id, nombre, correo, roles, avatar_url AS avatar, activo FROM usuarios WHERE correo = $1 LIMIT 1;', [id]);
+          if (res.rows.length > 0) return res.rows[0];
         }
       } catch (err) {
         console.warn('⚠️ Query error en PostgreSQL findUsuarioById, usando fallback in-memory:', err.message);
       }
     }
-    return this.getUsuarios().find(u => u.id === id);
+    return this.getUsuarios().find(u => u.id === id || u.correo === id);
   },
 
   async createUsuarioAsync(data) {
@@ -385,85 +407,108 @@ const DB = {
   },
 
   async updateUsuarioAsync(id, data) {
+    let resolvedId = resolveUserId(id);
     if (isPostgresConfigured()) {
       try {
-        const res = await query(`
-          UPDATE usuarios 
-          SET nombre = COALESCE($1, nombre),
-              correo = COALESCE($2, correo),
-              roles = COALESCE($3, roles),
-              avatar_url = COALESCE($4, avatar_url),
-              activo = COALESCE($5, activo),
-              fecha_actualizacion = NOW()
-          WHERE id = $6
-          RETURNING id, nombre, correo, roles, avatar_url AS avatar, activo, fecha_creacion;
-        `, [data.nombre, data.correo, JSON.stringify(data.roles), data.avatar, data.activo, id]);
-        
-        const updatedUser = res.rows[0];
-        
-        if (data.empresa_data) {
-          const empRes = await query('SELECT id FROM empresas WHERE id_usuario = $1 LIMIT 1', [id]);
-          if (empRes.rows.length > 0) {
-            await query(`
-              UPDATE empresas 
-              SET nombre_clinica = $1, tipo_centro = $2, region_alemania = $3, ciudad = $4, telefono = $5
-              WHERE id_usuario = $6
-            `, [
-              data.empresa_data.nombre_clinica || 'Sin Nombre',
-              data.empresa_data.tipo_centro || null,
-              data.empresa_data.region_alemania || null,
-              data.empresa_data.ciudad || null,
-              data.empresa_data.telefono || null,
-              id
-            ]);
-          } else {
-            await query(`
-              INSERT INTO empresas (id_usuario, nombre_clinica, tipo_centro, region_alemania, ciudad, telefono, contacto_nombre, correo_contacto)
-              VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-            `, [
-              id,
-              data.empresa_data.nombre_clinica || 'Sin Nombre',
-              data.empresa_data.tipo_centro || null,
-              data.empresa_data.region_alemania || null,
-              data.empresa_data.ciudad || null,
-              data.empresa_data.telefono || null,
-              data.empresa_data.contacto_nombre || null,
-              data.empresa_data.correo_contacto || null
-            ]);
-          }
+        if (!resolvedId && data && data.correo) {
+          const findRes = await query('SELECT id FROM usuarios WHERE correo = $1 LIMIT 1;', [data.correo]);
+          if (findRes.rows.length > 0) resolvedId = findRes.rows[0].id;
         }
-        
-        if (data.socio_data) {
-          const socRes = await query('SELECT id FROM socios WHERE id_usuario = $1 LIMIT 1', [id]);
-          if (socRes.rows.length > 0) {
-            await query(`
-              UPDATE socios
-              SET nombre_agencia = $1, pais_operacion = $2, telefono = $3, porcentaje_comision = $4
-              WHERE id_usuario = $5
-            `, [
-              data.socio_data.nombre_agencia || 'Sin Nombre',
-              data.socio_data.pais_operacion || null,
-              data.socio_data.telefono || null,
-              data.socio_data.porcentaje_comision || 10,
-              id
-            ]);
-          } else {
-            await query(`
-              INSERT INTO socios (id_usuario, nombre_agencia, pais_operacion, telefono, porcentaje_comision, contacto_nombre, correo_contacto)
-              VALUES ($1, $2, $3, $4, $5, $6, $7)
-            `, [
-              id,
-              data.socio_data.nombre_agencia || 'Sin Nombre',
-              data.socio_data.pais_operacion || null,
-              data.socio_data.telefono || null,
-              data.socio_data.porcentaje_comision || 10,
-              data.socio_data.contacto_nombre || null,
-              data.socio_data.correo_contacto || null
-            ]);
+
+        if (resolvedId) {
+          let updateQuery = `
+            UPDATE usuarios 
+            SET nombre = COALESCE($1, nombre),
+                correo = COALESCE($2, correo),
+                roles = COALESCE($3, roles),
+                avatar_url = COALESCE($4, avatar_url),
+                activo = COALESCE($5, activo),
+                fecha_actualizacion = NOW()
+          `;
+          const rolesJson = data.roles !== undefined ? JSON.stringify(data.roles) : null;
+          let params = [
+            data.nombre !== undefined ? data.nombre : null,
+            data.correo !== undefined ? data.correo : null,
+            rolesJson,
+            data.avatar !== undefined ? data.avatar : null,
+            data.activo !== undefined ? data.activo : null
+          ];
+
+          if (data.contrasena) {
+            updateQuery += `, contrasena_hash = crypt($${params.length + 1}, gen_salt('bf'))`;
+            params.push(data.contrasena);
           }
+
+          updateQuery += ` WHERE id = $${params.length + 1} RETURNING id, nombre, correo, roles, avatar_url AS avatar, activo, fecha_creacion;`;
+          params.push(resolvedId);
+
+          const res = await query(updateQuery, params);
+          const updatedUser = res.rows[0];
+          
+          if (data.empresa_data) {
+            const empRes = await query('SELECT id FROM empresas WHERE id_usuario = $1 LIMIT 1', [resolvedId]);
+            if (empRes.rows.length > 0) {
+              await query(`
+                UPDATE empresas 
+                SET nombre_clinica = $1, tipo_centro = $2, region_alemania = $3, ciudad = $4, telefono = $5
+                WHERE id_usuario = $6
+              `, [
+                data.empresa_data.nombre_clinica || 'Sin Nombre',
+                data.empresa_data.tipo_centro || null,
+                data.empresa_data.region_alemania || null,
+                data.empresa_data.ciudad || null,
+                data.empresa_data.telefono || null,
+                resolvedId
+              ]);
+            } else {
+              await query(`
+                INSERT INTO empresas (id_usuario, nombre_clinica, tipo_centro, region_alemania, ciudad, telefono, contacto_nombre, correo_contacto)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+              `, [
+                resolvedId,
+                data.empresa_data.nombre_clinica || 'Sin Nombre',
+                data.empresa_data.tipo_centro || null,
+                data.empresa_data.region_alemania || null,
+                data.empresa_data.ciudad || null,
+                data.empresa_data.telefono || null,
+                data.empresa_data.contacto_nombre || null,
+                data.empresa_data.correo_contacto || null
+              ]);
+            }
+          }
+          
+          if (data.socio_data) {
+            const socRes = await query('SELECT id FROM socios WHERE id_usuario = $1 LIMIT 1', [resolvedId]);
+            if (socRes.rows.length > 0) {
+              await query(`
+                UPDATE socios
+                SET nombre_agencia = $1, pais_operacion = $2, telefono = $3, porcentaje_comision = $4
+                WHERE id_usuario = $5
+              `, [
+                data.socio_data.nombre_agencia || 'Sin Nombre',
+                data.socio_data.pais_operacion || null,
+                data.socio_data.telefono || null,
+                data.socio_data.porcentaje_comision || 10,
+                resolvedId
+              ]);
+            } else {
+              await query(`
+                INSERT INTO socios (id_usuario, nombre_agencia, pais_operacion, telefono, porcentaje_comision, contacto_nombre, correo_contacto)
+                VALUES ($1, $2, $3, $4, $5, $6, $7)
+              `, [
+                resolvedId,
+                data.socio_data.nombre_agencia || 'Sin Nombre',
+                data.socio_data.pais_operacion || null,
+                data.socio_data.telefono || null,
+                data.socio_data.porcentaje_comision || 10,
+                data.socio_data.contacto_nombre || null,
+                data.socio_data.correo_contacto || null
+              ]);
+            }
+          }
+          
+          if (updatedUser) return updatedUser;
         }
-        
-        return updatedUser;
       } catch (err) {
         console.error('⚠️ Error actualizando en PostgreSQL updateUsuarioAsync:', err.message);
         throw err;
@@ -471,7 +516,7 @@ const DB = {
     }
     // Fallback in-memory
     const db = this.get();
-    const idx = db.usuarios.findIndex(u => u.id === id);
+    const idx = db.usuarios.findIndex(u => u.id === id || (resolvedId && u.id === resolvedId) || (data && data.correo && u.correo === data.correo));
     if (idx !== -1) {
       db.usuarios[idx] = { ...db.usuarios[idx], ...data };
       this.save(db);
@@ -488,9 +533,10 @@ const DB = {
   },
 
   async deleteUsuarioAsync(id) {
-    if (isPostgresConfigured()) {
+    const resolvedId = resolveUserId(id);
+    if (isPostgresConfigured() && resolvedId) {
       try {
-        await query('DELETE FROM usuarios WHERE id = $1;', [id]);
+        await query('DELETE FROM usuarios WHERE id = $1;', [resolvedId]);
         return true;
       } catch (err) {
         console.error('⚠️ Error borrando en PostgreSQL deleteUsuarioAsync:', err.message);
@@ -499,7 +545,7 @@ const DB = {
     }
     // Fallback in-memory
     const db = this.get();
-    db.usuarios = db.usuarios.filter(u => u.id !== id);
+    db.usuarios = db.usuarios.filter(u => u.id !== id && (!resolvedId || u.id !== resolvedId));
     this.save(db);
     return true;
   },
@@ -550,7 +596,7 @@ const DB = {
   getCandidatos() { return this.get().candidatos; },
 
   async getCandidatoByIdAsync(id) {
-    if (isPostgresConfigured()) {
+    if (isPostgresConfigured() && id && IS_UUID_REGEX.test(id)) {
       try {
         const res = await query('SELECT * FROM candidatos WHERE id = $1 LIMIT 1;', [id]);
         if (res.rows.length > 0) return res.rows[0];
@@ -578,7 +624,7 @@ const DB = {
   getCandidatosByEstado(estado) { return this.get().candidatos.filter(c => c.estado_proceso === estado); },
 
   async getCandidatosBySocioAsync(id_socio) {
-    if (isPostgresConfigured()) {
+    if (isPostgresConfigured() && id_socio && IS_UUID_REGEX.test(id_socio)) {
       try {
         const res = await query('SELECT * FROM candidatos WHERE id_socio = $1;', [id_socio]);
         return res.rows;
@@ -592,7 +638,7 @@ const DB = {
   getCandidatosBySocio(id_socio) { return this.get().candidatos.filter(c => c.id_socio === id_socio); },
 
   async updateCandidatoAsync(id, data) {
-    if (isPostgresConfigured()) {
+    if (isPostgresConfigured() && id && IS_UUID_REGEX.test(id)) {
       try {
         const res = await query(`
           UPDATE candidatos 
@@ -615,14 +661,15 @@ const DB = {
         `, [
           data.nombre, data.correo, data.telefono, data.pais, 
           data.especialidad, data.nivel_aleman, data.estado_proceso, 
-          data.id_asesor, data.id_socio, data.comentarios_asesor || data.notas_internas, 
+          data.id_asesor && IS_UUID_REGEX.test(data.id_asesor) ? data.id_asesor : null, 
+          data.id_socio && IS_UUID_REGEX.test(data.id_socio) ? data.id_socio : null, 
+          data.comentarios_asesor || data.notas_internas, 
           data.foto, data.edad, data.puntaje_elegibilidad, 
           data.respuestas_elegibilidad ? JSON.stringify(data.respuestas_elegibilidad) : null, id
         ]);
-        return res.rows[0];
+        if (res.rows.length > 0) return res.rows[0];
       } catch (err) {
-        console.error('⚠️ Error actualizando en PostgreSQL updateCandidatoAsync:', err.message);
-        throw err;
+        console.warn('⚠️ Error actualizando en PostgreSQL updateCandidatoAsync, aplicando fallback:', err.message);
       }
     }
     // Fallback in-memory

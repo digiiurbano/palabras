@@ -530,36 +530,6 @@
   </div>
 </div>
 
-<!-- Modal Edit Profile -->
-<div class="modal-overlay" id="modal-edit-profile">
-  <div class="modal">
-    <div class="modal-header">
-      <h3 class="modal-title">✏️ Editar Mi Perfil</h3>
-      <button class="modal-close" onclick="closeModal('modal-edit-profile')">✕</button>
-    </div>
-    <div class="modal-body">
-      <form id="edit-profile-form" style="display:flex;flex-direction:column;gap:16px;">
-        <input type="hidden" id="ep-id">
-        <div class="form-group">
-          <label class="form-label">Nombre completo</label>
-          <input class="form-input" id="ep-nombre" required>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Correo electrónico</label>
-          <input class="form-input" type="email" id="ep-correo" required>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Nueva Contraseña (Opcional)</label>
-          <input class="form-input" type="password" id="ep-pass" placeholder="Dejar en blanco para no cambiar">
-        </div>
-      </form>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-outline" onclick="closeModal('modal-edit-profile')">Cancelar</button>
-      <button class="btn btn-primary" onclick="saveProfile()">Guardar Perfil</button>
-    </div>
-  </div>
-</div>
 
 <!-- ══════════════════════════════════════════════════════════
      SCRIPTS
