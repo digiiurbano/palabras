@@ -2623,62 +2623,37 @@ function initKanban() {
 }
 
 function getCandidateAvatarIllustration(c) {
-  // Ilustración vectorial médica estándar idéntica a la plantilla de diseño solicitada
-  const svgMarkup = `
-    <svg viewBox="0 0 160 160" width="100%" height="100%" fill="none" xmlns="http://www.w3.org/2000/svg" style="border-radius:24px;">
-      <rect width="160" height="160" rx="24" fill="#F4F5F7"/>
-      <!-- Torso / Uniforme Médico -->
-      <path d="M24 160C24 128 50 114 80 114C110 114 136 128 136 160H24Z" fill="#FFFFFF"/>
-      <path d="M50 120L64 160H96L110 120" fill="#E2F5EE"/>
-      <!-- Cuello y Bata / Acentos -->
-      <path d="M62 118L72 138L80 144L88 138L98 118" fill="#F8E586"/>
-      <path d="M72 138L80 160L88 138" fill="#5EEAD4"/>
-      <path d="M68 96C68 112 92 112 92 96V86H68V96Z" fill="#F5C089"/>
-      
-      <!-- Cabeza / Rostro -->
-      <rect x="52" y="44" width="56" height="58" rx="28" fill="#F9C893"/>
-      <!-- Orejas -->
-      <circle cx="48" cy="72" r="7" fill="#F5C089"/>
-      <circle cx="112" cy="72" r="7" fill="#F5C089"/>
-      
-      <!-- Cabello Estilizado Castaño -->
-      <path d="M46 54C46 36 60 22 80 22C98 22 114 34 114 52C114 55 111 60 110 60C106 48 100 42 88 42C80 42 74 44 68 40C62 36 56 42 54 48C50 56 46 62 46 54Z" fill="#9A562B"/>
-      <path d="M50 48L62 32L78 38L92 28L106 36L112 48" stroke="#7A3D18" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-      
-      <!-- Cejas Expresivas -->
-      <path d="M58 60L70 64" stroke="#4A2612" stroke-width="2.5" stroke-linecap="round"/>
-      <path d="M90 64L102 60" stroke="#4A2612" stroke-width="2.5" stroke-linecap="round"/>
-      
-      <!-- Ojos -->
-      <circle cx="65" cy="71" r="3.5" fill="#281A12"/>
-      <circle cx="95" cy="71" r="3.5" fill="#281A12"/>
-      
-      <!-- Nariz -->
-      <path d="M80 73V79" stroke="#E39F63" stroke-width="2" stroke-linecap="round"/>
-      
-      <!-- Boca con Expresión -->
-      <path d="M72 85C74 89 86 89 88 85C88 88 86 92 80 92C74 92 72 88 72 85Z" fill="#751A18"/>
-      
-      <!-- Solapas Chaqueta Médica -->
-      <path d="M54 122L70 148H60L46 160" fill="#E5E7EB"/>
-      <path d="M106 122L90 148H100L114 160" fill="#E5E7EB"/>
-    </svg>
-  `;
+  const nombre = c ? (c.nombre || 'Candidato') : 'Candidato';
+  const initials = getInitials(nombre);
+  
+  // Paleta de gradientes elegantes según identidad JN Palabras
+  const avatarGradients = [
+    'linear-gradient(135deg, #7a1524 0%, #a81c33 100%)', // Vino institucional
+    'linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)', // Azul ultramar
+    'linear-gradient(135deg, #0f766e 0%, #0d9488 100%)', // Verde esmeralda
+    'linear-gradient(135deg, #854d0e 0%, #d97706 100%)', // Oro cálido
+    'linear-gradient(135deg, #4c1d95 0%, #7c3aed 100%)'  // Púrpura real
+  ];
+  let hash = 0;
+  for (let i = 0; i < nombre.length; i++) hash = (hash << 5) - hash + nombre.charCodeAt(i);
+  const bgGradient = avatarGradients[Math.abs(hash) % avatarGradients.length];
 
-  if (c && c.foto && (c.foto.startsWith('http') || c.foto.startsWith('data:') || c.foto.startsWith('/'))) {
+  const hasPhotoUrl = c && c.foto && (c.foto.startsWith('http') || c.foto.startsWith('data:') || c.foto.startsWith('/'));
+
+  if (hasPhotoUrl) {
     return `
-      <div class="candidate-avatar-wrap">
-        <img src="${c.foto}" alt="${c.nombre}" style="width:100%;height:100%;object-fit:cover;border-radius:24px;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-        <div style="display:none;width:100%;height:100%;">${svgMarkup}</div>
-        <span class="candidate-status-dot" title="En línea / Activo"></span>
+      <div class="candidate-avatar-wrap" style="background:#f1f5f9;border:3px solid #ffffff;box-shadow:0 8px 24px rgba(0,0,0,0.08);">
+        <img src="${c.foto}" alt="${c.nombre}" style="width:100%;height:100%;object-fit:cover;border-radius:24px;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+        <div style="display:none;width:100%;height:100%;border-radius:24px;background:${bgGradient};align-items:center;justify-content:center;color:#ffffff;font-size:2.2rem;font-weight:800;font-family:var(--font-heading);">${initials}</div>
+        <span class="candidate-status-dot" title="En línea / Activo en el programa"></span>
       </div>
     `;
   }
 
   return `
-    <div class="candidate-avatar-wrap">
-      ${svgMarkup}
-      <span class="candidate-status-dot" title="En línea / Activo"></span>
+    <div class="candidate-avatar-wrap" style="background:${bgGradient};border:3px solid #ffffff;box-shadow:0 8px 24px rgba(0,0,0,0.08);color:#ffffff;display:flex;align-items:center;justify-content:center;">
+      <span style="font-size:2.2rem;font-weight:800;letter-spacing:1px;font-family:var(--font-heading);">${initials}</span>
+      <span class="candidate-status-dot" title="En línea / Activo en el programa"></span>
     </div>
   `;
 }
@@ -2786,7 +2761,20 @@ function renderCandidateProfileHTML(c) {
             <div class="candidate-hero-info">
               <div class="candidate-hero-header-row">
                 <h2 class="candidate-hero-name">${displayName}</h2>
-                <div class="candidate-hero-role-badge">${roleBadge}</div>
+                <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end;">
+                  <button class="candidate-cv-pill-btn" onclick="openCandidateCVModal('${c.id}')" title="Ver Hoja de Vida / Curriculum Vitae">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                    <span>Ver Hoja de Vida</span>
+                  </button>
+                  <div class="candidate-hero-role-badge">${roleBadge}</div>
+                </div>
+              </div>
+              
+              <div style="margin-bottom: 10px;">
+                <span class="candidate-integrated-tag">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                  Candidato Integrado al Programa
+                </span>
               </div>
               
               <div class="candidate-hero-meta-row">
@@ -2860,7 +2848,7 @@ function renderCandidateProfileHTML(c) {
 
             <div class="candidate-docs-grid">
               <!-- Doc 1: Pasaporte -->
-              <div class="candidate-doc-item">
+              <div class="candidate-doc-item" onclick="openCandidateDossierModal('${c.id}', 'docs')" style="cursor:pointer;" title="Ver en expediente">
                 <div class="candidate-doc-left">
                   <div class="candidate-doc-icon-wrap">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
@@ -2873,7 +2861,7 @@ function renderCandidateProfileHTML(c) {
               </div>
 
               <!-- Doc 2: Diploma -->
-              <div class="candidate-doc-item">
+              <div class="candidate-doc-item" onclick="openCandidateDossierModal('${c.id}', 'docs')" style="cursor:pointer;" title="Ver en expediente">
                 <div class="candidate-doc-left">
                   <div class="candidate-doc-icon-wrap">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="7"></circle><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline></svg>
@@ -2886,7 +2874,7 @@ function renderCandidateProfileHTML(c) {
               </div>
 
               <!-- Doc 3: Certificado Alemán (Esperando Validación) -->
-              <div class="candidate-doc-item pending-validation">
+              <div class="candidate-doc-item pending-validation" onclick="openCandidateDossierModal('${c.id}', 'docs')" style="cursor:pointer;" title="Ver en expediente">
                 <div class="candidate-doc-left">
                   <div class="candidate-doc-icon-wrap">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><polyline points="9 12 11 14 15 10"></polyline></svg>
@@ -2923,17 +2911,17 @@ function renderCandidateProfileHTML(c) {
           <!-- Acciones Rápidas (Caja Vino Tinto Oscuro) -->
           <div class="candidate-actions-box">
             <div class="candidate-actions-title">ACCIONES RÁPIDAS</div>
-            <button class="candidate-action-btn-item" onclick="quickSendMessage('${c.id}')">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+            <button class="candidate-action-btn-item" onclick="openCandidateChatModal('${c.id}')">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
               <span>Enviar Mensaje</span>
             </button>
-            <button class="candidate-action-btn-item" onclick="quickScheduleInterview('${c.id}')">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>
+            <button class="candidate-action-btn-item" onclick="openScheduleInterviewModal('${c.id}')">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
               <span>Agendar Entrevista</span>
             </button>
-            <button class="candidate-action-btn-item" onclick="openCVForCandidate('${c.id}')">
+            <button class="candidate-action-btn-item" onclick="openCandidateDossierModal('${c.id}')">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
-              <span>Ver Expediente Full</span>
+              <span>Ver Expediente Completo</span>
             </button>
           </div>
 
@@ -2962,19 +2950,39 @@ function renderCandidateProfileHTML(c) {
 
           <!-- Notas Internas -->
           <div class="candidate-standard-card">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
-              <div class="candidate-card-header-wine" style="margin-bottom:0;">NOTAS INTERNAS</div>
-              <button class="btn btn-outline btn-xs" onclick="quickAddCandidateNote('${c.id}')" style="font-size:0.75rem;padding:4px 8px;border-radius:12px;font-weight:600;">+ Añadir Nota</button>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+              <div class="candidate-card-header-wine" style="margin-bottom:0;">NOTAS INTERNAS ${notas.length > 0 ? `(${notas.length})` : ''}</div>
+              <button class="btn btn-outline btn-xs" onclick="openAddCandidateNoteModal('${c.id}')" style="font-size:0.75rem;padding:5px 12px;border-radius:12px;font-weight:700;color:#801020;border-color:#801020;background:#ffffff;">+ Añadir Nota</button>
             </div>
-            <div class="candidate-notes-quote-box">
-              <p class="candidate-notes-quote-text">
-                "${quoteText}"
-              </p>
-              <div class="candidate-notes-quote-author">
-                <div class="candidate-notes-author-circle">${authorInitials}</div>
-                <div class="candidate-notes-author-name">${authorName}</div>
+            ${notas.length > 0 ? `
+              <div style="display:flex;flex-direction:column;gap:10px;max-height:260px;overflow-y:auto;padding-right:4px;">
+                ${notas.map(n => `
+                  <div class="candidate-notes-quote-box" style="padding:14px;margin:0;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                      <span style="font-size:0.7rem;font-weight:700;color:#801020;background:#fdf2f4;padding:2px 8px;border-radius:6px;">${n.tipo || 'Nota Interna'}</span>
+                      <span style="font-size:0.7rem;color:#94a3b8;">${n.fecha_hora || n.fecha || ''}</span>
+                    </div>
+                    <p class="candidate-notes-quote-text" style="margin-bottom:8px;font-size:0.85rem;color:#334155;">
+                      "${n.contenido}"
+                    </p>
+                    <div class="candidate-notes-quote-author">
+                      <div class="candidate-notes-author-circle">${getInitials(n.autor || 'JN')}</div>
+                      <div class="candidate-notes-author-name">${n.autor || 'Asesor'}</div>
+                    </div>
+                  </div>
+                `).join('')}
               </div>
-            </div>
+            ` : `
+              <div class="candidate-notes-quote-box">
+                <p class="candidate-notes-quote-text">
+                  "${quoteText}"
+                </p>
+                <div class="candidate-notes-quote-author">
+                  <div class="candidate-notes-author-circle">${authorInitials}</div>
+                  <div class="candidate-notes-author-name">${authorName}</div>
+                </div>
+              </div>
+            `}
           </div>
         </div>
       </div>
@@ -3045,38 +3053,83 @@ function openEditCandidateModal(id) {
   const c = DB.getCandidatoById(id);
   if (!c) return;
 
+  const resp = c.respuestas_elegibilidad || {};
+
   const modalHtml = `
     <div class="modal-overlay open" id="modal-edit-candidate-quick" role="dialog" aria-modal="true" style="z-index:9999;">
-      <div class="modal-card" style="max-width:580px;border-radius:20px;padding:28px;">
-        <div class="modal-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
-          <h3 style="font-family:var(--font-heading);color:var(--wine-800);font-size:1.25rem;margin:0;">Editar Perfil de Candidato</h3>
+      <div class="modal-card" style="max-width:760px;width:95%;border-radius:24px;padding:28px;max-height:90vh;overflow-y:auto;">
+        <div class="modal-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;padding:0 0 16px 0;border-bottom:1px solid #e2e8f0;">
+          <div>
+            <h3 style="font-family:var(--font-heading);color:var(--wine-800);font-size:1.35rem;margin:0;">Editar Perfil y Formulario de Aplicación</h3>
+            <p style="font-size:0.85rem;color:var(--slate-500);margin:4px 0 0 0;">Candidato Integrado al Programa: <strong style="color:var(--slate-800);">${c.nombre}</strong></p>
+          </div>
           <button class="modal-close" onclick="closeModal('modal-edit-candidate-quick')" style="background:none;border:none;font-size:1.3rem;cursor:pointer;">✕</button>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
+
+        <!-- SECCIÓN 1: DATOS PERSONALES Y CONTACTO -->
+        <div style="font-size:0.85rem;font-weight:800;letter-spacing:1px;color:#801020;text-transform:uppercase;margin-bottom:14px;border-bottom:1.5px solid #fdf2f4;padding-bottom:6px;">
+          1. Datos Personales y Contacto
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:24px;">
           <div style="grid-column:span 2;">
-            <label class="form-label" style="font-size:0.8rem;font-weight:700;color:var(--slate-600);">Nombre Completo</label>
+            <label class="form-label" style="font-size:0.8rem;font-weight:700;color:var(--slate-700);">Nombre Completo</label>
             <input class="form-input" id="edit-cand-nombre" value="${c.nombre || ''}">
           </div>
           <div>
-            <label class="form-label" style="font-size:0.8rem;font-weight:700;color:var(--slate-600);">Especialidad / Título</label>
-            <input class="form-input" id="edit-cand-esp" value="${c.especialidad || 'Enfermero Profesional'}">
+            <label class="form-label" style="font-size:0.8rem;font-weight:700;color:var(--slate-700);">Correo Electrónico</label>
+            <input class="form-input" id="edit-cand-email" value="${c.correo || ''}">
           </div>
           <div>
-            <label class="form-label" style="font-size:0.8rem;font-weight:700;color:var(--slate-600);">Subespecialidad / Área</label>
+            <label class="form-label" style="font-size:0.8rem;font-weight:700;color:var(--slate-700);">Teléfono / WhatsApp</label>
+            <input class="form-input" id="edit-cand-tel" value="${c.telefono || ''}">
+          </div>
+          <div>
+            <label class="form-label" style="font-size:0.8rem;font-weight:700;color:var(--slate-700);">Ciudad</label>
+            <input class="form-input" id="edit-cand-ciudad" value="${c.ciudad || 'Medellín'}">
+          </div>
+          <div>
+            <label class="form-label" style="font-size:0.8rem;font-weight:700;color:var(--slate-700);">País</label>
+            <input class="form-input" id="edit-cand-pais" value="${c.pais || 'Colombia'}">
+          </div>
+          <div>
+            <label class="form-label" style="font-size:0.8rem;font-weight:700;color:var(--slate-700);">Edad (Años)</label>
+            <input class="form-input" id="edit-cand-edad" type="number" value="${c.edad || '32'}">
+          </div>
+          <div>
+            <label class="form-label" style="font-size:0.8rem;font-weight:700;color:var(--slate-700);">Estado Civil / Situación</label>
+            <input class="form-input" id="edit-cand-marital" value="${resp.marital || 'Soltero/a'}">
+          </div>
+        </div>
+
+        <!-- SECCIÓN 2: PERFIL PROFESIONAL Y FASE DEL PROCESO -->
+        <div style="font-size:0.85rem;font-weight:800;letter-spacing:1px;color:#801020;text-transform:uppercase;margin-bottom:14px;border-bottom:1.5px solid #fdf2f4;padding-bottom:6px;">
+          2. Perfil Médico y Estado en el Programa
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:24px;">
+          <div>
+            <label class="form-label" style="font-size:0.8rem;font-weight:700;color:var(--slate-700);">Especialidad / Título</label>
+            <input class="form-input" id="edit-cand-esp" value="${c.especialidad && !c.especialidad.includes('Ver Test') ? c.especialidad : 'Enfermero Profesional'}">
+          </div>
+          <div>
+            <label class="form-label" style="font-size:0.8rem;font-weight:700;color:var(--slate-700);">Subespecialidad / Área</label>
             <input class="form-input" id="edit-cand-subesp" value="${c.subespecialidad || 'Cuidados Intensivos'}">
           </div>
           <div>
-            <label class="form-label" style="font-size:0.8rem;font-weight:700;color:var(--slate-600);">Nivel de Alemán</label>
+            <label class="form-label" style="font-size:0.8rem;font-weight:700;color:var(--slate-700);">Nivel de Alemán</label>
             <select class="form-select" id="edit-cand-aleman">
               <option value="A1" ${c.nivel_aleman==='A1'?'selected':''}>A1 (Principiante)</option>
               <option value="A2" ${c.nivel_aleman==='A2'?'selected':''}>A2 (Básico)</option>
               <option value="B1" ${c.nivel_aleman==='B1'?'selected':''}>B1 (Intermedio)</option>
-              <option value="B2" ${c.nivel_aleman==='B2'||!c.nivel_aleman?'selected':''}>B2 (Requerido)</option>
-              <option value="C1" ${c.nivel_aleman==='C1'?'selected':''}>C1 (Avanzado)</option>
+              <option value="B2" ${c.nivel_aleman==='B2'||!c.nivel_aleman||c.nivel_aleman.includes('Ver Test')?'selected':''}>B2 (Requerido para Homologación)</option>
+              <option value="C1" ${c.nivel_aleman==='C1'?'selected':''}>C1 (Avanzado / Médicos)</option>
             </select>
           </div>
           <div>
-            <label class="form-label" style="font-size:0.8rem;font-weight:700;color:var(--slate-600);">Fase del Proceso</label>
+            <label class="form-label" style="font-size:0.8rem;font-weight:700;color:var(--slate-700);">Años de Experiencia Clínica</label>
+            <input class="form-input" id="edit-cand-exp-years" type="number" value="${c.anos_exp !== undefined ? c.anos_exp : '4'}">
+          </div>
+          <div>
+            <label class="form-label" style="font-size:0.8rem;font-weight:700;color:var(--slate-700);">Fase del Proceso (Pipeline)</label>
             <select class="form-select" id="edit-cand-fase">
               <option value="Lead Nuevo" ${c.estado_proceso==='Lead Nuevo'?'selected':''}>01. Lead Nuevo</option>
               <option value="1er Contacto / Reclutamiento" ${c.estado_proceso==='1er Contacto / Reclutamiento'?'selected':''}>02. 1er Contacto</option>
@@ -3089,25 +3142,49 @@ function openEditCandidateModal(id) {
             </select>
           </div>
           <div>
-            <label class="form-label" style="font-size:0.8rem;font-weight:700;color:var(--slate-600);">Ciudad</label>
-            <input class="form-input" id="edit-cand-ciudad" value="${c.ciudad || 'Medellín'}">
-          </div>
-          <div>
-            <label class="form-label" style="font-size:0.8rem;font-weight:700;color:var(--slate-600);">País</label>
-            <input class="form-input" id="edit-cand-pais" value="${c.pais || 'Colombia'}">
-          </div>
-          <div style="grid-column:span 2;">
-            <label class="form-label" style="font-size:0.8rem;font-weight:700;color:var(--slate-600);">Correo Electrónico</label>
-            <input class="form-input" id="edit-cand-email" value="${c.correo || ''}">
-          </div>
-          <div style="grid-column:span 2;">
-            <label class="form-label" style="font-size:0.8rem;font-weight:700;color:var(--slate-600);">Teléfono / WhatsApp</label>
-            <input class="form-input" id="edit-cand-tel" value="${c.telefono || ''}">
+            <label class="form-label" style="font-size:0.8rem;font-weight:700;color:var(--slate-700);">Estado de Homologación</label>
+            <select class="form-select" id="edit-cand-homolog">
+              <option value="Pendiente" ${c.estado_homologacion==='Pendiente'||!c.estado_homologacion?'selected':''}>Pendiente</option>
+              <option value="En Trámite" ${c.estado_homologacion==='En Trámite'||c.estado_homologacion==='En Proceso'?'selected':''}>En Trámite</option>
+              <option value="Aprobado" ${c.estado_homologacion==='Aprobado'?'selected':''}>Aprobado Definitivo</option>
+            </select>
           </div>
         </div>
-        <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:20px;">
+
+        <!-- SECCIÓN 3: FORMULARIO DE APLICACIÓN INICIAL (ELEGIBILIDAD) -->
+        <div style="font-size:0.85rem;font-weight:800;letter-spacing:1px;color:#801020;text-transform:uppercase;margin-bottom:14px;border-bottom:1.5px solid #fdf2f4;padding-bottom:6px;">
+          3. Información del Formulario de Aplicación (Elegibilidad)
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;background:#f8fafc;padding:18px;border-radius:16px;border:1px solid #e2e8f0;">
+          <div>
+            <label class="form-label" style="font-size:0.8rem;font-weight:700;color:var(--slate-700);">¿Tiene título o carrera?</label>
+            <input class="form-input" id="edit-app-degree" value="${resp.degree_check || 'Sí, tengo título o carrera'}">
+          </div>
+          <div>
+            <label class="form-label" style="font-size:0.8rem;font-weight:700;color:var(--slate-700);">Sector Declarado</label>
+            <input class="form-input" id="edit-app-sector" value="${resp.sector || 'Salud / Medicina'}">
+          </div>
+          <div>
+            <label class="form-label" style="font-size:0.8rem;font-weight:700;color:var(--slate-700);">Profesión en Aplicación</label>
+            <input class="form-input" id="edit-app-profession" value="${resp.profession || 'Enfermero/a Profesional'}">
+          </div>
+          <div>
+            <label class="form-label" style="font-size:0.8rem;font-weight:700;color:var(--slate-700);">Nivel Educativo Máximo</label>
+            <input class="form-input" id="edit-app-edu-level" value="${resp.education_level || 'Licenciatura'}">
+          </div>
+          <div>
+            <label class="form-label" style="font-size:0.8rem;font-weight:700;color:var(--slate-700);">Rango de Experiencia</label>
+            <input class="form-input" id="edit-app-experience" value="${resp.experience || '4 Años o más'}">
+          </div>
+          <div>
+            <label class="form-label" style="font-size:0.8rem;font-weight:700;color:var(--slate-700);">Puntaje de Elegibilidad (0-30)</label>
+            <input class="form-input" id="edit-app-score" type="number" value="${c.puntaje_elegibilidad !== undefined ? c.puntaje_elegibilidad : '26'}">
+          </div>
+        </div>
+
+        <div style="display:flex;justify-content:flex-end;gap:12px;margin-top:24px;border-top:1px solid #e2e8f0;padding-top:16px;">
           <button class="btn btn-outline" onclick="closeModal('modal-edit-candidate-quick')">Cancelar</button>
-          <button class="btn btn-primary" onclick="saveCandidateProfileEdit('${c.id}')" style="background:#801020;border-color:#801020;">Guardar Cambios</button>
+          <button class="btn btn-primary" onclick="saveCandidateProfileEdit('${c.id}')" style="background:#801020;border-color:#801020;padding:10px 24px;border-radius:12px;font-weight:700;">Guardar Cambios</button>
         </div>
       </div>
     </div>
@@ -3121,30 +3198,58 @@ function openEditCandidateModal(id) {
 
 function saveCandidateProfileEdit(id) {
   const nombre = $('edit-cand-nombre')?.value?.trim();
+  const correo = $('edit-cand-email')?.value?.trim();
+  const telefono = $('edit-cand-tel')?.value?.trim();
+  const ciudad = $('edit-cand-ciudad')?.value?.trim();
+  const pais = $('edit-cand-pais')?.value?.trim();
+  const edad = $('edit-cand-edad')?.value?.trim();
+  const marital = $('edit-cand-marital')?.value?.trim();
+
   const especialidad = $('edit-cand-esp')?.value?.trim();
   const subespecialidad = $('edit-cand-subesp')?.value?.trim();
   const nivel_aleman = $('edit-cand-aleman')?.value;
+  const anos_exp = parseInt($('edit-cand-exp-years')?.value) || 0;
   const estado_proceso = $('edit-cand-fase')?.value;
-  const ciudad = $('edit-cand-ciudad')?.value?.trim();
-  const pais = $('edit-cand-pais')?.value?.trim();
-  const correo = $('edit-cand-email')?.value?.trim();
-  const telefono = $('edit-cand-tel')?.value?.trim();
+  const estado_homologacion = $('edit-cand-homolog')?.value;
+
+  const degree_check = $('edit-app-degree')?.value?.trim();
+  const sector = $('edit-app-sector')?.value?.trim();
+  const profession = $('edit-app-profession')?.value?.trim();
+  const education_level = $('edit-app-edu-level')?.value?.trim();
+  const experience = $('edit-app-experience')?.value?.trim();
+  const puntaje_elegibilidad = parseInt($('edit-app-score')?.value) || 25;
 
   if (!nombre) {
     showToast('Error', 'El nombre es obligatorio', 'error');
     return;
   }
 
+  const c = DB.getCandidatoById(id);
+  const updatedRespuestas = {
+    ...(c?.respuestas_elegibilidad || {}),
+    degree_check,
+    sector,
+    profession,
+    education_level,
+    experience,
+    marital
+  };
+
   DB.updateCandidato(id, {
     nombre,
+    correo,
+    telefono,
+    ciudad,
+    pais,
+    edad,
     especialidad,
     subespecialidad,
     nivel_aleman,
+    anos_exp,
     estado_proceso,
-    ciudad,
-    pais,
-    correo,
-    telefono
+    estado_homologacion,
+    puntaje_elegibilidad,
+    respuestas_elegibilidad: updatedRespuestas
   }).then(() => {
     showToast('Éxito', 'Perfil del candidato actualizado con éxito', 'success');
     closeModal('modal-edit-candidate-quick');
@@ -3156,72 +3261,516 @@ function saveCandidateProfileEdit(id) {
   });
 }
 
-function quickSendMessage(id) {
+/* ── MODAL CUADRO PARA AÑADIR NOTA INTERNA ── */
+function openAddCandidateNoteModal(id) {
   const c = DB.getCandidatoById(id);
-  const msg = prompt(`Escribe el mensaje directo para ${c ? c.nombre : 'el candidato'}:`);
-  if (!msg) return;
+  if (!c) return;
 
+  const modalHtml = `
+    <div class="modal-overlay open" id="modal-add-candidate-note-dialog" role="dialog" aria-modal="true" style="z-index:9999;">
+      <div class="modal-card" style="max-width:520px;border-radius:24px;padding:28px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
+          <div>
+            <h3 style="font-family:var(--font-heading);color:var(--wine-800);font-size:1.3rem;margin:0;">Añadir Nota Interna</h3>
+            <p style="font-size:0.875rem;color:var(--slate-500);margin:4px 0 0 0;">Candidato: <strong style="color:var(--slate-800);">${c.nombre}</strong></p>
+          </div>
+          <button onclick="closeModal('modal-add-candidate-note-dialog')" style="background:none;border:none;font-size:1.3rem;cursor:pointer;color:var(--slate-400);">✕</button>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          <div>
+            <label class="form-label" style="font-size:0.8rem;font-weight:700;color:var(--slate-700);">Tipo de Nota / Categoría</label>
+            <select class="form-select" id="new-note-cat" style="width:100%;">
+              <option value="Nota de Seguimiento">📝 Nota de Seguimiento General</option>
+              <option value="Revisión de Documento">📋 Revisión de Documentos / Homologación</option>
+              <option value="Avance de Idioma">🗣️ Avance de Idioma Alemán</option>
+              <option value="Llamada Telefónica">📞 Llamada Telefónica con Asesor</option>
+              <option value="Trámite de Visa">🛂 Trámite de Visa / Vuelo</option>
+            </select>
+          </div>
+          <div>
+            <label class="form-label" style="font-size:0.8rem;font-weight:700;color:var(--slate-700);">Contenido de la Nota</label>
+            <textarea class="form-input" id="new-note-body" rows="4" placeholder="Escribe aquí las observaciones, acuerdos o seguimiento del candidato..." style="width:100%;resize:vertical;font-size:0.9rem;border-radius:12px;padding:12px;"></textarea>
+          </div>
+        </div>
+
+        <div style="display:flex;justify-content:flex-end;gap:12px;margin-top:22px;">
+          <button class="btn btn-outline" onclick="closeModal('modal-add-candidate-note-dialog')">Cancelar</button>
+          <button class="btn btn-primary" onclick="saveCandidateNoteFromModal('${c.id}')" style="background:#801020;border-color:#801020;padding:10px 20px;border-radius:12px;">Guardar Nota</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  let existing = $('modal-add-candidate-note-dialog');
+  if (existing) existing.remove();
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+  setTimeout(() => {
+    $('new-note-body')?.focus();
+  }, 100);
+}
+
+function saveCandidateNoteFromModal(id) {
+  const cat = $('new-note-cat')?.value || 'Nota Interna';
+  const texto = $('new-note-body')?.value?.trim();
+
+  if (!texto) {
+    showToast('Aviso', 'Por favor ingresa el texto de la nota.', 'warning');
+    return;
+  }
+
+  const autor = State.currentUser ? State.currentUser.nombre : 'Asesor JN Palabras';
   if (DB.addNota) {
     DB.addNota(id, {
-      tipo: 'Email',
-      contenido: `Mensaje enviado al candidato: "${msg}"`,
-      autor: State.currentUser ? State.currentUser.nombre : 'Asesor JN Palabras',
+      tipo: cat,
+      contenido: texto,
+      autor: autor,
       fecha: new Date().toISOString()
     });
   }
 
-  showToast('Mensaje Enviado', `Se envió la notificación a ${c ? c.nombre : 'el candidato'}.`, 'success');
+  showToast('Nota Guardada', 'La nota interna fue registrada correctamente.', 'success');
+  closeModal('modal-add-candidate-note-dialog');
+  const el = $('modal-add-candidate-note-dialog');
+  if (el) el.remove();
+  renderDashboard(State.activeRole, 'candidato-perfil');
+}
+
+function quickAddCandidateNote(id) {
+  openAddCandidateNoteModal(id);
+}
+
+/* ── MODAL CHAT CON EL CANDIDATO ── */
+function openCandidateChatModal(id) {
+  const c = DB.getCandidatoById(id);
+  if (!c) return;
+
+  const currentUserName = State.currentUser ? State.currentUser.nombre : 'Asesor JN Palabras';
+  const initials = getInitials(c.nombre);
+
+  const modalHtml = `
+    <div class="modal-overlay open" id="modal-chat-candidate-dialog" role="dialog" aria-modal="true" style="z-index:9999;">
+      <div class="modal-card" style="max-width:580px;border-radius:24px;padding:0;overflow:hidden;display:flex;flex-direction:column;height:620px;">
+        <!-- Header Chat -->
+        <div style="background:#801020;color:#ffffff;padding:18px 24px;display:flex;align-items:center;justify-content:space-between;">
+          <div style="display:flex;align-items:center;gap:14px;">
+            <div style="width:42px;height:42px;border-radius:50%;background:#ffffff;color:#801020;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.1rem;">
+              ${initials}
+            </div>
+            <div>
+              <div style="font-weight:700;font-size:1.05rem;line-height:1.2;">${c.nombre}</div>
+              <div style="font-size:0.75rem;opacity:0.9;display:flex;align-items:center;gap:6px;margin-top:2px;">
+                <span style="width:8px;height:8px;background:#10b981;border-radius:50%;display:inline-block;"></span>
+                Canal Directo Asesoría · WhatsApp & Portal
+              </div>
+            </div>
+          </div>
+          <button onclick="closeModal('modal-chat-candidate-dialog')" style="background:none;border:none;color:#ffffff;font-size:1.4rem;cursor:pointer;">✕</button>
+        </div>
+
+        <!-- Chat Stream -->
+        <div class="candidate-chat-body" id="chat-messages-stream" style="flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:14px;">
+          <!-- Mensaje del sistema -->
+          <div style="text-align:center;margin:4px 0;">
+            <span style="background:#e2e8f0;color:#64748b;font-size:0.72rem;font-weight:600;padding:4px 12px;border-radius:12px;">Candidato integrado al programa · Canal Seguro</span>
+          </div>
+
+          <!-- Mensaje del candidato -->
+          <div class="chat-msg-bubble candidate">
+            <div>Hola, quedo atento a cualquier indicación para el avance de mis documentos y la preparación de mi examen de alemán. ¡Muchas gracias!</div>
+            <div class="chat-msg-time">Ayer 10:24 AM</div>
+          </div>
+
+          <!-- Mensaje del asesor -->
+          <div class="chat-msg-bubble advisor">
+            <div>¡Hola ${c.nombre.split(' ')[0]}! Estamos revisando tu expediente de ${c.especialidad && !c.especialidad.includes('Ver Test') ? c.especialidad : 'salud'}. Mantén tu preparación al día.</div>
+            <div class="chat-msg-time" style="color:rgba(255,255,255,0.8);">Hoy 09:15 AM · Por ${currentUserName}</div>
+          </div>
+        </div>
+
+        <!-- Quick chips -->
+        <div style="padding:8px 16px;background:#f1f5f9;display:flex;gap:8px;overflow-x:auto;">
+          <button type="button" class="btn btn-xs btn-outline" style="border-radius:12px;font-size:0.75rem;white-space:nowrap;" onclick="insertQuickChatMsg('Recordatorio: Por favor sube tu certificado B2 actualizado.')">📌 Recordar B2</button>
+          <button type="button" class="btn btn-xs btn-outline" style="border-radius:12px;font-size:0.75rem;white-space:nowrap;" onclick="insertQuickChatMsg('Tu entrevista ha sido agendada con éxito.')">📅 Confirmar entrevista</button>
+          <button type="button" class="btn btn-xs btn-outline" style="border-radius:12px;font-size:0.75rem;white-space:nowrap;" onclick="insertQuickChatMsg('Requerimos la copia apostillada de tu diploma universitario.')">📋 Pedir apostille</button>
+        </div>
+
+        <!-- Input Bar -->
+        <div style="padding:16px;background:#ffffff;border-top:1px solid #e2e8f0;display:flex;gap:10px;align-items:center;">
+          <input type="text" id="chat-input-text" placeholder="Escribe un mensaje para ${c.nombre}..." class="form-input" style="flex:1;border-radius:12px;font-size:0.9rem;" onkeydown="if(event.key==='Enter') sendCandidateChatMessage('${c.id}')">
+          <button class="btn btn-primary" onclick="sendCandidateChatMessage('${c.id}')" style="background:#801020;border-color:#801020;border-radius:12px;padding:10px 18px;display:flex;align-items:center;gap:6px;">
+            <span>Enviar</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  let existing = $('modal-chat-candidate-dialog');
+  if (existing) existing.remove();
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+  setTimeout(() => {
+    $('chat-input-text')?.focus();
+    const stream = $('chat-messages-stream');
+    if (stream) stream.scrollTop = stream.scrollHeight;
+  }, 100);
+}
+
+function insertQuickChatMsg(text) {
+  const inp = $('chat-input-text');
+  if (inp) {
+    inp.value = text;
+    inp.focus();
+  }
+}
+
+function sendCandidateChatMessage(id) {
+  const inp = $('chat-input-text');
+  const txt = inp?.value?.trim();
+  if (!txt) return;
+
+  const stream = $('chat-messages-stream');
+  const now = new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+  const currentUserName = State.currentUser ? State.currentUser.nombre : 'Asesor JN Palabras';
+
+  if (stream) {
+    const bubble = document.createElement('div');
+    bubble.className = 'chat-msg-bubble advisor';
+    bubble.innerHTML = `
+      <div>${txt}</div>
+      <div class="chat-msg-time" style="color:rgba(255,255,255,0.8);">${now} · Por ${currentUserName}</div>
+    `;
+    stream.appendChild(bubble);
+    stream.scrollTop = stream.scrollHeight;
+  }
+
+  if (DB.addNota) {
+    DB.addNota(id, {
+      tipo: 'Mensaje Chat',
+      contenido: `Mensaje directo enviado: "${txt}"`,
+      autor: currentUserName,
+      fecha: new Date().toISOString()
+    });
+  }
+
+  inp.value = '';
+  showToast('Mensaje Enviado', 'Mensaje entregado al candidato.', 'success');
+}
+
+function quickSendMessage(id) {
+  openCandidateChatModal(id);
+}
+
+/* ── MODAL AGENDAR ENTREVISTA ── */
+function openScheduleInterviewModal(id) {
+  const c = DB.getCandidatoById(id);
+  if (!c) return;
+
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  tomorrow.setHours(10, 0, 0, 0);
+  const defaultDateTime = tomorrow.toISOString().slice(0, 16);
+
+  const modalHtml = `
+    <div class="modal-overlay open" id="modal-schedule-interview-dialog" role="dialog" aria-modal="true" style="z-index:9999;">
+      <div class="modal-card" style="max-width:560px;border-radius:24px;padding:28px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
+          <div>
+            <h3 style="font-family:var(--font-heading);color:var(--wine-800);font-size:1.3rem;margin:0;">Agendar Entrevista</h3>
+            <p style="font-size:0.875rem;color:var(--slate-500);margin:4px 0 0 0;">Candidato: <strong style="color:var(--slate-800);">${c.nombre}</strong></p>
+          </div>
+          <button onclick="closeModal('modal-schedule-interview-dialog')" style="background:none;border:none;font-size:1.3rem;cursor:pointer;color:var(--slate-400);">✕</button>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+          <div style="grid-column:span 2;">
+            <label class="form-label" style="font-size:0.8rem;font-weight:700;color:var(--slate-700);">Tipo de Entrevista / Sesión</label>
+            <select class="form-select" id="sched-type" style="width:100%;">
+              <option value="Diagnóstico Inicial y Reclutamiento">🩺 Diagnóstico Inicial y Reclutamiento</option>
+              <option value="Evaluación de Alemán B1/B2">🗣️ Evaluación de Nivel de Alemán B1/B2</option>
+              <option value="Entrevista con Clínica en Alemania">🏥 Entrevista con Clínica / Hospital en Alemania</option>
+              <option value="Simulación de Examen FSP/KP">📋 Simulación FSP (Fachsprachenprüfung)</option>
+              <option value="Acompañamiento de Visado">🛂 Sesión de Visado y Plan de Viaje</option>
+            </select>
+          </div>
+
+          <div style="grid-column:span 2;">
+            <label class="form-label" style="font-size:0.8rem;font-weight:700;color:var(--slate-700);">Fecha y Hora</label>
+            <input type="datetime-local" class="form-input" id="sched-datetime" value="${defaultDateTime}" style="width:100%;">
+          </div>
+
+          <div>
+            <label class="form-label" style="font-size:0.8rem;font-weight:700;color:var(--slate-700);">Modalidad</label>
+            <select class="form-select" id="sched-mode" style="width:100%;">
+              <option value="Google Meet">💻 Google Meet (Videollamada)</option>
+              <option value="Llamada Telefónica">📞 Llamada Telefónica</option>
+              <option value="Presencial">🏢 Presencial Oficina</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="form-label" style="font-size:0.8rem;font-weight:700;color:var(--slate-700);">Enlace de Reunión</label>
+            <input type="text" class="form-input" id="sched-link" value="https://meet.google.com/jnp-interview" style="width:100%;">
+          </div>
+
+          <div style="grid-column:span 2;">
+            <label class="form-label" style="font-size:0.8rem;font-weight:700;color:var(--slate-700);">Notas Preparatorias u Objetivos</label>
+            <textarea class="form-input" id="sched-notes" rows="3" placeholder="Ej: Revisar certificación de título y evaluar soltura en diálogo médico..." style="width:100%;resize:vertical;font-size:0.9rem;border-radius:12px;padding:10px;"></textarea>
+          </div>
+        </div>
+
+        <div style="display:flex;justify-content:flex-end;gap:12px;margin-top:22px;">
+          <button class="btn btn-outline" onclick="closeModal('modal-schedule-interview-dialog')">Cancelar</button>
+          <button class="btn btn-primary" onclick="saveScheduledInterview('${c.id}')" style="background:#801020;border-color:#801020;padding:10px 22px;border-radius:12px;">Confirmar y Agendar</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  let existing = $('modal-schedule-interview-dialog');
+  if (existing) existing.remove();
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
+
+function saveScheduledInterview(id) {
+  const type = $('sched-type')?.value || 'Entrevista';
+  const datetime = $('sched-datetime')?.value;
+  const mode = $('sched-mode')?.value;
+  const notes = $('sched-notes')?.value?.trim();
+
+  if (!datetime) {
+    showToast('Aviso', 'Por favor selecciona la fecha y hora.', 'warning');
+    return;
+  }
+
+  const autor = State.currentUser ? State.currentUser.nombre : 'Asesor JN Palabras';
+  const fechaFmt = new Date(datetime).toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' });
+
+  if (DB.addNota) {
+    DB.addNota(id, {
+      tipo: 'Entrevista',
+      contenido: `Entrevista agendada: ${type} para el ${fechaFmt} (${mode}). ${notes ? 'Notas: ' + notes : ''}`,
+      autor: autor,
+      fecha: new Date().toISOString()
+    });
+  }
+
+  showToast('Entrevista Agendada', `Reunión agendada para el ${fechaFmt}`, 'success');
+  closeModal('modal-schedule-interview-dialog');
+  const el = $('modal-schedule-interview-dialog');
+  if (el) el.remove();
   renderDashboard(State.activeRole, 'candidato-perfil');
 }
 
 function quickScheduleInterview(id) {
+  openScheduleInterviewModal(id);
+}
+
+/* ── MODAL EXPEDIENTE COMPLETO & HOJA DE VIDA ── */
+function openCandidateCVModal(id) {
+  openCandidateDossierModal(id, 'cv');
+}
+
+function openCandidateDossierModal(id, initialTab = 'cv') {
   const c = DB.getCandidatoById(id);
-  const fecha = prompt(`Fecha y hora de la entrevista para ${c ? c.nombre : 'el candidato'} (Ej: 2026-10-05 14:00):`, '2026-10-05 14:00');
-  if (!fecha) return;
+  if (!c) return;
 
-  if (DB.addNota) {
-    DB.addNota(id, {
-      tipo: 'Hito',
-      contenido: `Entrevista agendada para: ${fecha}`,
-      autor: State.currentUser ? State.currentUser.nombre : 'Asesor JN Palabras',
-      fecha: new Date().toISOString()
-    });
+  const especialidad = c.especialidad && !c.especialidad.includes('Ver Test') ? c.especialidad : 'Enfermero Profesional';
+  const subesp = c.subespecialidad || 'Cuidados Intensivos';
+  const nivelAleman = c.nivel_aleman && !c.nivel_aleman.includes('Ver Test') ? c.nivel_aleman : 'B2';
+  const ciudad = c.ciudad || 'Medellín';
+  const pais = c.pais || 'Colombia';
+  const respuestas = c.respuestas_elegibilidad || {};
+  const initials = getInitials(c.nombre);
+
+  const modalHtml = `
+    <div class="modal-overlay open" id="modal-candidate-dossier-dialog" role="dialog" aria-modal="true" style="z-index:9999;">
+      <div class="modal-card" style="max-width:860px;width:95%;border-radius:24px;padding:0;overflow:hidden;max-height:90vh;display:flex;flex-direction:column;">
+        <!-- Header -->
+        <div style="background:#801020;color:#ffffff;padding:20px 28px;display:flex;align-items:center;justify-content:space-between;">
+          <div style="display:flex;align-items:center;gap:16px;">
+            <div style="width:48px;height:48px;border-radius:16px;background:#ffffff;color:#801020;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.3rem;">
+              ${initials}
+            </div>
+            <div>
+              <div style="font-weight:800;font-size:1.3rem;line-height:1.2;font-family:var(--font-heading);">${c.nombre}</div>
+              <div style="font-size:0.8rem;opacity:0.9;display:flex;align-items:center;gap:10px;margin-top:3px;">
+                <span>${especialidad} · ${subesp}</span>
+                <span>•</span>
+                <span>${ciudad}, ${pais}</span>
+                <span>•</span>
+                <span style="background:rgba(255,255,255,0.2);padding:2px 8px;border-radius:10px;">ID: ${c.id.slice(0,8)}</span>
+              </div>
+            </div>
+          </div>
+          <button onclick="closeModal('modal-candidate-dossier-dialog')" style="background:none;border:none;color:#ffffff;font-size:1.5rem;cursor:pointer;">✕</button>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div style="display:flex;background:#ffffff;border-bottom:1px solid #e2e8f0;padding:0 24px;">
+          <button class="dossier-tab-btn ${initialTab === 'cv' ? 'active' : ''}" id="tab-btn-cv" onclick="switchDossierTab('cv')">
+            📄 Hoja de Vida / Resumen Profesional (CV)
+          </button>
+          <button class="dossier-tab-btn ${initialTab === 'docs' ? 'active' : ''}" id="tab-btn-docs" onclick="switchDossierTab('docs')">
+            📁 Documentación Requerida
+          </button>
+        </div>
+
+        <!-- Body / Content -->
+        <div style="flex:1;overflow-y:auto;padding:26px;" id="dossier-tab-content">
+          <!-- TAB 1: CV -->
+          <div id="dossier-cv-pane" style="${initialTab === 'cv' ? 'display:block;' : 'display:none;'}">
+            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:18px;padding:20px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px;">
+              <div>
+                <div style="font-size:1.15rem;font-weight:800;color:#1e293b;">Curriculum Vitae Médico (Lebenslauf)</div>
+                <div style="font-size:0.85rem;color:#64748b;margin-top:2px;">Candidato Integrado al Programa de Inserción Médica en Alemania · JN Palabras</div>
+              </div>
+              <button class="btn btn-outline btn-sm" onclick="window.print()" style="border-radius:12px;font-weight:700;display:flex;align-items:center;gap:6px;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                Imprimir / Exportar CV
+              </button>
+            </div>
+
+            <!-- CV Sections -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+              <!-- Columna 1 -->
+              <div style="display:flex;flex-direction:column;gap:16px;">
+                <div style="background:#ffffff;border:1px solid #f1f5f9;border-radius:16px;padding:18px;box-shadow:0 2px 8px rgba(0,0,0,0.03);">
+                  <div style="font-size:0.8rem;font-weight:800;letter-spacing:1px;color:#801020;text-transform:uppercase;margin-bottom:12px;">1. Datos Personales y Contacto</div>
+                  <div style="display:grid;grid-template-columns:120px 1fr;gap:8px;font-size:0.875rem;">
+                    <span style="color:#64748b;font-weight:600;">Nombre:</span> <span style="font-weight:700;color:#1e293b;">${c.nombre}</span>
+                    <span style="color:#64748b;font-weight:600;">Edad:</span> <span>${c.edad || '32'} años</span>
+                    <span style="color:#64748b;font-weight:600;">Nacionalidad:</span> <span>${pais}</span>
+                    <span style="color:#64748b;font-weight:600;">Ubicación:</span> <span>${ciudad}, ${pais}</span>
+                    <span style="color:#64748b;font-weight:600;">Correo:</span> <span>${c.correo || 'candidato@jnpalabras.com'}</span>
+                    <span style="color:#64748b;font-weight:600;">Teléfono:</span> <span>${c.telefono || '+593 998306638'}</span>
+                  </div>
+                </div>
+
+                <div style="background:#ffffff;border:1px solid #f1f5f9;border-radius:16px;padding:18px;box-shadow:0 2px 8px rgba(0,0,0,0.03);">
+                  <div style="font-size:0.8rem;font-weight:800;letter-spacing:1px;color:#801020;text-transform:uppercase;margin-bottom:12px;">2. Competencias Lingüísticas</div>
+                  <div style="display:flex;flex-direction:column;gap:8px;font-size:0.875rem;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:#f8fafc;border-radius:10px;">
+                      <span style="font-weight:700;color:#1e293b;">🇩🇪 Idioma Alemán</span>
+                      <span class="badge badge-info" style="font-weight:700;">Nivel ${nivelAleman} (Certificado en trámite)</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:#f8fafc;border-radius:10px;">
+                      <span style="font-weight:700;color:#1e293b;">🇪🇸 Idioma Español</span>
+                      <span class="badge badge-success" style="font-weight:700;">Nativo / Materno</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Columna 2 -->
+              <div style="display:flex;flex-direction:column;gap:16px;">
+                <div style="background:#ffffff;border:1px solid #f1f5f9;border-radius:16px;padding:18px;box-shadow:0 2px 8px rgba(0,0,0,0.03);">
+                  <div style="font-size:0.8rem;font-weight:800;letter-spacing:1px;color:#801020;text-transform:uppercase;margin-bottom:12px;">3. Formación y Experiencia Clínica</div>
+                  <div style="display:flex;flex-direction:column;gap:10px;font-size:0.875rem;">
+                    <div>
+                      <div style="font-weight:700;color:#1e293b;">Título Universitario: ${especialidad}</div>
+                      <div style="font-size:0.8rem;color:#64748b;">Área Clínica de Enfoque: ${subesp}</div>
+                    </div>
+                    <div>
+                      <div style="font-weight:700;color:#1e293b;">Años de Experiencia: ${c.anos_exp !== undefined ? c.anos_exp : '4'} años</div>
+                      <div style="font-size:0.8rem;color:#64748b;">Estado de Homologación: <strong style="color:#801020;">${c.estado_homologacion || 'En Trámite'}</strong></div>
+                    </div>
+                    <div style="padding:10px;background:#fdf2f4;border-radius:10px;font-size:0.8rem;color:#801020;">
+                      <strong>Objetivo en Alemania:</strong> Homologación profesional definitiva (Approbation / Anerkennung) y colocación en Hospital Universitario o Clínica en Baden-Württemberg / Heidelberg.
+                    </div>
+                  </div>
+                </div>
+
+                <div style="background:#ffffff;border:1px solid #f1f5f9;border-radius:16px;padding:18px;box-shadow:0 2px 8px rgba(0,0,0,0.03);">
+                  <div style="font-size:0.8rem;font-weight:800;letter-spacing:1px;color:#801020;text-transform:uppercase;margin-bottom:12px;">4. Datos del Formulario de Aplicación</div>
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:0.8rem;">
+                    <div><span style="color:#64748b;">Título convalidable:</span> <strong style="color:#1e293b;">${respuestas.degree_check || 'Sí, titulado'}</strong></div>
+                    <div><span style="color:#64748b;">Sector:</span> <strong style="color:#1e293b;">${respuestas.sector || 'Salud / Medicina'}</strong></div>
+                    <div><span style="color:#64748b;">Nivel estudios:</span> <strong style="color:#1e293b;">${respuestas.education_level || 'Licenciatura'}</strong></div>
+                    <div><span style="color:#64748b;">Puntaje obtenido:</span> <strong style="color:#16a34a;">${c.puntaje_elegibilidad || '26'} / 30 pts</strong></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 2: DOCUMENTOS -->
+          <div id="dossier-docs-pane" style="${initialTab === 'docs' ? 'display:block;' : 'display:none;'}">
+            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:18px;padding:20px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px;">
+              <div>
+                <div style="font-size:1.15rem;font-weight:800;color:#1e293b;">Expediente de Documentación Oficial</div>
+                <div style="font-size:0.85rem;color:#64748b;margin-top:2px;">Checklist regulatorio para el trámite de homologación y visado de trabajo en Alemania</div>
+              </div>
+              <button class="btn btn-primary btn-sm" onclick="quickUploadDocForCandidate('${c.id}')" style="background:#801020;border-color:#801020;border-radius:12px;display:flex;align-items:center;gap:6px;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                Subir Documento
+              </button>
+            </div>
+
+            <div style="display:flex;flex-direction:column;gap:12px;">
+              ${[
+                { nombre: 'Pasaporte Vigente', desc: 'Válido hasta: 12/2028 · Escaneo a color 300dpi', estado: 'Aprobado', color: '#10b981' },
+                { nombre: 'Título Universitario / Diploma', desc: 'Certificado por Ministerio de Educación y Apostillado', estado: 'Aprobado', color: '#10b981' },
+                { nombre: 'Certificado de Calificaciones y Malla', desc: 'Desglose de horas prácticas y créditos de enfermería/medicina', estado: 'En Revisión', color: '#3b82f6' },
+                { nombre: 'Certificado de Idioma Alemán B1/B2', desc: 'Certificado oficial Goethe-Institut / telc Deutsch B2', estado: 'Esperando Validación', color: '#f59e0b' },
+                { nombre: 'Certificado de Antecedentes Penales', desc: 'Apostillado y con vigencia menor a 3 meses', estado: 'Aprobado', color: '#10b981' },
+                { nombre: 'Certificado de Nacimiento Apostillado', desc: 'Traducido por traductor jurado en Alemania', estado: 'Aprobado', color: '#10b981' },
+                { nombre: 'Seguro Médico de Viaje (Incoming-Versicherung)', desc: 'Requerido para la fase de solicitud de visa de trabajo', estado: 'Pendiente', color: '#94a3b8' }
+              ].map(doc => `
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;background:#ffffff;border:1px solid #e2e8f0;border-radius:16px;box-shadow:0 2px 6px rgba(0,0,0,0.02);">
+                  <div style="display:flex;align-items:center;gap:16px;">
+                    <div style="width:40px;height:40px;border-radius:12px;background:#fdf2f4;color:#801020;display:flex;align-items:center;justify-content:center;">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                    </div>
+                    <div>
+                      <div style="font-weight:700;color:#1e293b;font-size:0.95rem;">${doc.nombre}</div>
+                      <div style="font-size:0.8rem;color:#64748b;margin-top:2px;">${doc.desc}</div>
+                    </div>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:14px;">
+                    <span style="font-size:0.75rem;font-weight:700;padding:4px 12px;border-radius:12px;background:${doc.color}15;color:${doc.color};border:1px solid ${doc.color}30;">
+                      ${doc.estado}
+                    </span>
+                    <button class="btn btn-outline btn-xs" onclick="showToast('Expediente', 'Visualizando documento: ${doc.nombre}', 'info')" style="border-radius:10px;">Ver</button>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div style="background:#f8fafc;border-top:1px solid #e2e8f0;padding:16px 28px;display:flex;justify-content:space-between;align-items:center;">
+          <div style="font-size:0.8rem;color:#64748b;">Expediente auditado conforme a los estándares de la Agencia Federal de Empleo de Alemania (ZAV).</div>
+          <button class="btn btn-outline" onclick="closeModal('modal-candidate-dossier-dialog')">Cerrar</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  let existing = $('modal-candidate-dossier-dialog');
+  if (existing) existing.remove();
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
+
+function switchDossierTab(tab) {
+  const cvPane = $('dossier-cv-pane');
+  const docsPane = $('dossier-docs-pane');
+  const cvBtn = $('tab-btn-cv');
+  const docsBtn = $('tab-btn-docs');
+
+  if (tab === 'cv') {
+    if (cvPane) cvPane.style.display = 'block';
+    if (docsPane) docsPane.style.display = 'none';
+    if (cvBtn) cvBtn.classList.add('active');
+    if (docsBtn) docsBtn.classList.remove('active');
+  } else {
+    if (cvPane) cvPane.style.display = 'none';
+    if (docsPane) docsPane.style.display = 'block';
+    if (cvBtn) cvBtn.classList.remove('active');
+    if (docsBtn) docsBtn.classList.add('active');
   }
-
-  showToast('Entrevista Agendada', `Reunión agendada para ${fecha}`, 'success');
-  renderDashboard(State.activeRole, 'candidato-perfil');
-}
-
-function quickUploadDocForCandidate(id) {
-  const nombreDoc = prompt('Ingresa el nombre del documento a subir (Ej: Certificado_B2_Goethe.pdf):', 'Certificado_B2_Goethe.pdf');
-  if (!nombreDoc) return;
-
-  showToast('Subiendo', 'Procesando documento...', 'info');
-  setTimeout(() => {
-    showToast('Documento Guardado', `${nombreDoc} ha sido subido con éxito`, 'success');
-  }, 600);
-}
-
-function omitCandidateDocStep(id) {
-  showToast('Requisito Omitido', 'El requisito de Seguro de Viaje se marcará para la siguiente fase.', 'info');
-}
-
-function quickAddCandidateNote(id) {
-  const c = DB.getCandidatoById(id);
-  const nota = prompt(`Añadir nota interna de seguimiento para ${c ? c.nombre : 'el candidato'}:`);
-  if (!nota) return;
-
-  if (DB.addNota) {
-    DB.addNota(id, {
-      tipo: 'Nota Interna',
-      contenido: nota,
-      autor: State.currentUser ? State.currentUser.nombre : 'Dr. Hans Müller',
-      fecha: new Date().toISOString()
-    });
-  }
-
-  showToast('Nota Guardada', 'La nota interna fue registrada.', 'success');
-  renderDashboard(State.activeRole, 'candidato-perfil');
 }
 
 function openCandidateDetailModalLegacy(id) {
