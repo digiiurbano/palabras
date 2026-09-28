@@ -1,16 +1,23 @@
 
 // URL del backend: usa VITE_API_URL en producción o localhost en desarrollo
-let apiUrl = 'http://localhost:3000';
-if (typeof window !== 'undefined' && window.VITE_API_URL) {
+let apiUrl = '';
+if (typeof window !== 'undefined' && window.VITE_API_URL && window.VITE_API_URL !== 'undefined') {
   apiUrl = window.VITE_API_URL;
+} else if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+  apiUrl = 'http://localhost:3000';
 }
 const API_URL = apiUrl;
 
 const OFFICIAL_USERS = [
   {
-    id: 'a0000000-0000-0000-0000-000000000001', nombre: 'Ana García', roles: ['Admin'],
+    id: 'a0000000-0000-0000-0000-000000000001', nombre: 'Admin JN Palabras', roles: ['Admin'],
     correo: 'admin@jnpalabras.com', contrasena: 'JNPalabrasAdmin2026!',
-    avatar: 'AG', activo: true, fecha_creacion: '2024-01-15'
+    avatar: 'AJ', activo: true, fecha_creacion: '2024-01-15'
+  },
+  {
+    id: 'a0000000-0000-0000-0000-000000000007', nombre: 'Mariana Vega (Super Asesora)', roles: ['Super Asesor'],
+    correo: 'superasesor@jnpalabras.com', contrasena: 'JNPalabrasSuper2026!',
+    avatar: 'MV', activo: true, fecha_creacion: '2024-02-01'
   },
   {
     id: 'a0000000-0000-0000-0000-000000000002', nombre: 'Carlos Martínez', roles: ['Asesor'],
@@ -39,28 +46,72 @@ const OFFICIAL_USERS = [
   }
 ];
 
+const DB_STORAGE_KEY = 'jnp_local_db_v2';
+
 const DB = {
   data: null,
 
   async init() {
-    // Inicializar con INITIAL_DATA por si la conexión falla (fallback en memoria, no persistente localmente)
+    // 1. Cargar primero de localStorage para persistencia garantizada inmediata
+    if (!this.data) {
+      try {
+        const stored = localStorage.getItem(DB_STORAGE_KEY);
+        if (stored) {
+          this.data = JSON.parse(stored);
+        }
+      } catch (e) {}
+    }
+
     if (!this.data) {
       this.data = JSON.parse(JSON.stringify(INITIAL_DATA));
     }
 
-    // Intentar sincronizar el estado base con el backend (solo como scaffolding, 
-    // las entidades reales se obtendrán por sus endpoints REST)
-    try {
-      const res = await fetch(`${API_URL}/api/db`);
-      if (res.ok) {
-        this.data = await res.json();
+    // Asegurar que el usuario admin oficial tenga el nombre correcto en memoria/local
+    if (this.data.usuarios) {
+      const adm = this.data.usuarios.find(u => u.correo === 'admin@jnpalabras.com');
+      if (adm && adm.nombre.includes('Ana')) {
+        adm.nombre = 'Admin JN Palabras';
+        adm.avatar = 'AJ';
       }
-    } catch (e) {
-      console.warn("Backend no alcanzable. Usando fallback en memoria.");
+    }
+
+    // 2. Si hay conexión de backend configurada, sincronizar manteniendo registros locales
+    if (API_URL) {
+      try {
+        const res = await fetch(`${API_URL}/api/db`);
+        if (res.ok) {
+          const remote = await res.json();
+          if (remote && typeof remote === 'object') {
+            const remoteUsers = remote.usuarios || [];
+            const localUsers = (this.data && this.data.usuarios) || [];
+            const mergedUsers = [...remoteUsers];
+            // Conservar usuarios creados localmente que el backend aún no tenga
+            for (const lu of localUsers) {
+              if (!mergedUsers.some(ru => ru.id === lu.id || (lu.correo && ru.correo && ru.correo.toLowerCase() === lu.correo.toLowerCase()))) {
+                mergedUsers.unshift(lu);
+              }
+            }
+            this.data = { ...this.data, ...remote, usuarios: mergedUsers };
+            try {
+              localStorage.setItem(DB_STORAGE_KEY, JSON.stringify(this.data));
+            } catch (e) {}
+          }
+        }
+      } catch (e) {
+        console.warn("Backend no alcanzable. Usando almacenamiento local persistente.");
+      }
     }
   },
 
   get() {
+    if (!this.data) {
+      try {
+        const stored = localStorage.getItem(DB_STORAGE_KEY);
+        if (stored) {
+          this.data = JSON.parse(stored);
+        }
+      } catch (e) {}
+    }
     if (!this.data) {
       this.data = JSON.parse(JSON.stringify(INITIAL_DATA));
     }
@@ -69,18 +120,32 @@ const DB = {
 
   save(data) {
     this.data = data;
-    fetch(`${API_URL}/api/db`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    }).catch(() => console.warn("Modo offline: no se pudo guardar en backend"));
+    // Persistencia incondicional en localStorage para evitar pérdida de datos al recargar
+    try {
+      localStorage.setItem(DB_STORAGE_KEY, JSON.stringify(data));
+    } catch (e) {}
+
+    if (API_URL) {
+      fetch(`${API_URL}/api/db`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      }).catch(() => console.warn("Modo offline: cambio guardado localmente"));
+    }
   },
 
   reset() {
     this.data = JSON.parse(JSON.stringify(INITIAL_DATA));
-    fetch(`${API_URL}/api/reset`, { method: 'POST' })
-      .then(() => window.location.reload())
-      .catch(() => window.location.reload());
+    try {
+      localStorage.removeItem(DB_STORAGE_KEY);
+    } catch (e) {}
+    if (API_URL) {
+      fetch(`${API_URL}/api/reset`, { method: 'POST' })
+        .then(() => window.location.reload())
+        .catch(() => window.location.reload());
+    } else {
+      window.location.reload();
+    }
   },
 
   // ── USUARIOS ──────────────────────────────────────────────────
@@ -91,18 +156,20 @@ const DB = {
 
   async findUsuario(correo, contrasena) {
     // 1. Intentar API en backend si está disponible
-    try {
-      const res = await fetch(`${API_URL}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ correo, contrasena })
-      });
-      if (res.ok) {
-        const user = await res.json();
-        if (user && user.id) return user;
+    if (API_URL) {
+      try {
+        const res = await fetch(`${API_URL}/api/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ correo, contrasena })
+        });
+        if (res.ok) {
+          const user = await res.json();
+          if (user && user.id) return user;
+        }
+      } catch (e) {
+        // Ignorar fallo de red y continuar con validación local
       }
-    } catch (e) {
-      // Ignorar fallo de red y continuar con validación local
     }
 
     // 2. Buscar en memoria/local de la DB
@@ -118,12 +185,14 @@ const DB = {
   },
 
   async findUsuarioById(id) {
-    try {
-      const res = await fetch(`${API_URL}/api/users/${id}`);
-      if (res.ok) {
-        return await res.json();
-      }
-    } catch (e) {}
+    if (API_URL) {
+      try {
+        const res = await fetch(`${API_URL}/api/users/${id}`);
+        if (res.ok) {
+          return await res.json();
+        }
+      } catch (e) {}
+    }
     
     const list = await this.getUsuarios();
     let user = list.find(u => u.id === id);
@@ -135,29 +204,37 @@ const DB = {
 
   async createUsuario(data) {
     let nuevo = null;
-    try {
-      const res = await fetch(`${API_URL}/api/users`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
-      if (res.ok) {
-        nuevo = await res.json();
+    if (API_URL) {
+      try {
+        const res = await fetch(`${API_URL}/api/users`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        if (res.ok) {
+          nuevo = await res.json();
+        }
+      } catch (e) {
+        console.error("Fallo al crear usuario en backend, aplicando persistencia local");
       }
-    } catch (e) {
-      console.error("Fallo al crear usuario en backend, fallback local");
     }
     
     const db = this.get();
     if (!nuevo) {
-      nuevo = { ...data, id: 'u-' + Date.now(), fecha_creacion: new Date().toISOString(), activo: true };
+      nuevo = { 
+        ...data, 
+        id: 'u-' + Date.now(), 
+        fecha_creacion: new Date().toISOString(), 
+        activo: true,
+        avatar: data.avatar || (data.nombre ? data.nombre.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase() : 'U')
+      };
     }
     if (!db.usuarios) db.usuarios = [...OFFICIAL_USERS];
-    const existingIdx = db.usuarios.findIndex(u => u.id === nuevo.id);
+    const existingIdx = db.usuarios.findIndex(u => u.id === nuevo.id || (nuevo.correo && u.correo && u.correo.toLowerCase() === nuevo.correo.toLowerCase()));
     if (existingIdx !== -1) {
       db.usuarios[existingIdx] = { ...db.usuarios[existingIdx], ...nuevo };
     } else {
-      db.usuarios.push(nuevo);
+      db.usuarios.unshift(nuevo);
     }
     this.save(db);
     return nuevo;
@@ -165,38 +242,42 @@ const DB = {
 
   async updateUsuario(id, data) {
     let editado = null;
-    try {
-      const res = await fetch(`${API_URL}/api/users/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
-      if (res.ok) {
-        editado = await res.json();
+    if (API_URL) {
+      try {
+        const res = await fetch(`${API_URL}/api/users/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        if (res.ok) {
+          editado = await res.json();
+        }
+      } catch (e) {
+        console.warn("Fallo al actualizar usuario en backend, aplicando cambio local");
       }
-    } catch (e) {
-      console.warn("Fallo al actualizar usuario en backend, aplicando cambio local");
     }
 
     const db = this.get();
     if (!db.usuarios) db.usuarios = [...OFFICIAL_USERS];
-    const idx = db.usuarios.findIndex(u => u.id === id || (data && data.correo && u.correo === data.correo));
+    const idx = db.usuarios.findIndex(u => u.id === id || (data && data.correo && u.correo && u.correo.toLowerCase() === data.correo.toLowerCase()));
     if (idx !== -1) {
       db.usuarios[idx] = editado ? { ...db.usuarios[idx], ...editado } : { ...db.usuarios[idx], ...data };
     } else if (editado) {
-      db.usuarios.push(editado);
+      db.usuarios.unshift(editado);
     }
     this.save(db);
     return db.usuarios[idx] || editado;
   },
 
   async deleteUsuario(id) {
-    try {
-      await fetch(`${API_URL}/api/users/${id}`, {
-        method: 'DELETE'
-      });
-    } catch (e) {
-      console.warn("Fallo al eliminar usuario en backend, aplicando cambio local");
+    if (API_URL) {
+      try {
+        await fetch(`${API_URL}/api/users/${id}`, {
+          method: 'DELETE'
+        });
+      } catch (e) {
+        console.warn("Fallo al eliminar usuario en backend, aplicando cambio local");
+      }
     }
 
     const db = this.get();
@@ -229,13 +310,19 @@ const DB = {
   // ── CANDIDATOS ────────────────────────────────────────────────
   getCandidatos() {
     const list = this.get().candidatos || [];
-    return list.map(c => ({
-      ...c,
-      nombre: c.nombre || c.nombre_completo,
-      pais: c.pais || c.pais_origen,
-      especialidad: c.especialidad || c.especialidad_medica,
-      nivel_aleman: c.nivel_aleman || c.nivel_aleman_actual
-    }));
+    const usuarios = this.getUsuarios();
+    return list.map(c => {
+      const asesor = c.id_asesor ? usuarios.find(u => u.id === c.id_asesor) : null;
+      return {
+        ...c,
+        nombre: c.nombre || c.nombre_completo,
+        pais: c.pais || c.pais_origen,
+        especialidad: c.especialidad || c.especialidad_medica,
+        nivel_aleman: c.nivel_aleman || c.nivel_aleman_actual,
+        id_asesor: c.id_asesor || null,
+        nombre_asesor: c.nombre_asesor || (asesor ? asesor.nombre : null)
+      };
+    });
   },
 
   getCandidatoById(id) {
@@ -251,6 +338,76 @@ const DB = {
   getCandidatosBySocio(id_socio) {
     const list = this.getCandidatos();
     return list.filter(c => c.id_socio === id_socio);
+  },
+
+  getAsesores() {
+    return this.getUsuarios().filter(u => u.roles && (u.roles.includes('Asesor') || u.roles.includes('Super Asesor')));
+  },
+
+  getCandidatosByAsesor(id_asesor) {
+    const list = this.getCandidatos();
+    if (!id_asesor) return list.filter(c => !c.id_asesor);
+    return list.filter(c => c.id_asesor === id_asesor);
+  },
+
+  async designarAsesor(id_candidato, id_asesor, superAsesorUser = null) {
+    const cand = this.getCandidatoById(id_candidato);
+    if (!cand) throw new Error('Candidato no encontrado');
+    const asesor = this.getUsuarios().find(u => u.id === id_asesor);
+    const nombreAsesor = asesor ? asesor.nombre : (id_asesor ? 'Asesor' : 'Sin Asignar');
+
+    const updatePayload = {
+      id_asesor: id_asesor || null,
+      nombre_asesor: asesor ? asesor.nombre : null
+    };
+
+    const updated = await this.updateCandidato(id_candidato, updatePayload);
+
+    // Nota de seguimiento de auditoría
+    const autor = superAsesorUser ? superAsesorUser.nombre : 'Super Asesor';
+    if (id_asesor && asesor) {
+      this.addNota({
+        id_candidato,
+        asesor: autor,
+        tipo: 'Hito',
+        contenido: `🎯 Candidato designado al asesor ${nombreAsesor} por ${autor}.`
+      });
+
+      // Notificación inmediata al asesor asignado
+      this.addNotificacion({
+        id_usuario_dest: id_asesor,
+        tipo: 'Nuevo_Candidato',
+        titulo: '🎯 Nuevo Candidato Designado',
+        mensaje: `${autor} te ha asignado a ${cand.nombre} (${cand.especialidad} · ${cand.pais}) para su seguimiento.`
+      });
+    }
+
+    return updated;
+  },
+
+  async autoDesignarLeads(superAsesorUser = null) {
+    const asesores = this.getAsesores().filter(u => u.roles.includes('Asesor'));
+    if (asesores.length === 0) return { count: 0, message: 'No hay asesores registrados en el equipo.' };
+
+    const candidatos = this.getCandidatos();
+    const pendientes = candidatos.filter(c => !c.id_asesor);
+    if (pendientes.length === 0) return { count: 0, message: 'Todos los leads ya cuentan con un asesor designado.' };
+
+    const cargas = {};
+    asesores.forEach(a => {
+      cargas[a.id] = candidatos.filter(c => c.id_asesor === a.id).length;
+    });
+
+    let count = 0;
+    for (const cand of pendientes) {
+      asesores.sort((a, b) => cargas[a.id] - cargas[b.id]);
+      const elegido = asesores[0];
+      await this.designarAsesor(cand.id, elegido.id, superAsesorUser);
+      cargas[elegido.id]++;
+      count++;
+    }
+
+    return { count, message: `Se asignaron ${count} candidato(s) equitativamente entre los asesores.` };
   },
 
   async createCandidato(data) {

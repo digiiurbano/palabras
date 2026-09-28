@@ -2,6 +2,7 @@ services:
   - type: web
     name: jn-palabras-backend
     env: node
+    rootDir: backend
     region: frankfurt # Servidor en Europa (Frankfurt, Alemania) - Cumplimiento GDPR
     plan: free
     buildCommand: npm install

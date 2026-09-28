@@ -13,6 +13,7 @@ const dbFilePath = path.join(__dirname, 'db', 'data.json');
 const IS_UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const LEGACY_USER_MAP = {
   'u-admin-001': 'a0000000-0000-0000-0000-000000000001',
+  'u-super-001': 'a0000000-0000-0000-0000-000000000007',
   'u-asesor-001': 'a0000000-0000-0000-0000-000000000002',
   'u-prof-001': 'a0000000-0000-0000-0000-000000000003',
   'u-cand-001': 'a0000000-0000-0000-0000-000000000004',
@@ -31,15 +32,25 @@ function resolveUserId(id) {
 const INITIAL_DATA = {
   "usuarios": [
     {
-      "id": "u-admin-001",
-      "nombre": "Ana García",
+      "id": "a0000000-0000-0000-0000-000000000001",
+      "nombre": "Admin JN Palabras",
       "roles": ["Admin"],
       "correo": "admin@jnpalabras.com",
       "contrasena": "JNPalabrasAdmin2026!",
-      "avatar": "AG",
+      "avatar": "AJ",
       "activo": true,
       "fecha_creacion": "2024-01-15",
       "ultimo_acceso": "2026-09-16T20:53:40.885Z"
+    },
+    {
+      "id": "u-super-001",
+      "nombre": "Mariana Vega (Super Asesora)",
+      "roles": ["Super Asesor"],
+      "correo": "superasesor@jnpalabras.com",
+      "contrasena": "JNPalabrasSuper2026!",
+      "avatar": "MV",
+      "activo": true,
+      "fecha_creacion": "2024-02-01"
     },
     {
       "id": "u-asesor-001",
@@ -792,13 +803,21 @@ const DB = {
         
         // Actualizar KPIs si es posible (en PostgreSQL sería una consulta aparte o se calcula)
         
-        // Notificación al asesor
+        // Notificación al Super Asesor y/o Asesor asignado
         this.addNotificacion({
-          id_usuario_dest: data.id_asesor || 'u-asesor-001',
+          id_usuario_dest: 'u-super-001',
           tipo: 'Nuevo_Candidato',
-          titulo: 'Nuevo candidato registrado',
-          mensaje: `${data.nombre} (${data.pais}, ${data.especialidad}) se ha registrado como nuevo lead.`
+          titulo: '📥 Nuevo Lead Recibido',
+          mensaje: `${data.nombre} (${data.pais || 'Origen'}, ${data.especialidad || 'General'}) ha ingresado como nuevo lead para ser designado.`
         });
+        if (data.id_asesor && data.id_asesor !== 'u-super-001') {
+          this.addNotificacion({
+            id_usuario_dest: data.id_asesor,
+            tipo: 'Nuevo_Candidato',
+            titulo: 'Nuevo candidato asignado',
+            mensaje: `${data.nombre} (${data.pais}, ${data.especialidad}) ha sido asignado a tu cartera.`
+          });
+        }
         
         return res.rows[0];
       } catch (err) {
@@ -814,16 +833,22 @@ const DB = {
     const nuevo = { ...data, id: 'c-' + Date.now(), fecha_alta: new Date().toISOString().split('T')[0], consentimiento_gdpr: true };
     db.candidatos.push(nuevo);
     db.kpis.totalCandidatos = (db.kpis.totalCandidatos || 0) + 1;
-    // db.kpis.candidatos_activos doesn't exist in data.json, ignoring
-    // db.kpis.nuevos_este_mes doesn't exist either
     this.save(db);
-    // Notificación al asesor
+    // Notificación al Super Asesor y/o Asesor asignado
     this.addNotificacion({
-      id_usuario_dest: 'u-asesor-001',
+      id_usuario_dest: 'u-super-001',
       tipo: 'Nuevo_Candidato',
-      titulo: 'Nuevo candidato registrado',
-      mensaje: `${data.nombre} (${data.pais}, ${data.especialidad}) se ha registrado como nuevo lead.`
+      titulo: '📥 Nuevo Lead Recibido',
+      mensaje: `${data.nombre} (${data.pais || 'Origen'}, ${data.especialidad || 'General'}) ha ingresado como nuevo lead para ser designado.`
     });
+    if (data.id_asesor && data.id_asesor !== 'u-super-001') {
+      this.addNotificacion({
+        id_usuario_dest: data.id_asesor,
+        tipo: 'Nuevo_Candidato',
+        titulo: 'Nuevo candidato asignado',
+        mensaje: `${data.nombre} (${data.pais}, ${data.especialidad}) ha sido asignado a tu cartera.`
+      });
+    }
     return nuevo;
   },
   

@@ -1742,6 +1742,18 @@ body.theme-admin {
   --theme-btn-primary-text: #000;
 }
 
+/* Super Asesor: Deep Navy & Cyan Executive */
+body.theme-super-asesor, body.theme-super_asesor {
+  --theme-sidebar-bg: #0f172a; /* Slate 900 / Deep Navy */
+  --theme-sidebar-text: #38bdf8; /* Sky 400 */
+  --theme-sidebar-hover: rgba(56, 189, 248, 0.12);
+  --theme-accent: #0284c7; /* Sky 600 */
+  --theme-accent-hover: #0369a1;
+  --theme-accent-light: rgba(2, 132, 199, 0.18);
+  --theme-btn-primary-bg: #0284c7;
+  --theme-btn-primary-text: #fff;
+}
+
 /* Asesor: Indigo & Slate */
 body.theme-asesor {
   --theme-sidebar-bg: #1e1b4b; /* Indigo 950 */
@@ -2811,3 +2823,63 @@ h1, h2, h3, h4, .public-hero-title, .public-section-title {
   .cta-banner-circle { border-radius: 40px; padding: 40px 20px; }
   .cta-banner-circle h2 { font-size: 2rem; }
 }
+
+/* ══════════════════════════════════════════════════════════
+   SUPER ASESOR & GESTIÓN DE LEADS
+   ══════════════════════════════════════════════════════════ */
+.lead-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.lead-status-pill.unassigned {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+  animation: pulse-soft 2s infinite ease-in-out;
+}
+.lead-status-pill.assigned {
+  background: #f0fdf4;
+  color: #16a34a;
+  border: 1px solid #bbf7d0;
+}
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.85; transform: scale(1.02); }
+}
+.asesor-workload-card {
+  background: #ffffff;
+  border: 1px solid var(--slate-200);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: all 0.2s ease;
+}
+.asesor-workload-card:hover {
+  border-color: #0284c7;
+  box-shadow: 0 8px 24px rgba(2, 132, 199, 0.08);
+}
+.workload-bar-bg {
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 3px;
+  overflow: hidden;
+  margin-top: 4px;
+}
+.workload-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #0284c7, #38bdf8);
+  border-radius: 3px;
+}
+.badge-super-asesor {
+  background: rgba(2, 132, 199, 0.12);
+  color: #0284c7;
+  border: 1px solid rgba(2, 132, 199, 0.3);
+}
+

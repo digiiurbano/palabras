@@ -341,7 +341,8 @@ CREATE TABLE auditoria_gdpr (
 
 -- Usuarios Oficiales del Sistema
 INSERT INTO usuarios (id, nombre, correo, contrasena_hash, roles) VALUES
-    ('a0000000-0000-0000-0000-000000000001', 'Ana García (Admin)', 'admin@jnpalabras.com', 'JNPalabrasAdmin2026!', '["Admin"]'::jsonb),
+    ('a0000000-0000-0000-0000-000000000001', 'Admin JN Palabras', 'admin@jnpalabras.com', 'JNPalabrasAdmin2026!', '["Admin"]'::jsonb),
+    ('a0000000-0000-0000-0000-000000000007', 'Mariana Vega (Super Asesora)', 'superasesor@jnpalabras.com', 'JNPalabrasSuper2026!', '["Super Asesor"]'::jsonb),
     ('a0000000-0000-0000-0000-000000000002', 'Carlos Martínez (Asesor)', 'asesor@jnpalabras.com', 'JNPalabrasAsesor2026!', '["Asesor"]'::jsonb),
     ('a0000000-0000-0000-0000-000000000003', 'Dra. Elena Weber (Profesor)', 'profesor@jnpalabras.com', 'JNPalabrasProfesor2026!', '["Profesor"]'::jsonb),
     ('a0000000-0000-0000-0000-000000000004', 'Dr. Javier Torres (Candidato)', 'candidato@jnpalabras.com', 'JNPalabrasCandidato2026!', '["Candidato"]'::jsonb),

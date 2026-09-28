@@ -7,18 +7,7 @@
       "roles": [
         "Admin"
       ],
-      "avatar": null,
-      "activo": true,
-      "fecha_creacion": "2026-09-17T22:31:59.475Z"
-    },
-    {
-      "id": "a0000000-0000-0000-0000-000000000002",
-      "nombre": "Carlos Martínez (Asesor)",
-      "correo": "asesor@jnpalabras.com",
-      "roles": [
-        "Asesor"
-      ],
-      "avatar": null,
+      "avatar": "AJ",
       "activo": true,
       "fecha_creacion": "2026-09-17T22:31:59.475Z"
     },
@@ -65,6 +54,30 @@
       "avatar": null,
       "activo": true,
       "fecha_creacion": "2026-09-17T22:31:59.475Z"
+    },
+    {
+      "id": "a0000000-0000-0000-0000-000000000002",
+      "nombre": "Carlos Martínez",
+      "correo": "asesor@jnpalabras.com",
+      "roles": [
+        "Asesor"
+      ],
+      "avatar": null,
+      "activo": true,
+      "fecha_creacion": "2026-09-17T22:31:59.475Z"
+    },
+    {
+      "id": "d973ef09-e8ea-4181-9919-5e9393c221e7",
+      "nombre": "Jonathan Urbano",
+      "correo": "jonathanpk97@gmail.com",
+      "roles": [
+        "Super Asesor",
+        "Asesor",
+        "Profesor"
+      ],
+      "avatar": "JU",
+      "activo": true,
+      "fecha_creacion": "2026-09-28T14:56:53.456Z"
     }
   ],
   "candidatos": [

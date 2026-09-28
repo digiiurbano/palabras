@@ -98,6 +98,29 @@ function timeAgo(dateStr) {
   return `hace ${Math.floor(diff/86400)} días`;
 }
 
+function formatDateTime(dateStr) {
+  if (!dateStr || dateStr === '—' || dateStr === 'Pendiente') return dateStr || '—';
+  try {
+    const str = String(dateStr).trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+      const [y, m, d] = str.split('-');
+      return `${d}/${m}/${y}`;
+    }
+    const d = new Date(str);
+    if (isNaN(d.getTime())) return str;
+    const pad = n => String(n).padStart(2, '0');
+    const day = pad(d.getDate());
+    const month = pad(d.getMonth() + 1);
+    const year = d.getFullYear();
+    const hours = pad(d.getHours());
+    const minutes = pad(d.getMinutes());
+    return `${day}/${month}/${year} ${hours}:${minutes}`;
+  } catch (e) {
+    return dateStr;
+  }
+}
+window.formatDateTime = formatDateTime;
+
 function formatCurrency(amount, currency = 'EUR') {
   return new Intl.NumberFormat('de-DE', { style:'currency', currency, maximumFractionDigits:0 }).format(amount);
 }
@@ -320,12 +343,18 @@ function renderAppShell(view = null) {
       <div class="role-switcher" title="Usuario activo">
         <div class="role-avatar" style="background:${getAvatarColor(user.nombre)}">${getInitials(user.nombre)}</div>
         <div class="role-info">
-          <div class="role-name">${user.nombre.split(' ').slice(0,2).join(' ')}</div>
+          <div class="role-name">${user.nombre.length > 25 ? user.nombre.split(' ').slice(0,2).join(' ') : user.nombre}</div>
           
           <div class="role-label" style="display:flex;align-items:center;gap:4px;">
             ${getRolIcon(State.activeRole)} 
             <select class="role-switcher-select" onchange="switchRole(this.value)" style="background:transparent;border:none;color:inherit;font-size:inherit;font-weight:inherit;outline:none;cursor:pointer;">
-              ${(user.roles || [State.activeRole]).map(r => `<option value="${r}" ${r===State.activeRole?'selected':''}>${r}</option>`).join('')}
+              ${(() => {
+                const isAdmin = (user.roles || []).includes('Admin');
+                const list = isAdmin 
+                  ? ['Admin', 'Super Asesor', 'Asesor', 'Profesor', 'Candidato', 'Empresa', 'Socio']
+                  : (user.roles || [State.activeRole]);
+                return list.map(r => `<option value="${r}" ${r===State.activeRole?'selected':''}>${r}</option>`).join('');
+              })()}
             </select>
           </div>
 
@@ -359,11 +388,20 @@ function ensureNotifClickListener() {
 }
 
 function getRolIcon(rol) {
-  return getIcon(rol) || getIcon('Candidato');
+  return getIcon(rol) || getIcon(rol ? rol.replace(/\s+/g, '_') : '') || getIcon('Candidato');
 }
 
 function getRolColor(rol) {
-  return { Admin:'var(--gold-600)',Asesor:'var(--info)',Profesor:'#8b5cf6',Candidato:'var(--success)',Empresa:'var(--slate-600)',Socio:'#ec4899' }[rol]||'var(--slate-600)';
+  return { 
+    Admin: 'var(--gold-600)',
+    'Super Asesor': '#0284c7',
+    Super_Asesor: '#0284c7',
+    Asesor: 'var(--info)',
+    Profesor: '#8b5cf6',
+    Candidato: 'var(--success)',
+    Empresa: 'var(--slate-600)',
+    Socio: '#ec4899' 
+  }[rol] || '#0284c7';
 }
 
 // ──────────────────────────────────────────────────────────────────
@@ -432,6 +470,13 @@ const SIDEBAR_MENUS = {
     { id:'admin-cms',         icon: getIcon('fileText'), label:'CMS Web Pública'      },
     { id:'admin-comisiones',  icon: getIcon('coins'),    label:'Control Comisiones'   },
     { id:'admin-empresas',    icon: getIcon('Empresa'),  label:'Empresas / Clínicas'  },
+  ],
+  'Super Asesor': [
+    { id:'super-leads',       icon: getIcon('newTag'),   label:'Bandeja de Leads'     },
+    { id:'super-kanban',      icon: getIcon('Asesor'),   label:'Kanban General'       },
+    { id:'super-asesores',    icon: getIcon('network'),  label:'Equipo de Asesores'   },
+    { id:'super-candidatos',  icon: getIcon('Candidato'),label:'Todos los Candidatos' },
+    { id:'super-matching',    icon: getIcon('search'),   label:'Matching IA'          },
   ],
   Asesor: [
     { id:'asesor-kanban',     icon: getIcon('Asesor'),   label:'Kanban Candidatos'   },
@@ -509,9 +554,9 @@ function renderSidebar(rol) {
       
       <!-- Perfil inferior -->
       <div class="sidebar-profile">
-        <div class="sidebar-profile-avatar">${user ? user.nombre.charAt(0).toUpperCase() : 'U'}</div>
+        <div class="sidebar-profile-avatar" style="background:${getAvatarColor(user ? user.nombre : '')}">${user ? getInitials(user.nombre) : 'U'}</div>
         <div class="sidebar-profile-info">
-          <span class="sidebar-profile-name">${user ? user.nombre.split(' ')[0] : 'Usuario'}</span>
+          <span class="sidebar-profile-name">${user ? (user.nombre.includes('Admin') ? 'Admin JN' : user.nombre.split(' ')[0]) : 'Usuario'}</span>
           <span class="sidebar-profile-role">${rol}</span>
         </div>
       </div>
@@ -577,6 +622,12 @@ async function renderDashboard(rol, view = null) {
     'admin-cms':        renderAdminCms,
     'admin-comisiones': renderAdminComisiones,
     'admin-empresas':   renderAdminEmpresas,
+    // Super Asesor
+    'super-leads':      renderSuperLeads,
+    'super-kanban':     renderSuperKanban,
+    'super-asesores':   renderSuperAsesores,
+    'super-candidatos': renderAdminCandidatos,
+    'super-matching':   renderAsesorMatching,
     // Asesor
     'asesor-kanban':      renderAsesorKanban,
     'asesor-base-datos':  renderAdminCandidatos,
@@ -613,7 +664,7 @@ async function renderDashboard(rol, view = null) {
       const html = await fn();
       container.innerHTML = '<div class="animate-fadeInUp">' + html + '</div>';
       // Post-render hooks
-      if (id === 'asesor-kanban') initKanban();
+      if (id === 'asesor-kanban' || id === 'super-kanban') initKanban();
       if (id === 'emp-vacantes')  initVacanteForm();
       if (id === 'admin-users')   initUserForm();
     } catch (e) {
@@ -801,7 +852,7 @@ function renderAdminUsers() {
                   </div>
                 </td>
                 <td><span class="badge ${u.activo?'badge-success':'badge-slate'}">${u.activo?'Activo':'Inactivo'}</span></td>
-                <td>${u.fecha_creacion||'—'}</td>
+                <td>${formatDateTime(u.fecha_creacion)}</td>
                 <td>
                   <div style="display:flex;gap:6px;">
                     <button class="btn btn-outline btn-sm" onclick="editUser('${u.id}')">✏️</button>
@@ -840,6 +891,7 @@ function renderAdminUsers() {
               <label class="form-label">Roles (Selecciona uno o más)</label>
               <div style="display:flex;flex-wrap:wrap;gap:10px;">
                 <label style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="nu-rol" value="Admin"> Admin</label>
+                <label style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="nu-rol" value="Super Asesor"> Super Asesor</label>
                 <label style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="nu-rol" value="Asesor"> Asesor</label>
                 <label style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="nu-rol" value="Profesor"> Profesor</label>
                 <label style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="nu-rol" value="Candidato"> Candidato</label>
@@ -908,6 +960,7 @@ function renderAdminUsers() {
               <label class="form-label">Roles (Selecciona uno o más)</label>
               <div style="display:flex;flex-wrap:wrap;gap:10px;">
                 <label style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="eu-rol" value="Admin"> Admin</label>
+                <label style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="eu-rol" value="Super Asesor"> Super Asesor</label>
                 <label style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="eu-rol" value="Asesor"> Asesor</label>
                 <label style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="eu-rol" value="Profesor"> Profesor</label>
                 <label style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="eu-rol" value="Candidato"> Candidato</label>
@@ -1106,7 +1159,11 @@ async function saveUser() {
   
   try {
     await DB.updateUsuario(id, updateData);
-    if (State.currentUser && (State.currentUser.id === id || State.currentUser.correo === correo)) {
+    const isSelf = State.currentUser && (
+      State.currentUser.id === id || 
+      (State.currentUser.correo && correo && State.currentUser.correo.toLowerCase() === correo.toLowerCase())
+    );
+    if (isSelf) {
       State.currentUser = { ...State.currentUser, ...updateData };
       DB.setSession(State.currentUser);
       renderAppShell();
@@ -1268,8 +1325,8 @@ function renderAdminComisiones() {
                     <td>${c.empresa}</td>
                     <td style="font-weight:700;color:var(--gold-600);">${formatCurrency(c.monto, c.moneda)}</td>
                     <td><span class="badge ${c.estado==='Pagada'?'badge-success':c.estado==='Devengada'?'badge-warning':'badge-slate'}">${c.estado}</span></td>
-                    <td>${c.fecha_devengamiento||'—'}</td>
-                    <td>${c.fecha_pago||'Pendiente'}</td>
+                    <td>${formatDateTime(c.fecha_devengamiento)}</td>
+                    <td>${c.fecha_pago ? formatDateTime(c.fecha_pago) : 'Pendiente'}</td>
                   </tr>
                 `).join('')}
               </tbody>
@@ -1312,9 +1369,18 @@ function renderAdminEmpresas() {
 // ──────────────────────────────────────────────────────────────────
 // ★ DASHBOARD 2: ASESOR
 // ──────────────────────────────────────────────────────────────────
+let _asesorKanbanScope = 'todos'; // 'mis' | 'todos'
+
 function renderAsesorKanban() {
-  const { kanban_columns, candidatos } = DB.get();
+  const { kanban_columns } = DB.get();
+  const allCandidatos = DB.getCandidatos();
   const viewMode = State.kanbanView || 'kanban';
+
+  let candidatos = allCandidatos;
+  if (_asesorKanbanScope === 'mis' && State.currentUser) {
+    const mis = allCandidatos.filter(c => c.id_asesor === State.currentUser.id);
+    candidatos = mis.length > 0 ? mis : allCandidatos;
+  }
 
   let boardHtml = '';
   if (viewMode === 'kanban') {
@@ -1334,6 +1400,19 @@ function renderAsesorKanban() {
                        onclick="openCandidateDetail('${c.id}')">
                     <div class="kanban-card-name">${c.nombre}</div>
                     <div class="kanban-card-spec">${c.especialidad} · ${c.pais}</div>
+                    
+                    <div style="margin-top:6px; margin-bottom:4px;">
+                      ${c.id_asesor ? `
+                        <span class="badge" style="background:#e0f2fe; color:#0284c7; font-size:0.65rem; border:1px solid #bae6fd;">
+                          👤 ${c.nombre_asesor ? c.nombre_asesor.split(' ')[0] : 'Asignado'}
+                        </span>
+                      ` : `
+                        <span class="badge" style="background:#fef2f2; color:#dc2626; font-size:0.65rem; border:1px solid #fecaca;">
+                          ⚠️ Sin Asignar
+                        </span>
+                      `}
+                    </div>
+
                     <div class="kanban-card-footer">
                       <span class="badge badge-info" style="font-size:.65rem;">${c.nivel_aleman}</span>
                       <span style="font-size:.7rem;color:var(--slate-400);">${countryFlag(c.pais)}</span>
@@ -1351,7 +1430,16 @@ function renderAsesorKanban() {
       <div class="card">
         <div class="data-table-wrapper">
           <table class="data-table">
-            <thead><tr><th>Candidato</th><th>País</th><th>Especialidad</th><th>Alemán</th><th>Estado Proceso</th></tr></thead>
+            <thead>
+              <tr>
+                <th>Candidato</th>
+                <th>País</th>
+                <th>Especialidad</th>
+                <th>Alemán</th>
+                <th>Asesor Asignado</th>
+                <th>Estado Proceso</th>
+              </tr>
+            </thead>
             <tbody>
               ${candidatos.map(c => `
                 <tr onclick="openCandidateDetail('${c.id}')" style="cursor:pointer">
@@ -1359,6 +1447,9 @@ function renderAsesorKanban() {
                   <td><span style="font-size:1rem;">${countryFlag(c.pais)}</span> ${c.pais}</td>
                   <td>${c.especialidad}</td>
                   <td><span class="badge badge-info">${c.nivel_aleman}</span></td>
+                  <td>
+                    ${c.id_asesor ? `<span class="badge badge-info">👤 ${c.nombre_asesor}</span>` : `<span class="badge badge-danger">⚠️ Sin Asignar</span>`}
+                  </td>
                   <td><span class="badge badge-warning">${c.estado_proceso}</span></td>
                 </tr>
               `).join('')}
@@ -1369,6 +1460,8 @@ function renderAsesorKanban() {
     `;
   }
 
+  const misCount = State.currentUser ? allCandidatos.filter(c => c.id_asesor === State.currentUser.id).length : 0;
+
   return `
     <div class="kanban-banner">
       <div>
@@ -1376,6 +1469,16 @@ function renderAsesorKanban() {
         <p class="kanban-banner-subtitle">Pipeline de integración de candidatos</p>
       </div>
       <div class="kanban-banner-actions">
+        ${State.currentUser && State.activeRole === 'Asesor' ? `
+        <div style="display:flex; background:rgba(255,255,255,0.15); border-radius:8px; padding:2px;">
+          <button class="btn btn-sm" style="${_asesorKanbanScope==='todos'?'background:rgba(255,255,255,0.25);color:#fff;':'color:rgba(255,255,255,0.7);background:transparent;'} border:none; padding:4px 10px; font-size:0.75rem;" onclick="_asesorKanbanScope='todos';renderDashboard(State.activeRole,'asesor-kanban');">
+            Todos (${allCandidatos.length})
+          </button>
+          <button class="btn btn-sm" style="${_asesorKanbanScope==='mis'?'background:rgba(255,255,255,0.25);color:#fff;':'color:rgba(255,255,255,0.7);background:transparent;'} border:none; padding:4px 10px; font-size:0.75rem;" onclick="_asesorKanbanScope='mis';renderDashboard(State.activeRole,'asesor-kanban');">
+            🎯 Mis Asignados (${misCount})
+          </button>
+        </div>
+        ` : ''}
         <button class="btn btn-outline" style="color:#fff;border-color:rgba(255,255,255,0.2);" onclick="toggleKanbanView()">
           <span style="margin-right:4px;">${getIcon('layout')}</span> Vista ${viewMode === 'kanban' ? 'Lista' : 'Kanban'}
         </button>
@@ -1628,6 +1731,33 @@ function openCandidateDetail(id) {
         <span style="display:flex; align-items:center;">${getIcon('trash')}</span>
       </button>
     </div>
+
+    <!-- SECCIÓN DE ASESOR DESIGNADO -->
+    <div style="margin-bottom:18px;background:var(--slate-50);padding:14px;border-radius:8px;border:1px solid var(--slate-200);">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <span style="font-size:0.8125rem;font-weight:700;color:var(--slate-700);letter-spacing:0.04em;text-transform:uppercase;">🎯 Asesor de Seguimiento:</span>
+        <span class="badge ${c.id_asesor ? 'badge-info' : 'badge-warning'}">
+          ${c.id_asesor ? `👤 ${c.nombre_asesor || 'Asignado'}` : '⚠️ Pendiente de Asignar'}
+        </span>
+      </div>
+      ${(State.activeRole === 'Super Asesor' || State.activeRole === 'Admin') ? `
+      <div style="display:flex;gap:8px;align-items:center;">
+        <select class="form-select form-select-sm" id="modal-sel-asesor-${id}" style="flex:1;">
+          <option value="">-- Sin Asignar / Desasignar --</option>
+          ${DB.getAsesores().filter(u => (u.roles || []).includes('Asesor')).map(a => `
+            <option value="${a.id}" ${c.id_asesor === a.id ? 'selected' : ''}>
+              ${a.nombre} (${DB.getCandidatos().filter(x => x.id_asesor === a.id).length} asignados)
+            </option>
+          `).join('')}
+        </select>
+        <button class="btn btn-primary btn-sm" onclick="cambiarAsesorCandidato('${id}')">Designar Asesor</button>
+      </div>
+      ` : `
+      <div style="font-size:0.85rem;color:var(--slate-600);">
+        ${c.id_asesor ? `Asignado a: <strong>${c.nombre_asesor || 'Asesor'}</strong>` : 'El Super Asesor aún no ha asignado un asesor a este candidato.'}
+      </div>
+      `}
+    </div>
     ${c.estado_proceso === 'Lead Nuevo' ? `
     <div style="margin-bottom:18px;display:flex;gap:10px;background:#f8fafc;padding:12px;border-radius:8px;border:1px solid var(--slate-200);">
       <div style="flex:1;font-size:0.875rem;color:var(--slate-700);display:flex;align-items:center;">
@@ -1760,7 +1890,7 @@ function openCandidateDetail(id) {
         <div style="padding:10px;background:var(--slate-50);border-radius:var(--radius-md);border-left:3px solid var(--gold-500);margin-bottom:8px;">
           <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
             <span style="font-size:.75rem;font-weight:700;color:var(--gold-600);">${n.tipo}</span>
-            <span style="font-size:.7rem;color:var(--slate-400);">${n.fecha}</span>
+            <span style="font-size:.7rem;color:var(--slate-400);">${formatDateTime(n.fecha)}</span>
           </div>
           <div style="font-size:.875rem;color:var(--slate-700);">${n.contenido}</div>
         </div>
@@ -1974,7 +2104,7 @@ function renderAsesorNotas() {
               <div class="card-body" style="padding:14px;">
                 <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
                   <span style="font-size:.8125rem;font-weight:700;color:var(--gold-600);">${n.tipo}</span>
-                  <span style="font-size:.75rem;color:var(--slate-400);">${n.fecha}</span>
+                  <span style="font-size:.75rem;color:var(--slate-400);">${formatDateTime(n.fecha)}</span>
                 </div>
                 <div style="font-size:.8125rem;font-weight:600;color:var(--slate-500);margin-bottom:4px;">Candidato: ${c?.nombre||'Desconocido'}</div>
                 <div style="font-size:.9375rem;color:var(--slate-800);">${n.contenido}</div>
@@ -2535,6 +2665,540 @@ function removeSprachenItem(index) {
 }
 
 // ──────────────────────────────────────────────────────────────────
+// ★ DASHBOARD: SUPER ASESOR (Gestión y Asignación de Leads)
+// ──────────────────────────────────────────────────────────────────
+let _superLeadsFilter = 'all'; // 'all' | 'pendientes' | 'asignados'
+let _superKanbanAsesorFilter = 'all'; // 'all' | 'unassigned' | asesor_id
+
+function renderSuperLeads() {
+  const candidatos = DB.getCandidatos();
+  const asesores = DB.getAsesores().filter(u => (u.roles || []).includes('Asesor'));
+  const pendientes = candidatos.filter(c => !c.id_asesor);
+  const asignados = candidatos.filter(c => c.id_asesor);
+
+  // Filtrado actual
+  let lista = candidatos;
+  if (_superLeadsFilter === 'pendientes') {
+    lista = pendientes;
+  } else if (_superLeadsFilter === 'asignados') {
+    lista = asignados;
+  }
+
+  const coveragePercent = candidatos.length > 0 ? Math.round((asignados.length / candidatos.length) * 100) : 0;
+
+  return `
+    <!-- Header / Banner de Super Asesor -->
+    <div class="page-header" style="background:linear-gradient(135deg, #0f172a, #0369a1); color:#fff; padding:28px; border-radius:var(--radius-lg); margin-bottom:24px; box-shadow:0 10px 25px -5px rgba(2,132,199,0.25);">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:16px;">
+        <div>
+          <div style="display:inline-flex; align-items:center; gap:8px; font-size:0.75rem; text-transform:uppercase; letter-spacing:0.06em; color:#38bdf8; font-weight:700; margin-bottom:6px; background:rgba(56,189,248,0.12); padding:4px 12px; border-radius:999px;">
+            <span>⚡ Coordinación & Asignación Central</span>
+          </div>
+          <h1 style="font-size:1.75rem; font-weight:800; margin:0; letter-spacing:-0.02em;">Bandeja de Leads & Distribución</h1>
+          <p style="font-size:0.925rem; color:#bae6fd; margin-top:6px; max-width:650px;">
+            Recepción centralizada de candidatos que completaron el test de elegibilidad o fueron referidos por socios. Asígnalos a los asesores de reclutamiento según su especialidad y carga de trabajo.
+          </p>
+        </div>
+        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+          <button class="btn" style="background:#38bdf8; color:#0f172a; font-weight:700; border:none; box-shadow:0 4px 14px rgba(56,189,248,0.4);" onclick="ejecutarAutoDesignacion()">
+            ⚡ Reparto Equitativo (${pendientes.length})
+          </button>
+          <button class="btn btn-outline" style="color:#fff; border-color:rgba(255,255,255,0.25);" onclick="openModal('modal-nuevo-candidato')">
+            ➕ Crear Lead Manual
+          </button>
+        </div>
+      </div>
+
+      <!-- Tarjetas de Métricas -->
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:16px; margin-top:24px;">
+        <div style="background:rgba(255,255,255,0.08); backdrop-filter:blur(8px); border:1px solid rgba(255,255,255,0.12); padding:14px 18px; border-radius:12px;">
+          <div style="font-size:0.75rem; color:#bae6fd; text-transform:uppercase; letter-spacing:0.04em; font-weight:600;">📥 Total Leads Recibidos</div>
+          <div style="font-size:1.75rem; font-weight:800; color:#fff; margin-top:4px;">${candidatos.length}</div>
+          <div style="font-size:0.75rem; color:#94a3b8; margin-top:2px;">Candidatos en pipeline</div>
+        </div>
+
+        <div style="background:${pendientes.length > 0 ? 'rgba(239, 68, 68, 0.15)' : 'rgba(255,255,255,0.08)'}; backdrop-filter:blur(8px); border:1px solid ${pendientes.length > 0 ? 'rgba(239, 68, 68, 0.4)' : 'rgba(255,255,255,0.12)'}; padding:14px 18px; border-radius:12px;">
+          <div style="font-size:0.75rem; color:${pendientes.length > 0 ? '#fca5a5' : '#bae6fd'}; text-transform:uppercase; letter-spacing:0.04em; font-weight:700; display:flex; align-items:center; gap:6px;">
+            ${pendientes.length > 0 ? '⚠️' : '✅'} Pendientes de Asignar
+          </div>
+          <div style="font-size:1.75rem; font-weight:800; color:${pendientes.length > 0 ? '#fca5a5' : '#fff'}; margin-top:4px;">${pendientes.length}</div>
+          <div style="font-size:0.75rem; color:#cbd5e1; margin-top:2px;">${pendientes.length > 0 ? '¡Requieren asesor asignado!' : 'Todos asignados'}</div>
+        </div>
+
+        <div style="background:rgba(255,255,255,0.08); backdrop-filter:blur(8px); border:1px solid rgba(255,255,255,0.12); padding:14px 18px; border-radius:12px;">
+          <div style="font-size:0.75rem; color:#bae6fd; text-transform:uppercase; letter-spacing:0.04em; font-weight:600;">👥 Asesores en Equipo</div>
+          <div style="font-size:1.75rem; font-weight:800; color:#fff; margin-top:4px;">${asesores.length}</div>
+          <div style="font-size:0.75rem; color:#94a3b8; margin-top:2px;">Disponibles para asignación</div>
+        </div>
+
+        <div style="background:rgba(255,255,255,0.08); backdrop-filter:blur(8px); border:1px solid rgba(255,255,255,0.12); padding:14px 18px; border-radius:12px;">
+          <div style="font-size:0.75rem; color:#bae6fd; text-transform:uppercase; letter-spacing:0.04em; font-weight:600;">🎯 Tasa de Cobertura</div>
+          <div style="font-size:1.75rem; font-weight:800; color:#38bdf8; margin-top:4px;">${coveragePercent}%</div>
+          <div style="font-size:0.75rem; color:#94a3b8; margin-top:2px;">${asignados.length} con asesor asignado</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Contenedor Principal: Filtros y Tabla -->
+    <div class="card">
+      <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; padding:16px 20px;">
+        <!-- Pestañas de Filtrado -->
+        <div style="display:flex; gap:8px;">
+          <button class="btn btn-sm ${(_superLeadsFilter==='all') ? 'btn-primary' : 'btn-outline'}" onclick="filtrarLeads('all')">
+            Todos (${candidatos.length})
+          </button>
+          <button class="btn btn-sm ${(_superLeadsFilter==='pendientes') ? 'btn-primary' : 'btn-outline'}" style="${pendientes.length > 0 && _superLeadsFilter!=='pendientes' ? 'border-color:#ef4444; color:#ef4444;' : ''}" onclick="filtrarLeads('pendientes')">
+            ⚠️ Pendientes Sin Asignar (${pendientes.length})
+          </button>
+          <button class="btn btn-sm ${(_superLeadsFilter==='asignados') ? 'btn-primary' : 'btn-outline'}" onclick="filtrarLeads('asignados')">
+            ✅ Ya Asignados (${asignados.length})
+          </button>
+        </div>
+
+        <!-- Barra de Búsqueda -->
+        <div class="search-bar" style="max-width:280px;">
+          <span class="search-bar-icon">🔍</span>
+          <input class="form-input" placeholder="Buscar por candidato o país..." id="leads-table-search" oninput="filterTable(this, 'super-leads-tbody')">
+        </div>
+      </div>
+
+      <!-- Tabla de Leads -->
+      <div class="data-table-wrapper">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Candidato</th>
+              <th>Origen</th>
+              <th>Especialidad / Perfil</th>
+              <th>Alemán</th>
+              <th>Score Test</th>
+              <th>Fecha Ingreso</th>
+              <th>Asesor Designado</th>
+              <th style="text-align:right;">Acción de Designación</th>
+            </tr>
+          </thead>
+          <tbody id="super-leads-tbody">
+            ${lista.length === 0 ? `
+              <tr>
+                <td colspan="8" style="text-align:center; padding:36px; color:var(--slate-400);">
+                  No hay leads en este filtro.
+                </td>
+              </tr>
+            ` : lista.map(c => {
+              const asesorActual = asesores.find(a => a.id === c.id_asesor);
+              const isAssigned = !!c.id_asesor;
+
+              return `
+                <tr>
+                  <td>
+                    <div class="td-avatar" onclick="openCandidateDetail('${c.id}')" style="cursor:pointer;" title="Ver expediente">
+                      <div class="avatar" style="background:${getAvatarColor(c.nombre)}">${getInitials(c.nombre)}</div>
+                      <div>
+                        <div class="td-name" style="font-weight:700; color:var(--slate-900);">${c.nombre}</div>
+                        ${c.correo ? `<div style="font-size:0.75rem; color:var(--slate-500);">${c.correo}</div>` : ''}
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <span style="font-size:1.1rem; vertical-align:middle;">${countryFlag(c.pais)}</span>
+                    <span style="font-size:0.85rem; font-weight:500;">${c.pais}</span>
+                  </td>
+                  <td>
+                    <span style="font-size:0.875rem; font-weight:600; color:var(--slate-800);">${c.especialidad}</span>
+                  </td>
+                  <td>
+                    <span class="badge badge-info" style="font-size:0.7rem;">${c.nivel_aleman}</span>
+                  </td>
+                  <td>
+                    ${c.puntaje_elegibilidad !== undefined 
+                      ? `<span class="badge ${c.puntaje_elegibilidad >= 20 ? 'badge-success' : 'badge-warning'}" style="font-weight:700;">${c.puntaje_elegibilidad} pts</span>` 
+                      : `<span style="color:var(--slate-400); font-size:0.75rem;">—</span>`}
+                  </td>
+                  <td>
+                    <span style="font-size:0.8rem; color:var(--slate-500);">${formatDateTime(c.fecha_alta)}</span>
+                  </td>
+                  <td>
+                    ${isAssigned ? `
+                      <span class="lead-status-pill assigned" title="Asesor asignado">
+                        👤 ${c.nombre_asesor || asesorActual?.nombre || 'Asesor'}
+                      </span>
+                    ` : `
+                      <span class="lead-status-pill unassigned" title="Pendiente de asignación">
+                        ⚠️ Sin Asignar
+                      </span>
+                    `}
+                  </td>
+                  <td style="text-align:right;">
+                    <div style="display:inline-flex; align-items:center; gap:6px;">
+                      <select class="form-select form-select-sm" id="lead-sel-${c.id}" style="font-size:0.8rem; padding:4px 8px; width:170px;">
+                        <option value="">-- Designar Asesor --</option>
+                        ${asesores.map(a => {
+                          const carga = candidatos.filter(x => x.id_asesor === a.id).length;
+                          return `
+                            <option value="${a.id}" ${c.id_asesor === a.id ? 'selected' : ''}>
+                              ${a.nombre.split(' ')[0]} (${carga} leads)
+                            </option>
+                          `;
+                        }).join('')}
+                      </select>
+                      <button class="btn btn-primary btn-sm" onclick="ejecutarDesignacion('${c.id}')" title="Confirmar designación de asesor">
+                        ✓
+                      </button>
+                      <button class="btn btn-outline btn-sm" onclick="openCandidateDetail('${c.id}')" title="Ver detalles y test">
+                        👁️
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+function renderSuperAsesores() {
+  const candidatos = DB.getCandidatos();
+  const asesores = DB.getAsesores().filter(u => (u.roles || []).includes('Asesor'));
+
+  return `
+    <div class="page-header" style="background:linear-gradient(135deg, #0f172a, #1e293b); color:#fff; padding:28px; border-radius:var(--radius-lg); margin-bottom:24px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;">
+        <div>
+          <div style="font-size:0.75rem; text-transform:uppercase; letter-spacing:0.06em; color:#38bdf8; font-weight:700; margin-bottom:6px;">Supervisión Operativa</div>
+          <h1 style="font-size:1.75rem; font-weight:800; margin:0;">Equipo de Asesores & Cargas de Trabajo</h1>
+          <p style="font-size:0.925rem; color:#94a3b8; margin-top:6px;">
+            Monitorea el número de candidatos activos por asesor, balance de cartera y avance en las fases de reclutamiento.
+          </p>
+        </div>
+        <button class="btn btn-primary" onclick="navigateTo('super-leads')">
+          📥 Ir a Bandeja de Asignación
+        </button>
+      </div>
+    </div>
+
+    <!-- Grid de Asesores -->
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:20px;">
+      ${asesores.length === 0 ? `
+        <div class="card" style="padding:40px; text-align:center; color:var(--slate-500); grid-column: 1/-1;">
+          No hay usuarios con el rol de Asesor en el sistema. Puedes crearlos desde la Gestión de Usuarios.
+        </div>
+      ` : asesores.map(a => {
+        const asignados = candidatos.filter(c => c.id_asesor === a.id);
+        const enLeadNuevo = asignados.filter(c => c.estado_proceso === 'Lead Nuevo').length;
+        const enReclutamiento = asignados.filter(c => c.estado_proceso === '1er contacto, reclutamiento' || c.estado_proceso === 'En Proceso').length;
+        const enIdioma = asignados.filter(c => c.estado_proceso === 'Suficiencia del idioma' || c.estado_proceso === 'Idioma').length;
+        const enTramites = asignados.filter(c => c.estado_proceso === 'Entrevista Laboral y firma del contrato' || c.estado_proceso === 'Procesamiento de visa' || c.estado_proceso === 'Homologación' || c.estado_proceso === 'Trámite Visado').length;
+
+        const loadPercent = Math.min(100, Math.round((asignados.length / 10) * 100));
+
+        return `
+          <div class="asesor-workload-card">
+            <!-- Header del Asesor -->
+            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+              <div style="display:flex; gap:12px; align-items:center;">
+                <div class="avatar avatar-lg" style="background:${getAvatarColor(a.nombre)}">${getInitials(a.nombre)}</div>
+                <div>
+                  <h3 style="font-size:1.05rem; font-weight:700; color:var(--slate-900); margin:0;">${a.nombre}</h3>
+                  <div style="font-size:0.75rem; color:var(--slate-500);">${a.correo}</div>
+                </div>
+              </div>
+              <span class="badge badge-success" style="font-size:0.7rem;">Activo</span>
+            </div>
+
+            <!-- Carga de Trabajo -->
+            <div style="background:#f8fafc; padding:12px; border-radius:8px; border:1px solid #e2e8f0;">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-size:0.8rem; font-weight:600; color:var(--slate-600);">Carga Actual:</span>
+                <span style="font-size:1.1rem; font-weight:800; color:#0284c7;">${asignados.length} candidatos</span>
+              </div>
+              <div class="workload-bar-bg">
+                <div class="workload-bar-fill" style="width:${loadPercent}%;"></div>
+              </div>
+              <div style="display:flex; justify-content:space-between; font-size:0.7rem; color:var(--slate-400); margin-top:4px;">
+                <span>0</span>
+                <span>${asignados.length < 5 ? 'Carga ligera' : asignados.length < 8 ? 'Carga equilibrada' : 'Carga alta'}</span>
+                <span>10+</span>
+              </div>
+            </div>
+
+            <!-- Desglose por Etapas -->
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:0.75rem;">
+              <div style="background:#f1f5f9; padding:6px 10px; border-radius:6px; display:flex; justify-content:space-between;">
+                <span style="color:var(--slate-600);">Leads nuevos:</span>
+                <strong style="color:var(--slate-900);">${enLeadNuevo}</strong>
+              </div>
+              <div style="background:#f1f5f9; padding:6px 10px; border-radius:6px; display:flex; justify-content:space-between;">
+                <span style="color:var(--slate-600);">1er Contacto:</span>
+                <strong style="color:var(--slate-900);">${enReclutamiento}</strong>
+              </div>
+              <div style="background:#f1f5f9; padding:6px 10px; border-radius:6px; display:flex; justify-content:space-between;">
+                <span style="color:var(--slate-600);">En Idioma:</span>
+                <strong style="color:var(--slate-900);">${enIdioma}</strong>
+              </div>
+              <div style="background:#f1f5f9; padding:6px 10px; border-radius:6px; display:flex; justify-content:space-between;">
+                <span style="color:var(--slate-600);">Visa/Contrato:</span>
+                <strong style="color:var(--slate-900);">${enTramites}</strong>
+              </div>
+            </div>
+
+            <!-- Botones de Acción -->
+            <div style="display:flex; gap:8px; margin-top:4px;">
+              <button class="btn btn-outline btn-sm" style="flex:1; justify-content:center;" onclick="verKanbanAsesor('${a.id}')">
+                📊 Ver en Kanban
+              </button>
+              <button class="btn btn-primary btn-sm" style="flex:1; justify-content:center;" onclick="navigateTo('super-leads'); filtrarLeads('pendientes');">
+                ➕ Asignar Lead
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+function renderSuperKanban() {
+  const { kanban_columns } = DB.get();
+  const allCandidatos = DB.getCandidatos();
+  const asesores = DB.getAsesores().filter(u => (u.roles || []).includes('Asesor'));
+
+  let candidatos = allCandidatos;
+  if (_superKanbanAsesorFilter === 'unassigned') {
+    candidatos = allCandidatos.filter(c => !c.id_asesor);
+  } else if (_superKanbanAsesorFilter !== 'all') {
+    candidatos = allCandidatos.filter(c => c.id_asesor === _superKanbanAsesorFilter);
+  }
+
+  const viewMode = State.kanbanView || 'kanban';
+
+  let boardHtml = '';
+  if (viewMode === 'kanban') {
+    boardHtml = `
+      <div class="kanban-board" id="kanban-board">
+        ${kanban_columns.map(col => {
+          const cards = candidatos.filter(c => c.estado_proceso === col.id);
+          return `
+            <div class="kanban-col" data-col="${col.id}" id="col-${col.id.replace(/\s+/g,'-')}">
+              <div class="kanban-col-header">
+                <span class="kanban-col-title">${col.icon} ${col.label}</span>
+                <span class="kanban-col-count">${cards.length}</span>
+              </div>
+              <div class="kanban-drop-zone" data-col="${col.id}">
+                ${cards.map(c => `
+                  <div class="kanban-card" draggable="true" data-id="${c.id}" data-col="${col.id}"
+                       onclick="openCandidateDetail('${c.id}')">
+                    <div class="kanban-card-name">${c.nombre}</div>
+                    <div class="kanban-card-spec">${c.especialidad} · ${c.pais}</div>
+                    
+                    <div style="margin-top:6px; margin-bottom:4px;">
+                      ${c.id_asesor ? `
+                        <span class="badge" style="background:#e0f2fe; color:#0284c7; font-size:0.65rem; border:1px solid #bae6fd;">
+                          👤 ${c.nombre_asesor ? c.nombre_asesor.split(' ')[0] : 'Asesor'}
+                        </span>
+                      ` : `
+                        <span class="badge" style="background:#fee2e2; color:#dc2626; font-size:0.65rem; border:1px solid #fecaca;">
+                          ⚠️ Sin Asignar
+                        </span>
+                      `}
+                    </div>
+
+                    <div class="kanban-card-footer">
+                      <span class="badge badge-info" style="font-size:.65rem;">${c.nivel_aleman}</span>
+                      <span style="font-size:.7rem;color:var(--slate-400);">${countryFlag(c.pais)}</span>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+  } else {
+    boardHtml = `
+      <div class="card">
+        <div class="data-table-wrapper">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Candidato</th>
+                <th>País</th>
+                <th>Especialidad</th>
+                <th>Alemán</th>
+                <th>Asesor Asignado</th>
+                <th>Estado Proceso</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${candidatos.map(c => `
+                <tr onclick="openCandidateDetail('${c.id}')" style="cursor:pointer">
+                  <td><div class="td-avatar"><div class="avatar" style="background:${getAvatarColor(c.nombre)}">${getInitials(c.nombre)}</div><div class="td-name">${c.nombre}</div></div></td>
+                  <td><span style="font-size:1rem;">${countryFlag(c.pais)}</span> ${c.pais}</td>
+                  <td>${c.especialidad}</td>
+                  <td><span class="badge badge-info">${c.nivel_aleman}</span></td>
+                  <td>
+                    ${c.id_asesor ? `<span class="badge badge-info">👤 ${c.nombre_asesor}</span>` : `<span class="badge badge-danger">⚠️ Sin Asignar</span>`}
+                  </td>
+                  <td><span class="badge badge-warning">${c.estado_proceso}</span></td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="kanban-banner" style="background:linear-gradient(135deg, #0f172a, #0369a1);">
+      <div>
+        <h1 class="kanban-banner-title">Pipeline Global de Candidatos</h1>
+        <p class="kanban-banner-subtitle">Vista general de todos los candidatos con asignaciones y filtros</p>
+      </div>
+      <div class="kanban-banner-actions">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <label style="color:#fff; font-size:0.8rem; font-weight:600;">Filtrar por Asesor:</label>
+          <select class="form-select form-select-sm" style="background:rgba(255,255,255,0.15); color:#fff; border-color:rgba(255,255,255,0.3);" onchange="filtrarKanbanAsesor(this.value)">
+            <option value="all" style="color:#000;" ${_superKanbanAsesorFilter==='all'?'selected':''}>Todos los Asesores</option>
+            <option value="unassigned" style="color:#000;" ${_superKanbanAsesorFilter==='unassigned'?'selected':''}>⚠️ Solo Sin Asignar</option>
+            ${asesores.map(a => `
+              <option value="${a.id}" style="color:#000;" ${_superKanbanAsesorFilter===a.id?'selected':''}>
+                ${a.nombre} (${allCandidatos.filter(x=>x.id_asesor===a.id).length})
+              </option>
+            `).join('')}
+          </select>
+        </div>
+        <button class="btn btn-outline" style="color:#fff;border-color:rgba(255,255,255,0.2);" onclick="toggleKanbanView()">
+          <span style="margin-right:4px;">${getIcon('layout')}</span> Vista ${viewMode === 'kanban' ? 'Lista' : 'Kanban'}
+        </button>
+        <button class="btn" style="background:#38bdf8;color:#0f172a;font-weight:700;" onclick="navigateTo('super-leads')">
+          📥 Bandeja de Leads
+        </button>
+      </div>
+    </div>
+    
+    ${boardHtml}
+
+    <!-- Modal Detalle Candidato -->
+    <div class="modal-overlay" id="modal-candidato">
+      <div class="modal" style="max-width:600px;">
+        <div class="modal-header">
+          <h3 class="modal-title" id="modal-cand-title">Detalle del Candidato</h3>
+          <button class="modal-close" onclick="closeModal('modal-candidato')">✕</button>
+        </div>
+        <div class="modal-body" id="modal-cand-body"></div>
+      </div>
+    </div>
+
+    <!-- Modal Nuevo Candidato Manual -->
+    <div class="modal-overlay" id="modal-nuevo-candidato">
+      <div class="modal" style="max-width:500px;">
+        <div class="modal-header">
+          <h3 class="modal-title">➕ Nuevo Candidato</h3>
+          <button class="modal-close" onclick="closeModal('modal-nuevo-candidato')">✕</button>
+        </div>
+        <div class="modal-body">
+          <form id="form-nuevo-candidato" style="display:flex;flex-direction:column;gap:16px;">
+            <div class="form-group">
+              <label class="form-label">Nombre completo</label>
+              <input class="form-input" id="nc-nombre" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Especialidad</label>
+              <input class="form-input" id="nc-especialidad" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">País</label>
+              <input class="form-input" id="nc-pais" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Nivel de Alemán</label>
+              <select class="form-select" id="nc-aleman">
+                <option>A1</option><option>A2</option><option>B1</option>
+                <option>B2</option><option>C1</option><option>C2</option>
+              </select>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-outline" onclick="closeModal('modal-nuevo-candidato')">Cancelar</button>
+          <button class="btn btn-primary" onclick="guardarNuevoCandidato()">Guardar</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// Controladores de Super Asesor
+window.filtrarLeads = function(filtro) {
+  _superLeadsFilter = filtro;
+  renderDashboard(State.activeRole, 'super-leads');
+};
+
+window.filtrarKanbanAsesor = function(asesorId) {
+  _superKanbanAsesorFilter = asesorId;
+  renderDashboard(State.activeRole, 'super-kanban');
+};
+
+window.verKanbanAsesor = function(asesorId) {
+  _superKanbanAsesorFilter = asesorId;
+  navigateTo('super-kanban');
+};
+
+window.ejecutarDesignacion = async function(candId) {
+  const sel = $(`lead-sel-${candId}`);
+  if (!sel) return;
+  const asesorId = sel.value;
+  if (!asesorId) {
+    showToast('Selección requerida', 'Por favor selecciona un asesor de la lista.', 'warning');
+    return;
+  }
+
+  try {
+    const cand = DB.getCandidatoById(candId);
+    await DB.designarAsesor(candId, asesorId, State.currentUser);
+    const asesor = DB.getUsuarios().find(u => u.id === asesorId);
+    showToast('🎯 Candidato Designado', `${cand.nombre} fue asignado a ${asesor ? asesor.nombre : 'el asesor'}.`, 'success');
+    renderDashboard(State.activeRole, 'super-leads');
+  } catch(e) {
+    console.error(e);
+    showToast('Error', 'No se pudo designar el asesor.', 'error');
+  }
+};
+
+window.ejecutarAutoDesignacion = async function() {
+  try {
+    const res = await DB.autoDesignarLeads(State.currentUser);
+    if (res.count > 0) {
+      showToast('⚡ Reparto Exitoso', res.message, 'success', 5000);
+      renderDashboard(State.activeRole, 'super-leads');
+    } else {
+      showToast('Información', res.message, 'info');
+    }
+  } catch(e) {
+    console.error(e);
+    showToast('Error', 'Ocurrió un error al realizar la asignación automática.', 'error');
+  }
+};
+
+window.cambiarAsesorCandidato = async function(candId) {
+  const sel = $(`modal-sel-asesor-${candId}`);
+  const asesorId = sel ? sel.value : null;
+  try {
+    await DB.designarAsesor(candId, asesorId, State.currentUser);
+    showToast('Asignación actualizada', asesorId ? 'El asesor ha sido asignado y notificado correctamente.' : 'El candidato quedó marcado como sin asesor.', 'success');
+    openCandidateDetail(candId);
+    renderDashboard(State.activeRole);
+  } catch(e) {
+    console.error(e);
+    showToast('Error', 'No se pudo actualizar la asignación.', 'error');
+  }
+};
+
+// ──────────────────────────────────────────────────────────────────
 // ★ DASHBOARD 3: PROFESOR
 // ──────────────────────────────────────────────────────────────────
 function renderProfGrupos() {
@@ -2716,7 +3380,7 @@ function renderProfMateriales() {
                 <div class="doc-card">
                   <div class="doc-card-icon">${iconsTipo[m.tipo]||'📁'}</div>
                   <div class="doc-card-name">${m.titulo}</div>
-                  <div style="font-size:.75rem;color:var(--slate-400);">${m.tipo} · ${m.fecha}</div>
+                  <div style="font-size:.75rem;color:var(--slate-400);">${m.tipo} · ${formatDateTime(m.fecha)}</div>
                   <div style="margin-top:10px;"><a href="${m.url}" target="_blank" class="btn btn-outline btn-sm w-full" style="width:100%;justify-content:center;">Abrir</a></div>
                 </div>
               `).join('')}
@@ -2932,7 +3596,7 @@ function renderCandAula() {
             <div class="doc-card">
               <div class="doc-card-icon">📄</div>
               <div class="doc-card-name">${m.titulo}</div>
-              <div style="font-size:.75rem;color:var(--slate-400);margin-bottom:10px;">${m.tipo} · ${m.fecha}</div>
+              <div style="font-size:.75rem;color:var(--slate-400);margin-bottom:10px;">${m.tipo} · ${formatDateTime(m.fecha)}</div>
               <a href="${m.url}" class="btn btn-outline btn-sm w-full" style="width:100%;justify-content:center;">Descargar</a>
             </div>
           `).join('')}
@@ -3316,6 +3980,15 @@ async function registrarCandidatoSocio() {
   if (!nombre || !pais) { showToast('Error','Nombre y país son obligatorios.','error'); return; }
   const socio = DB.getSocioByUsuario(State.currentUser.id);
   await DB.createCandidato({ nombre, pais, especialidad: spec, nivel_aleman: nivel, estado_proceso:'Lead Nuevo', estado_homologacion:'Pendiente', id_socio: State.currentUser.id, foto: getInitials(nombre), anos_exp: 0 });
+  const superAsesores = DB.getUsuarios().filter(u => (u.roles || []).includes('Super Asesor'));
+  superAsesores.forEach(sa => {
+    DB.addNotificacion({
+      id_usuario_dest: sa.id,
+      tipo: 'Nuevo_Candidato',
+      titulo: '📥 Nuevo Lead de Socio',
+      mensaje: `${State.currentUser.nombre} registró a ${nombre} (${spec} · ${pais}). Pendiente de designar asesor.`
+    });
+  });
   showToast('✅ Candidato registrado', `${nombre} fue enviado a JN Palabras como Lead Nuevo.`, 'success', 5000);
   $('sc-nombre').value=''; $('sc-pais').value='';
 }
@@ -3391,8 +4064,8 @@ function renderSocioComisiones() {
                 <td>${c.empresa}</td>
                 <td style="font-weight:700;color:var(--gold-600);">${formatCurrency(c.monto)}</td>
                 <td><span class="badge ${c.estado==='Pagada'?'badge-success':c.estado==='Devengada'?'badge-warning':'badge-slate'}">${c.estado}</span></td>
-                <td>${c.fecha_devengamiento}</td>
-                <td>${c.fecha_pago||'Pendiente'}</td>
+                <td>${formatDateTime(c.fecha_devengamiento)}</td>
+                <td>${c.fecha_pago ? formatDateTime(c.fecha_pago) : 'Pendiente'}</td>
               </tr>
             `).join('')}
           </tbody>
@@ -3887,6 +4560,17 @@ async function submitRegistration(e) {
     puntaje_elegibilidad: totalScore,
     respuestas_elegibilidad: { ...(State.appAnswersLabels || State.appAnswers) }
   });
+
+  // Notificar a los Super Asesores del nuevo lead recibido
+  const superAsesores = DB.getUsuarios().filter(u => (u.roles || []).includes('Super Asesor'));
+  superAsesores.forEach(sa => {
+    DB.addNotificacion({
+      id_usuario_dest: sa.id,
+      tipo: 'Nuevo_Candidato',
+      titulo: '📥 Nuevo Lead para Designar',
+      mensaje: `${nombre} (${pais}) completó el test (${totalScore} pts). Pendiente de designar asesor.`
+    });
+  });
   
   // Limpiar respuestas para futuras aplicaciones
   State.appAnswers = {};
@@ -3913,8 +4597,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (session) {
     if (session.rol && !session.roles) session.roles = [session.rol];
     const users = DB.getUsuarios();
-    const updatedUser = users.find(u => u.id === session.id || (session.correo && u.correo === session.correo));
+    const updatedUser = users.find(u => u.id === session.id || (session.correo && u.correo && u.correo.toLowerCase() === session.correo.toLowerCase()));
     State.currentUser = updatedUser ? { ...session, ...updatedUser } : session;
+    
+    // Auto-corregir sesiones guardadas previamente que tengan 'Ana García' en la cuenta admin
+    if (State.currentUser && State.currentUser.correo === 'admin@jnpalabras.com' && (State.currentUser.nombre.includes('Ana') || !State.currentUser.nombre)) {
+      State.currentUser.nombre = 'Admin JN Palabras';
+      State.currentUser.avatar = 'AJ';
+    }
     DB.setSession(State.currentUser);
 
     // Determinar rol activo
@@ -3924,7 +4614,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const isAdmin = userRoles.includes('Admin');
 
     if (roleFromHash && (userRoles.includes(roleFromHash) || isAdmin)) {
-      activeRole = roleForView;
+      activeRole = roleFromHash;
     } else if (!activeRole || (!userRoles.includes(activeRole) && !isAdmin)) {
       activeRole = userRoles.length > 0 ? userRoles[0] : 'Candidato';
     }
@@ -4115,7 +4805,7 @@ window.switchRole = function(newRole) {
     localStorage.setItem('jnp_active_role', newRole);
     localStorage.setItem('jnp_current_view', 'app');
   } catch(e) {}
-  document.body.className = `theme-${newRole.toLowerCase()}`;
+  document.body.className = `theme-${newRole.toLowerCase().replace(/\s+/g, '-')}`;
   const firstItem = SIDEBAR_MENUS[newRole]?.[0]?.id;
   State.currentSidebar = firstItem;
   try {
@@ -4127,4 +4817,10 @@ window.switchRole = function(newRole) {
   renderAppShell(firstItem);
 };
 
+window.filtrarLeads = filtrarLeads;
+window.filtrarKanbanAsesor = filtrarKanbanAsesor;
+window.verKanbanAsesor = verKanbanAsesor;
+window.ejecutarDesignacion = ejecutarDesignacion;
+window.ejecutarAutoDesignacion = ejecutarAutoDesignacion;
+window.cambiarAsesorCandidato = cambiarAsesorCandidato;
 window.getRoleForView = getRoleForView;

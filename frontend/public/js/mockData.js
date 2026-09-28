@@ -1,15 +1,25 @@
 const INITIAL_DATA = {
   "usuarios": [
     {
-      "id": "u-admin-001",
-      "nombre": "Ana García",
+      "id": "a0000000-0000-0000-0000-000000000001",
+      "nombre": "Admin JN Palabras",
       "roles": ["Admin"],
       "correo": "admin@jnpalabras.com",
       "contrasena": "JNPalabrasAdmin2026!",
-      "avatar": "AG",
+      "avatar": "AJ",
       "activo": true,
       "fecha_creacion": "2024-01-15",
       "ultimo_acceso": "2026-09-16T20:53:40.885Z"
+    },
+    {
+      "id": "u-super-001",
+      "nombre": "Mariana Vega (Super Asesora)",
+      "roles": ["Super Asesor"],
+      "correo": "superasesor@jnpalabras.com",
+      "contrasena": "JNPalabrasSuper2026!",
+      "avatar": "MV",
+      "activo": true,
+      "fecha_creacion": "2024-02-01"
     },
     {
       "id": "u-asesor-001",
