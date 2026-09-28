@@ -6,31 +6,9 @@ const { isPostgresConfigured, query } = require('./db/pool');
 
 const app = express();
 
-// CORS: permite localhost/127.0.0.1 en cualquier puerto en dev, la URL de Vercel en producción y previsualizaciones *.vercel.app
-const allowedOrigins = [
-  'http://localhost:5173',
-  'http://localhost:4173',
-  process.env.FRONTEND_URL, // ej: https://jn-palabras.vercel.app
-].filter(Boolean);
-
+// CORS: permite cualquier origen (dev, producción en Render, Vercel, vistas previas, etc.)
 app.use(cors({
-  origin: function(origin, callback) {
-    // Permite requests sin origin (ej: Postman, curl, móvil)
-    if (!origin) return callback(null, true);
-    
-    // Permite cualquier localhost o 127.0.0.1 (ej: 5173, 4173, etc.)
-    if (/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
-      return callback(null, true);
-    }
-
-    // Permite orígenes en la lista explícita
-    if (allowedOrigins.includes(origin)) return callback(null, true);
-
-    // Permite subdominios de previsualización de Vercel (*.vercel.app)
-    if (/\.vercel\.app$/.test(origin)) return callback(null, true);
-
-    return callback(null, false);
-  },
+  origin: true,
   credentials: true
 }));
 app.use(express.json());

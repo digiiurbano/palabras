@@ -1,12 +1,14 @@
 
-// URL del backend: usa VITE_API_URL en producción o localhost en desarrollo
-let apiUrl = 'https://jn-palabras-backend.onrender.com';
-if (typeof window !== 'undefined' && window.VITE_API_URL && window.VITE_API_URL !== 'undefined') {
+// URL del backend: usa localhost en desarrollo y Render en producción
+let apiUrl = 'http://localhost:3000';
+if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+  apiUrl = 'http://localhost:3000';
+} else if (typeof window !== 'undefined' && window.VITE_API_URL && window.VITE_API_URL !== 'undefined') {
   apiUrl = window.VITE_API_URL;
 } else if (typeof window !== 'undefined' && localStorage.getItem('jnp_api_url')) {
   apiUrl = localStorage.getItem('jnp_api_url');
-} else if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
-  apiUrl = 'http://localhost:3000';
+} else {
+  apiUrl = 'https://jn-palabras-backend.onrender.com';
 }
 const API_URL = apiUrl;
 
@@ -87,10 +89,18 @@ const DB = {
             const remoteUsers = remote.usuarios || [];
             const localUsers = (this.data && this.data.usuarios) || [];
             const mergedUsers = [...remoteUsers];
-            // Conservar usuarios creados localmente que el backend aún no tenga
+            // Conservar usuarios creados localmente que el backend aún no tenga y sincronizarlos a la nube
             for (const lu of localUsers) {
               if (!mergedUsers.some(ru => ru.id === lu.id || (lu.correo && ru.correo && ru.correo.toLowerCase() === lu.correo.toLowerCase()))) {
                 mergedUsers.unshift(lu);
+                // Sincronizar automáticamente a la base de datos remota
+                if (API_URL) {
+                  fetch(`${API_URL}/api/users`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(lu)
+                  }).catch(() => {});
+                }
               }
             }
             this.data = { ...this.data, ...remote, usuarios: mergedUsers };
@@ -311,7 +321,9 @@ const DB = {
 
   // ── CANDIDATOS ────────────────────────────────────────────────
   getCandidatos() {
-    const list = this.get().candidatos || [];
+    let list = (this.get().candidatos && this.get().candidatos.length > 0)
+      ? this.get().candidatos
+      : (typeof INITIAL_DATA !== 'undefined' && INITIAL_DATA.candidatos ? INITIAL_DATA.candidatos : []);
     const usuarios = this.getUsuarios();
     return list.map(c => {
       const asesor = c.id_asesor ? usuarios.find(u => u.id === c.id_asesor) : null;
@@ -741,9 +753,21 @@ const DB = {
   // ── NOTAS ─────────────────────────────────────────────────────
   getNotas(id_candidato) { return (this.get().notas || []).filter(n => n.id_candidato === id_candidato).sort((a,b) => new Date(b.fecha)-new Date(a.fecha)); },
 
-  addNota(data) {
+  addNota(arg1, arg2) {
     const db = this.get();
-    const nueva = { ...data, id: 'n-' + Date.now(), fecha: new Date().toISOString().split('T')[0] };
+    let data = {};
+    if (typeof arg1 === 'string' && typeof arg2 === 'object') {
+      data = { ...arg2, id_candidato: arg1 };
+    } else if (typeof arg1 === 'object') {
+      data = { ...arg1 };
+    }
+    const nueva = {
+      id: 'n-' + Date.now(),
+      fecha: new Date().toISOString().split('T')[0],
+      fecha_hora: new Date().toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' }),
+      ...data
+    };
+    if (!db.notas) db.notas = [];
     db.notas.push(nueva);
     this.save(db);
     return nueva;

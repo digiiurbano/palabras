@@ -42,7 +42,144 @@ const INITIAL_DATA = {
       "fecha_creacion": "2024-02-20"
     }
   ],
-  "candidatos": [],
+  "candidatos": [
+    {
+      "id": "cand-001",
+      "nombre": "Luis Villacis",
+      "pais": "Ecuador",
+      "especialidad": "Lic. Enfermería",
+      "nivel_aleman": "A1",
+      "estado_proceso": "Lead Nuevo",
+      "estado_homologacion": "Pendiente",
+      "id_asesor": "u-asesor-001",
+      "nombre_asesor": "Carlos Martínez",
+      "correo": "luis.villacis@email.com",
+      "telefono": "+593 99 123 4567",
+      "foto": "",
+      "fecha_alta": "2026-09-20",
+      "documentos_subidos": 2,
+      "certificado_idioma": null
+    },
+    {
+      "id": "cand-002",
+      "nombre": "Dra. Camila Morales",
+      "pais": "Colombia",
+      "especialidad": "Medicina General",
+      "nivel_aleman": "A2",
+      "estado_proceso": "1er Contacto / Reclutamiento",
+      "estado_homologacion": "En Proceso",
+      "id_asesor": "u-asesor-001",
+      "nombre_asesor": "Carlos Martínez",
+      "correo": "camila.morales@email.com",
+      "telefono": "+57 310 987 6543",
+      "foto": "",
+      "fecha_alta": "2026-09-18",
+      "documentos_subidos": 4,
+      "certificado_idioma": "A2"
+    },
+    {
+      "id": "cand-003",
+      "nombre": "Lic. Roberto Gómez",
+      "pais": "Perú",
+      "especialidad": "Fisioterapia",
+      "nivel_aleman": "B1",
+      "estado_proceso": "Suficiencia de Idioma (A1-B2)",
+      "estado_homologacion": "En Proceso",
+      "id_asesor": "u-asesor-001",
+      "nombre_asesor": "Carlos Martínez",
+      "correo": "roberto.gomez@email.com",
+      "telefono": "+51 987 654 321",
+      "foto": "",
+      "fecha_alta": "2026-09-10",
+      "documentos_subidos": 5,
+      "certificado_idioma": "B1"
+    },
+    {
+      "id": "cand-004",
+      "nombre": "Dra. Valentina Ortiz",
+      "pais": "México",
+      "especialidad": "Anestesiología",
+      "nivel_aleman": "B2",
+      "estado_proceso": "Entrevista y Contrato",
+      "estado_homologacion": "Aprobado",
+      "id_asesor": "u-asesor-001",
+      "nombre_asesor": "Carlos Martínez",
+      "correo": "valentina.ortiz@email.com",
+      "telefono": "+52 55 4321 8765",
+      "foto": "",
+      "fecha_alta": "2026-08-25",
+      "documentos_subidos": 6,
+      "certificado_idioma": "B2"
+    },
+    {
+      "id": "cand-005",
+      "nombre": "Lic. Andrés Paredes",
+      "pais": "Ecuador",
+      "especialidad": "Instrumentación Quirúrgica",
+      "nivel_aleman": "B2",
+      "estado_proceso": "Procesamiento de Visa",
+      "estado_homologacion": "Aprobado",
+      "id_asesor": "u-asesor-001",
+      "nombre_asesor": "Carlos Martínez",
+      "correo": "andres.paredes@email.com",
+      "telefono": "+593 98 765 4321",
+      "foto": "",
+      "fecha_alta": "2026-08-15",
+      "documentos_subidos": 6,
+      "certificado_idioma": "B2"
+    },
+    {
+      "id": "cand-006",
+      "nombre": "Lic. Lucía Silva",
+      "pais": "Argentina",
+      "especialidad": "Cuidados Intensivos",
+      "nivel_aleman": "B2",
+      "estado_proceso": "Fase Pre-viaje",
+      "estado_homologacion": "Aprobado",
+      "id_asesor": "u-asesor-001",
+      "nombre_asesor": "Carlos Martínez",
+      "correo": "lucia.silva@email.com",
+      "telefono": "+54 9 11 2345 6789",
+      "foto": "",
+      "fecha_alta": "2026-07-20",
+      "documentos_subidos": 6,
+      "certificado_idioma": "B2"
+    },
+    {
+      "id": "cand-007",
+      "nombre": "Dr. Javier Torres",
+      "pais": "Chile",
+      "especialidad": "Traumatología",
+      "nivel_aleman": "C1",
+      "estado_proceso": "En Destino",
+      "estado_homologacion": "Aprobado",
+      "id_asesor": "u-asesor-001",
+      "nombre_asesor": "Carlos Martínez",
+      "correo": "javier.torres@email.com",
+      "telefono": "+56 9 8765 4321",
+      "foto": "",
+      "fecha_alta": "2026-06-10",
+      "documentos_subidos": 6,
+      "certificado_idioma": "C1"
+    },
+    {
+      "id": "cand-008",
+      "nombre": "Dra. Mariana Reyes",
+      "pais": "Colombia",
+      "especialidad": "Pediatría",
+      "nivel_aleman": "C1",
+      "estado_proceso": "Inserción Exitosa",
+      "estado_homologacion": "Aprobado",
+      "id_asesor": "u-asesor-001",
+      "nombre_asesor": "Carlos Martínez",
+      "correo": "mariana.reyes@email.com",
+      "telefono": "+57 320 123 4567",
+      "foto": "",
+      "fecha_alta": "2026-05-01",
+      "documentos_subidos": 6,
+      "certificado_idioma": "C1"
+    }
+  ],
   "kanban_columns": [
     {
       "id": "Lead Nuevo",
@@ -51,32 +188,32 @@ const INITIAL_DATA = {
       "icon": "🆕"
     },
     {
-      "id": "1er contacto, reclutamiento",
-      "label": "1er contacto, reclutamiento",
+      "id": "1er Contacto / Reclutamiento",
+      "label": "1er Contacto / Reclutamiento",
       "color": "#3b82f6",
       "icon": "📞"
     },
     {
-      "id": "Suficiencia del idioma",
-      "label": "Suficiencia del idioma",
+      "id": "Suficiencia de Idioma (A1-B2)",
+      "label": "Suficiencia de Idioma (A1-B2)",
       "color": "#8b5cf6",
       "icon": "🗣️"
     },
     {
-      "id": "Entrevista Laboral y firma del contrato",
-      "label": "Entrevista Laboral y firma del contrato",
+      "id": "Entrevista y Contrato",
+      "label": "Entrevista y Contrato",
       "color": "#ec4899",
       "icon": "🤝"
     },
     {
-      "id": "Procesamiento de visa",
-      "label": "Procesamiento de visa",
+      "id": "Procesamiento de Visa",
+      "label": "Procesamiento de Visa",
       "color": "#f59e0b",
       "icon": "🛂"
     },
     {
-      "id": "Fase Pre viaje",
-      "label": "Fase Pre viaje",
+      "id": "Fase Pre-viaje",
+      "label": "Fase Pre-viaje",
       "color": "#14b8a6",
       "icon": "✈️"
     },
@@ -87,8 +224,8 @@ const INITIAL_DATA = {
       "icon": "📍"
     },
     {
-      "id": "Inserción exitosa",
-      "label": "Inserción exitosa",
+      "id": "Inserción Exitosa",
+      "label": "Inserción Exitosa",
       "color": "#10b981",
       "icon": "🎉"
     }

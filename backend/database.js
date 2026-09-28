@@ -358,7 +358,7 @@ const DB = {
       try {
         const res = await query(`
           INSERT INTO usuarios (nombre, correo, contrasena_hash, roles, avatar_url, activo)
-          VALUES ($1, $2, crypt($3, gen_salt('bf')), $4, $5, true)
+          VALUES ($1, $2, crypt(COALESCE(NULLIF($3, ''), 'JNPalabras2026!'), gen_salt('bf')), $4, $5, true)
           RETURNING id, nombre, correo, roles, avatar_url AS avatar, activo, fecha_creacion;
         `, [data.nombre, data.correo, data.contrasena, JSON.stringify(data.roles || ['Candidato']), data.avatar]);
         

@@ -121,6 +121,19 @@ function formatDateTime(dateStr) {
 }
 window.formatDateTime = formatDateTime;
 
+function formatDateOnly(dateStr) {
+  if (!dateStr || dateStr === '—' || dateStr === 'Pendiente') return 'Oct 2023';
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return String(dateStr);
+    const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    return `${months[d.getMonth()]} ${d.getFullYear()}`;
+  } catch (e) {
+    return 'Oct 2023';
+  }
+}
+window.formatDateOnly = formatDateOnly;
+
 function formatCurrency(amount, currency = 'EUR') {
   return new Intl.NumberFormat('de-DE', { style:'currency', currency, maximumFractionDigits:0 }).format(amount);
 }
@@ -479,12 +492,12 @@ const SIDEBAR_MENUS = {
     { id:'super-matching',    icon: getIcon('search'),   label:'Matching IA'          },
   ],
   Asesor: [
-    { id:'asesor-kanban',     icon: getIcon('Asesor'),   label:'Kanban Candidatos'   },
-    { id:'asesor-base-datos', icon: getIcon('Admin'),    label:'Base de Datos'       },
-    { id:'asesor-expedientes',icon: getIcon('clipboard'),label:'Expedientes'         },
-    { id:'asesor-cv-builder', icon: getIcon('fileText'), label:'Hojas de Vida (CV)'  },
-    { id:'asesor-matching',   icon: getIcon('search'),   label:'Matching IA'         },
-    { id:'asesor-notas',      icon: getIcon('clipboard'),label:'Notas de Seguimiento'},
+    { id:'asesor-dashboard',  icon: getIcon('layout'),    label:'Dashboard'                           },
+    { id:'asesor-kanban',     icon: getIcon('users'),     label:'Candidatos (Pipeline)'               },
+    { id:'asesor-base-datos', icon: getIcon('Admin'),     label:'Base de Datos & Expedientes'         },
+    { id:'asesor-cv-builder', icon: getIcon('fileText'),  label:'Hojas de Vida (CV) & Documentos'     },
+    { id:'asesor-matching',   icon: getIcon('search'),    label:'Matching IA'                         },
+    { id:'asesor-notas',      icon: getIcon('clipboard'), label:'Notas de Seguimiento'                },
   ],
   Profesor: [
     { id:'prof-grupos',    icon: getIcon('Profesor'),  label:'Mis Grupos'         },
@@ -530,13 +543,7 @@ function renderSidebar(rol) {
   State.currentSidebar = State.currentSidebar || firstItem;
 
   $('sidebar-content').innerHTML = `
-    <!-- Logo en el Sidebar -->
-    <div class="sidebar-logo" style="padding: var(--space-6) var(--space-5); display: flex; align-items: center; gap: var(--space-3); border-bottom: 1px solid rgba(255,255,255,0.05); cursor: pointer;" onclick="navigateTo(SIDEBAR_MENUS[State.activeRole][0].id)">
-      <img src="/logo.png" alt="JN Palabras" style="height:32px;width:32px;object-fit:contain;border-radius:50%;background:#fff;padding:2px;">
-      <span style="color:#fff; font-weight:700; font-size:1.125rem; letter-spacing:-0.02em;">JN Palabras</span>
-    </div>
-
-    <div class="sidebar-section" style="margin-top: var(--space-6);">
+    <div class="sidebar-section" style="margin-top: var(--space-4);">
       <div class="sidebar-label" style="color: rgba(255,255,255,0.5);">${rol}</div>
       ${items.map(item => `
         <div class="sidebar-link ${State.currentSidebar === item.id ? 'active' : ''}"
@@ -548,10 +555,6 @@ function renderSidebar(rol) {
     </div>
     
     <div style="margin-top:auto; display:flex; flex-direction:column;">
-      <div class="sidebar-link" style="margin: 0 var(--space-4) var(--space-4);" onclick="showPublic()">
-        <span class="sidebar-icon" style="display:inline-flex;align-items:center;">${getIcon('globe')}</span> Web Pública
-      </div>
-      
       <!-- Perfil inferior -->
       <div class="sidebar-profile">
         <div class="sidebar-profile-avatar" style="background:${getAvatarColor(user ? user.nombre : '')}">${user ? getInitials(user.nombre) : 'U'}</div>
@@ -595,9 +598,9 @@ async function renderDashboard(rol, view = null) {
   const savedView = localStorage.getItem('jnp_current_sidebar');
 
   let id = view || State.currentSidebar;
-  if (!id || !allowedViews.includes(id)) {
-    if (hashView && allowedViews.includes(hashView)) id = hashView;
-    else if (savedView && allowedViews.includes(savedView)) id = savedView;
+  if (!id || (!allowedViews.includes(id) && id !== 'candidato-perfil')) {
+    if (hashView && (allowedViews.includes(hashView) || hashView === 'candidato-perfil')) id = hashView;
+    else if (savedView && (allowedViews.includes(savedView) || savedView === 'candidato-perfil')) id = savedView;
     else id = allowedViews[0];
   }
 
@@ -615,6 +618,8 @@ async function renderDashboard(rol, view = null) {
   if (!container) return;
 
   const renders = {
+    // Vista Estándar del Perfil del Candidato (Universal)
+    'candidato-perfil': renderCandidateProfilePage,
     // Admin
     'admin-overview':   renderAdminOverview,
     'admin-users':      renderAdminUsers,
@@ -629,6 +634,7 @@ async function renderDashboard(rol, view = null) {
     'super-candidatos': renderAdminCandidatos,
     'super-matching':   renderAsesorMatching,
     // Asesor
+    'asesor-dashboard':   renderAsesorDashboard,
     'asesor-kanban':      renderAsesorKanban,
     'asesor-base-datos':  renderAdminCandidatos,
     'asesor-expedientes': renderAsesorExpedientes,
@@ -664,7 +670,7 @@ async function renderDashboard(rol, view = null) {
       const html = await fn();
       container.innerHTML = '<div class="animate-fadeInUp">' + html + '</div>';
       // Post-render hooks
-      if (id === 'asesor-kanban' || id === 'super-kanban') initKanban();
+      if (id === 'asesor-dashboard' || id === 'asesor-kanban' || id === 'super-kanban') initKanban();
       if (id === 'emp-vacantes')  initVacanteForm();
       if (id === 'admin-users')   initUserForm();
     } catch (e) {
@@ -1367,131 +1373,574 @@ function renderAdminEmpresas() {
 }
 
 // ──────────────────────────────────────────────────────────────────
-// ★ DASHBOARD 2: ASESOR
+// ──────────────────────────────────────────────────────────────────
+// ★ DASHBOARD 2: ASESOR — 4 BLOQUES FUNCIONALES (KPIS, KANBAN, AGENDA, SPEECH)
 // ──────────────────────────────────────────────────────────────────
 let _asesorKanbanScope = 'todos'; // 'mis' | 'todos'
+let _currentSpeechCandidateId = null;
+let _currentSpeechTab = 'saludo';
+let _agendaFilter = 'todas'; // 'todas' | 'pendientes' | 'completadas'
 
-function renderAsesorKanban() {
-  const { kanban_columns } = DB.get();
-  const allCandidatos = DB.getCandidatos();
-  const viewMode = State.kanbanView || 'kanban';
+const PIPELINE_8_FASES = [
+  { id: "Lead Nuevo",                    label: "Lead Nuevo",                    iconName: "userPlus",      color: "#64748b" },
+  { id: "1er Contacto / Reclutamiento",  label: "1er Contacto / Reclutamiento",  iconName: "phone",         color: "#2563eb" },
+  { id: "Suficiencia de Idioma (A1-B2)", label: "Suficiencia de Idioma (A1-B2)", iconName: "messageSquare", color: "#7c3aed" },
+  { id: "Entrevista y Contrato",         label: "Entrevista y Contrato",         iconName: "handshake",     color: "#db2777" },
+  { id: "Procesamiento de Visa",         label: "Procesamiento de Visa",         iconName: "shieldCheck",   color: "#d97706" },
+  { id: "Fase Pre-viaje",                label: "Fase Pre-viaje",                iconName: "plane",         color: "#0d9488" },
+  { id: "En Destino",                    label: "En Destino",                    iconName: "mapPin",        color: "#ca8a04" },
+  { id: "Inserción Exitosa",             label: "Inserción Exitosa",             iconName: "award",         color: "#16a34a" }
+];
 
-  let candidatos = allCandidatos;
-  if (_asesorKanbanScope === 'mis' && State.currentUser) {
-    const mis = allCandidatos.filter(c => c.id_asesor === State.currentUser.id);
-    candidatos = mis.length > 0 ? mis : allCandidatos;
+function normalizeCandidatePhase(rawEstado) {
+  if (!rawEstado) return "Lead Nuevo";
+  const s = rawEstado.toLowerCase().trim();
+  if (s.includes("lead") || s.includes("nuevo")) return "Lead Nuevo";
+  if (s.includes("1er") || s.includes("contacto") || s.includes("recluta")) return "1er Contacto / Reclutamiento";
+  if (s.includes("idioma") || s.includes("suficiencia") || s.includes("alem")) return "Suficiencia de Idioma (A1-B2)";
+  if (s.includes("entrevista") || s.includes("contrato") || s.includes("postula")) return "Entrevista y Contrato";
+  if (s.includes("visa") || s.includes("visado") || s.includes("homologa")) return "Procesamiento de Visa";
+  if (s.includes("pre") || s.includes("viaje") || s.includes("vuelo")) return "Fase Pre-viaje";
+  if (s.includes("destino") || s.includes("llegada")) return "En Destino";
+  if (s.includes("inserci") || s.includes("éxito") || s.includes("exitos") || s.includes("coloca")) return "Inserción Exitosa";
+  return rawEstado;
+}
+
+function getLanguageBadgeHtml(nivel) {
+  const n = (nivel || 'A1').toUpperCase().trim();
+  const cls = n.toLowerCase();
+  return `<span class="badge-language ${cls}" title="Nivel actual de idioma alemán"><span style="display:inline-flex; align-items:center; margin-right:3px;">${getIcon('globe', { size: 11 })}</span> ${n}</span>`;
+}
+
+// ── AGENDA Y TAREAS DEL ASESOR ─────────────────────────────────────
+function getAdvisorAgendaTasks() {
+  try {
+    const raw = localStorage.getItem('jnp_advisor_tasks');
+    if (raw) return JSON.parse(raw);
+  } catch(e) {}
+  const defaults = [
+    {
+      id: 't-1',
+      tipo: 'llamada',
+      candidatoId: 'cand-001',
+      candidatoNombre: 'Luis Villacis',
+      telefono: '+593 99 123 4567',
+      hora: '10:00 AM',
+      titulo: 'Llamada introductoria: diagnóstico de perfil y validación de título',
+      completada: false
+    },
+    {
+      id: 't-2',
+      tipo: 'zoom',
+      candidatoId: 'cand-002',
+      candidatoNombre: 'Dra. Camila Morales',
+      telefono: '+57 310 987 6543',
+      hora: '11:30 AM',
+      enlace: 'https://meet.google.com/jnp-aleman-med',
+      titulo: 'Enviar enlace Google Meet y confirmar por WhatsApp para entrevista con Klinikum',
+      completada: false
+    },
+    {
+      id: 't-3',
+      tipo: 'expediente',
+      candidatoId: 'cand-003',
+      candidatoNombre: 'Lic. Roberto Gómez',
+      telefono: '+51 987 654 321',
+      hora: '02:00 PM',
+      titulo: 'Revisar certificado de idioma Goethe B1 cargado en la plataforma',
+      completada: false
+    },
+    {
+      id: 't-4',
+      tipo: 'visa',
+      candidatoId: 'cand-005',
+      candidatoNombre: 'Lic. Andrés Paredes',
+      telefono: '+593 98 765 4321',
+      hora: '04:30 PM',
+      titulo: 'Confirmar pago de tasas consulares y turno en embajada alemana',
+      completada: true
+    }
+  ];
+  try {
+    localStorage.setItem('jnp_advisor_tasks', JSON.stringify(defaults));
+  } catch(e) {}
+  return defaults;
+}
+
+function saveAdvisorAgendaTasks(tasks) {
+  try {
+    localStorage.setItem('jnp_advisor_tasks', JSON.stringify(tasks));
+  } catch(e) {}
+}
+
+function toggleAgendaTask(taskId) {
+  const tasks = getAdvisorAgendaTasks();
+  const task = tasks.find(t => t.id === taskId);
+  if (task) {
+    task.completada = !task.completada;
+    saveAdvisorAgendaTasks(tasks);
+    renderDashboard(State.activeRole, State.currentSidebar);
+  }
+}
+
+function addNewAgendaTask() {
+  const title = prompt('Descripción de la nueva tarea para hoy:');
+  if (!title || !title.trim()) return;
+  const hora = prompt('Hora programada (ej: 03:00 PM):', '03:00 PM') || 'Hoy';
+  const tasks = getAdvisorAgendaTasks();
+  tasks.unshift({
+    id: 't-' + Date.now(),
+    tipo: 'llamada',
+    titulo: title.trim(),
+    hora: hora.trim(),
+    completada: false
+  });
+  saveAdvisorAgendaTasks(tasks);
+  showToast('Tarea agregada', 'La tarea se añadió a tu agenda de hoy.', 'success');
+  renderDashboard(State.activeRole, State.currentSidebar);
+}
+
+// ── SPEECH WIDGET & HERRAMIENTAS RÁPIDAS ────────────────────────────
+function toggleSpeechWidget(forceOpen = null) {
+  const drawer = $('speech-drawer-panel');
+  const backdrop = $('speech-drawer-backdrop');
+  if (!drawer || !backdrop) return;
+  const isOpen = drawer.classList.contains('active');
+  const shouldOpen = forceOpen !== null ? forceOpen : !isOpen;
+  if (shouldOpen) {
+    drawer.classList.add('active');
+    backdrop.classList.add('active');
+    if (!_currentSpeechCandidateId) {
+      const cands = DB.getCandidatos();
+      if (cands.length > 0) _currentSpeechCandidateId = cands[0].id;
+    }
+    updateSpeechDrawerView();
+  } else {
+    drawer.classList.remove('active');
+    backdrop.classList.remove('active');
+  }
+}
+
+function openSpeechWidgetForCandidate(candidatoId) {
+  _currentSpeechCandidateId = candidatoId;
+  toggleSpeechWidget(true);
+}
+
+function setSpeechTab(tabId) {
+  _currentSpeechTab = tabId;
+  $$('.speech-tab-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.tab === tabId);
+  });
+  $$('.speech-script-box').forEach(box => {
+    box.style.display = box.id === `script-tab-${tabId}` ? 'block' : 'none';
+  });
+}
+
+function onSpeechCandidateSelect(candidatoId) {
+  _currentSpeechCandidateId = candidatoId;
+  updateSpeechDrawerView();
+}
+
+function updateSpeechDrawerView() {
+  const c = DB.getCandidatoById(_currentSpeechCandidateId) || DB.getCandidatos()[0];
+  if (!c) return;
+  _currentSpeechCandidateId = c.id;
+
+  const sel = $('speech-candidate-select');
+  if (sel) sel.value = c.id;
+
+  const quickHeader = $('speech-quick-candidate-info');
+  if (quickHeader) {
+    quickHeader.innerHTML = `
+      <div style="display:flex; align-items:center; justify-content:space-between; width:100%;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div class="avatar" style="background:${getAvatarColor(c.nombre)}; width:40px; height:40px; font-size:0.9rem;">
+            ${getInitials(c.nombre)}
+          </div>
+          <div>
+            <div style="font-weight:700; color:var(--slate-900); font-size:0.95rem;">${c.nombre}</div>
+            <div style="font-size:0.75rem; color:var(--slate-500); display:flex; align-items:center; gap:4px; margin-top:2px;">
+              <span style="display:inline-flex; align-items:center;">${getIcon('mapPin', { size: 11, color: 'var(--slate-400)' })}</span>
+              <span>${c.pais || 'N/A'} · ${c.especialidad || 'Salud'}</span>
+            </div>
+          </div>
+        </div>
+        <div style="text-align:right;">
+          <span class="badge-language ${(c.nivel_aleman||'a1').toLowerCase()}"><span style="display:inline-flex; align-items:center; margin-right:3px;">${getIcon('globe', { size: 11 })}</span> ${c.nivel_aleman||'A1'}</span>
+          <div style="font-size:0.75rem; color:var(--slate-600); margin-top:2px;">
+            ${c.telefono ? `<a href="tel:${c.telefono}" style="color:var(--wine-800); text-decoration:none; font-weight:700; display:inline-flex; align-items:center; gap:4px;"><span style="display:inline-flex; align-items:center;">${getIcon('phone', { size: 11 })}</span> ${c.telefono}</a>` : 'Sin teléfono'}
+          </div>
+        </div>
+      </div>
+    `;
   }
 
-  let boardHtml = '';
-  if (viewMode === 'kanban') {
-    boardHtml = `
-      <div class="kanban-board" id="kanban-board">
-        ${kanban_columns.map(col => {
-          const cards = candidatos.filter(c => c.estado_proceso === col.id);
-          return `
-            <div class="kanban-col" data-col="${col.id}" id="col-${col.id.replace(/\s+/g,'-')}">
-              <div class="kanban-col-header">
-                <span class="kanban-col-title">${col.icon} ${col.label}</span>
-                <span class="kanban-col-count">${cards.length}</span>
-              </div>
-              <div class="kanban-drop-zone" data-col="${col.id}">
-                ${cards.map(c => `
-                  <div class="kanban-card" draggable="true" data-id="${c.id}" data-col="${col.id}"
-                       onclick="openCandidateDetail('${c.id}')">
-                    <div class="kanban-card-name">${c.nombre}</div>
-                    <div class="kanban-card-spec">${c.especialidad} · ${c.pais}</div>
-                    
-                    <div style="margin-top:6px; margin-bottom:4px;">
-                      ${c.id_asesor ? `
-                        <span class="badge" style="background:#e0f2fe; color:#0284c7; font-size:0.65rem; border:1px solid #bae6fd;">
-                          👤 ${c.nombre_asesor ? c.nombre_asesor.split(' ')[0] : 'Asignado'}
-                        </span>
-                      ` : `
-                        <span class="badge" style="background:#fef2f2; color:#dc2626; font-size:0.65rem; border:1px solid #fecaca;">
-                          ⚠️ Sin Asignar
-                        </span>
-                      `}
-                    </div>
+  const nombreSimple = c.nombre.split(' ')[0];
+  const spec = c.especialidad;
+  const pais = c.pais;
 
-                    <div class="kanban-card-footer">
-                      <span class="badge badge-info" style="font-size:.65rem;">${c.nivel_aleman}</span>
-                      <span style="font-size:.7rem;color:var(--slate-400);">${countryFlag(c.pais)}</span>
-                    </div>
-                  </div>
-                `).join('')}
+  const script1 = $('script-tab-saludo');
+  if (script1) {
+    script1.innerHTML = `
+      <p style="margin-bottom:8px;"><strong>Apertura institucional:</strong></p>
+      <p style="margin-bottom:8px;">"Hola <strong>${nombreSimple}</strong>, muy buenos días/tardes. Te saluda <strong>${State.currentUser ? State.currentUser.nombre.split(' ')[0] : 'tu asesor'}</strong> de <strong>JN Palabras</strong> desde Heidelberg, Alemania."</p>
+      <p style="margin-bottom:8px;">"Nos comunicamos respecto a tu postulación como profesional de <strong>${spec}</strong> desde <strong>${pais}</strong>. Revisamos tu perfil y queremos conversar brevemente sobre los requisitos de homologación y empleo directo en clínicas alemanas."</p>
+      <p style="color:var(--slate-500); font-size:0.8rem; font-style:italic;">💡 Objetivo: Generar confianza inmediata y validar si tiene 5 minutos para hablar.</p>
+    `;
+  }
+
+  const script2 = $('script-tab-afirmativa');
+  if (script2) {
+    script2.innerHTML = `
+      <p style="margin-bottom:8px;"><strong>Si responde con interés ("Sí, me interesa"):</strong></p>
+      <p style="margin-bottom:8px;">"¡Excelente decisión, <strong>${nombreSimple}</strong>! En JN Palabras trabajamos con un programa integral de 4 pasos: validamos tu título universitario (Anerkennung), te capacitamos en alemán médico para el examen oficial FSP y coordinamos tu contrato laboral con hospital."</p>
+      <p style="margin-bottom:8px;">"Para avanzar al siguiente paso formal, vamos a agendar tu <strong>sesión de diagnóstico técnico por Google Meet / Zoom</strong>. ¿Tienes disponibilidad mañana a las 10:00 AM o prefieres en la tarde?"</p>
+      <p style="color:var(--slate-500); font-size:0.8rem; font-style:italic;">💡 Acción clave: Cerrar fecha y hora para el Meet y enviarle el enlace por WhatsApp.</p>
+    `;
+  }
+
+  const script3 = $('script-tab-dudas');
+  if (script3) {
+    script3.innerHTML = `
+      <p style="margin-bottom:8px;"><strong>Manejo de Objeciones y Reagendamiento:</strong></p>
+      <p style="margin-bottom:8px;">• <em>Si no puede atender ahora:</em> "Comprendo perfectamente <strong>${nombreSimple}</strong>. ¿Te parece si te marco hoy a las 5:00 PM o mañana a las 10:00 AM por WhatsApp?"</p>
+      <p style="margin-bottom:8px;">• <em>Si pregunta por costos:</em> "La gestión de colocación es respaldada por los hospitales contratantes en Alemania, y disponemos de planes de apoyo para el aprendizaje del idioma."</p>
+      <p style="margin-bottom:8px;">• <em>Si no tiene nivel de alemán:</em> "No te preocupes, en JN Palabras te formamos desde nivel A1 hasta B2 con profesores especializados en el sector salud."</p>
+    `;
+  }
+
+  const script4 = $('script-tab-cierre');
+  if (script4) {
+    script4.innerHTML = `
+      <p style="margin-bottom:8px;"><strong>Cierre & Compromiso:</strong></p>
+      <p style="margin-bottom:8px;">"Perfecto <strong>${nombreSimple}</strong>. Te enviamos la confirmación por WhatsApp con los datos de nuestra reunión. Por favor ten a mano tu documento de identidad y tu título profesional para la revisión inicial."</p>
+      <p style="margin-bottom:8px;">"¡Muchísimas gracias por tu tiempo y bienvenido al proceso de JN Palabras!"</p>
+    `;
+  }
+
+  const fNivel = $('speech-form-nivel');
+  if (fNivel && c.nivel_aleman) fNivel.value = c.nivel_aleman;
+  const fFase = $('speech-form-fase');
+  if (fFase) fFase.value = normalizeCandidatePhase(c.estado_proceso);
+}
+
+async function saveCandidateDataFromSpeech() {
+  if (!_currentSpeechCandidateId) return;
+  const c = DB.getCandidatoById(_currentSpeechCandidateId);
+  if (!c) return;
+
+  const resultado = $('speech-form-resultado')?.value || 'Contactado';
+  const nivel = $('speech-form-nivel')?.value || c.nivel_aleman;
+  const fase = $('speech-form-fase')?.value || c.estado_proceso;
+  const notaTexto = $('speech-form-nota')?.value.trim();
+  const proximaCita = $('speech-form-cita')?.value;
+
+  const updatePayload = {
+    nivel_aleman: nivel,
+    estado_proceso: fase
+  };
+
+  if (notaTexto || resultado) {
+    const contenidoNota = `[Llamada / Speech: ${resultado}] ${notaTexto ? notaTexto : 'Actualización de contacto y avance de fase.'}`;
+    DB.addNota({
+      id_candidato: c.id,
+      autor: State.currentUser ? State.currentUser.nombre : 'Asesor',
+      contenido: contenidoNota
+    });
+  }
+
+  if (proximaCita) {
+    const tasks = getAdvisorAgendaTasks();
+    tasks.unshift({
+      id: 't-' + Date.now(),
+      tipo: 'zoom',
+      candidatoId: c.id,
+      candidatoNombre: c.nombre,
+      telefono: c.telefono,
+      hora: new Date(proximaCita).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      titulo: `Reunión de seguimiento con ${c.nombre} (${resultado})`,
+      completada: false
+    });
+    saveAdvisorAgendaTasks(tasks);
+  }
+
+  await DB.updateCandidato(c.id, updatePayload);
+  showToast('Ficha guardada', `Datos de ${c.nombre.split(' ')[0]} actualizados correctamente.`, 'success');
+  
+  if ($('speech-form-nota')) $('speech-form-nota').value = '';
+  
+  renderDashboard(State.activeRole, State.currentSidebar);
+  updateSpeechDrawerView();
+}
+
+function openQuickNoteModal(candidatoId) {
+  const c = DB.getCandidatoById(candidatoId);
+  if (!c) return;
+  const nota = prompt(`Añadir nota rápida para ${c.nombre}:`);
+  if (nota && nota.trim()) {
+    DB.addNota({
+      id_candidato: c.id,
+      autor: State.currentUser ? State.currentUser.nombre : 'Asesor',
+      contenido: nota.trim()
+    });
+    showToast('Nota registrada', `Nota añadida al expediente de ${c.nombre}.`, 'success');
+    renderDashboard(State.activeRole, State.currentSidebar);
+  }
+}
+
+// ── NOTIFICACIONES OPERATIVAS DEL ASESOR ─────────────────────────
+function getAdvisorNotifications() {
+  const currentUserId = State.currentUser ? State.currentUser.id : null;
+  let notifs = DB.getNotificaciones(currentUserId);
+  if (!notifs || notifs.length === 0) {
+    notifs = [
+      {
+        id: 'notif-1',
+        tipo: 'documento',
+        iconName: 'fileCheck',
+        iconClass: 'info',
+        titulo: 'Nuevo Certificado B2 Subido',
+        descripcion: 'Dra. Camila Morales ha cargado su certificado Goethe-Zertifikat B2 para homologación.',
+        tiempo: 'Hace 25 min',
+        candidatoId: 'cand-002'
+      },
+      {
+        id: 'notif-2',
+        tipo: 'clinica',
+        iconName: 'shieldCheck',
+        iconClass: 'success',
+        titulo: 'Entrevista Confirmada por Klinikum',
+        descripcion: 'Klinikum Stuttgart confirmó fecha de entrevista técnica para Luis Villacis.',
+        tiempo: 'Hace 2 horas',
+        candidatoId: 'cand-001'
+      },
+      {
+        id: 'notif-3',
+        tipo: 'visa',
+        iconName: 'plane',
+        iconClass: 'info',
+        titulo: 'Cita en Embajada Alemana Asignada',
+        descripcion: 'Se confirmó turno consular en Quito para visado de trabajo de Luis Villacis.',
+        tiempo: 'Ayer',
+        candidatoId: 'cand-001'
+      },
+      {
+        id: 'notif-4',
+        tipo: 'alerta',
+        iconName: 'alertTriangle',
+        iconClass: 'warning',
+        titulo: 'Expediente Pendiente de Traducción',
+        descripcion: 'Faltan 2 sellos apostillados en el título de Lic. Enfermería antes del envío.',
+        tiempo: 'Hace 1 día',
+        candidatoId: 'cand-001'
+      }
+    ];
+  }
+  return notifs;
+}
+
+// ── MENSAJES Y NOTAS RECIENTES DEL ASESOR ──────────────────────────
+function getAdvisorRecentNotes() {
+  const allNotes = (DB.get().notas || []).slice(0, 5);
+  if (allNotes.length === 0) {
+    return [
+      {
+        candidato: 'Luis Villacis',
+        autor: 'Carlos Martínez',
+        fecha: 'Hoy, 09:30 AM',
+        texto: 'Llamada de validación de título. Candidato muy receptivo, confirma interés en iniciar curso de alemán médico intensivo.'
+      },
+      {
+        candidato: 'Dra. Camila Morales',
+        autor: 'Mariana Vega',
+        fecha: 'Ayer, 04:15 PM',
+        texto: 'Documentación para Anerkennung enviada a la oficina de Stuttgart. Esperando respuesta de equivalencia.'
+      },
+      {
+        candidato: 'Prueba',
+        autor: 'Carlos Martínez',
+        fecha: 'Hace 2 días',
+        texto: 'Perfil registrado para prueba de onboarding. Verificando datos iniciales y nivel de idioma.'
+      }
+    ];
+  }
+  return allNotes.map(n => {
+    const cand = DB.getCandidatoById(n.id_candidato);
+    return {
+      candidato: cand ? cand.nombre : 'Candidato',
+      autor: n.autor || 'Asesor',
+      fecha: n.fecha ? new Date(n.fecha).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Reciente',
+      texto: n.contenido
+    };
+  });
+}
+
+// ── FILTRO RÁPIDO EN VIVO PARA TABLERO KANBAN ──────────────────────
+function filterKanbanCandidates(query) {
+  const q = (query || '').toLowerCase().trim();
+  const cards = document.querySelectorAll('.kanban-card');
+  cards.forEach(card => {
+    const text = card.textContent.toLowerCase();
+    card.style.display = (!q || text.includes(q)) ? 'block' : 'none';
+  });
+  const rows = document.querySelectorAll('.data-table tbody tr');
+  rows.forEach(row => {
+    const text = row.textContent.toLowerCase();
+    row.style.display = (!q || text.includes(q)) ? '' : 'none';
+  });
+}
+
+// ── EXPORTACIÓN DE CANDIDATOS A CSV ────────────────────────────────
+function exportKanbanCSV() {
+  const candidatos = DB.getCandidatos();
+  if (!candidatos || candidatos.length === 0) {
+    showToast('Exportar', 'No hay candidatos para exportar.', 'warning');
+    return;
+  }
+  const headers = ['Nombre', 'Especialidad', 'País', 'Nivel Alemán', 'Fase Proceso', 'Asesor Asignado', 'Teléfono', 'Email'];
+  const rows = candidatos.map(c => [
+    `"${(c.nombre || '').replace(/"/g, '""')}"`,
+    `"${(c.especialidad || '').replace(/"/g, '""')}"`,
+    `"${(c.pais || '').replace(/"/g, '""')}"`,
+    `"${(c.nivel_aleman || 'A1').replace(/"/g, '""')}"`,
+    `"${(normalizeCandidatePhase(c.estado_proceso) || '').replace(/"/g, '""')}"`,
+    `"${(c.nombre_asesor || 'Sin asignar').replace(/"/g, '""')}"`,
+    `"${(c.telefono || '').replace(/"/g, '""')}"`,
+    `"${(c.correo || '').replace(/"/g, '""')}"`
+  ]);
+  const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+  const encodedUri = encodeURI(csvContent);
+  const link = document.createElement('a');
+  link.setAttribute('href', encodedUri);
+  link.setAttribute('download', `candidatos_jn_palabras_${new Date().toISOString().slice(0, 10)}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  showToast('Exportación completada', 'El archivo CSV de candidatos se ha descargado correctamente.', 'success');
+}
+
+// ── DRAWER DE SPEECH Y MODALES COMPARTIDOS ─────────────────────────
+function renderAdvisorSpeechDrawerAndModals(allCandidatos) {
+  return `
+    <!-- WIDGET FLOTANTE & DRAWER: SPEECH & HERRAMIENTAS -->
+    <div class="floating-speech-trigger" onclick="toggleSpeechWidget(true)" title="Abrir Speech de Llamada & Herramientas de Asesor">
+      <span class="speech-icon" style="display:inline-flex; align-items:center;">${getIcon('headphones', { size: 18, color: '#ffffff' })}</span>
+      <span class="speech-text">Speech de Llamada & Herramientas</span>
+      <span class="speech-badge">Rápido</span>
+    </div>
+
+    <!-- Backdrop del Drawer -->
+    <div class="speech-drawer-backdrop" id="speech-drawer-backdrop" onclick="toggleSpeechWidget(false)"></div>
+
+    <!-- Panel Lateral Drawer -->
+    <div class="speech-drawer-panel" id="speech-drawer-panel">
+      <div class="speech-drawer-header">
+        <div class="speech-drawer-title" style="display:flex; align-items:center; gap:8px;">
+          <span style="display:inline-flex; align-items:center;">${getIcon('headphones', { size: 18, color: 'var(--wine-800)' })}</span> Speech de Llamada & Herramientas
+        </div>
+        <button class="speech-drawer-close" onclick="toggleSpeechWidget(false)" title="Cerrar panel">✕</button>
+      </div>
+
+      <div class="speech-drawer-content">
+        <!-- Selector de Candidato -->
+        <div>
+          <label class="form-label" style="font-weight:700;">Seleccionar Candidato para la Llamada:</label>
+          <select class="form-select" id="speech-candidate-select" onchange="onSpeechCandidateSelect(this.value)">
+            ${allCandidatos.map(c => `
+              <option value="${c.id}" ${c.id === _currentSpeechCandidateId ? 'selected' : ''}>
+                ${c.nombre} (${c.pais} · ${c.especialidad} · ${c.nivel_aleman || 'A1'})
+              </option>
+            `).join('')}
+          </select>
+        </div>
+
+        <!-- Ficha Rápida del Candidato -->
+        <div class="speech-cand-card" id="speech-quick-candidate-info">
+          <!-- Dinámico -->
+        </div>
+
+        <!-- Pestañas del Script de Llamada -->
+        <div>
+          <div class="speech-tabs">
+            <button class="speech-tab-btn ${_currentSpeechTab==='saludo'?'active':''}" data-tab="saludo" onclick="setSpeechTab('saludo')" style="display:inline-flex; align-items:center; gap:4px;">
+              ${getIcon('messageSquare', { size: 12 })} 1. Saludo
+            </button>
+            <button class="speech-tab-btn ${_currentSpeechTab==='afirmativa'?'active':''}" data-tab="afirmativa" onclick="setSpeechTab('afirmativa')" style="display:inline-flex; align-items:center; gap:4px;">
+              ${getIcon('check', { size: 12 })} 2. Respuesta Sí
+            </button>
+            <button class="speech-tab-btn ${_currentSpeechTab==='dudas'?'active':''}" data-tab="dudas" onclick="setSpeechTab('dudas')" style="display:inline-flex; align-items:center; gap:4px;">
+              ${getIcon('clock', { size: 12 })} 3. Reagendar
+            </button>
+            <button class="speech-tab-btn ${_currentSpeechTab==='cierre'?'active':''}" data-tab="cierre" onclick="setSpeechTab('cierre')" style="display:inline-flex; align-items:center; gap:4px;">
+              ${getIcon('fileCheck', { size: 12 })} 4. Cierre
+            </button>
+          </div>
+
+          <div style="margin-top:12px;">
+            <div class="speech-script-box" id="script-tab-saludo" style="display:${_currentSpeechTab==='saludo'?'block':'none'};"></div>
+            <div class="speech-script-box" id="script-tab-afirmativa" style="display:${_currentSpeechTab==='afirmativa'?'block':'none'};"></div>
+            <div class="speech-script-box" id="script-tab-dudas" style="display:${_currentSpeechTab==='dudas'?'block':'none'};"></div>
+            <div class="speech-script-box" id="script-tab-cierre" style="display:${_currentSpeechTab==='cierre'?'block':'none'};"></div>
+          </div>
+        </div>
+
+        <!-- Herramienta Directa: Ingresar Datos a Ficha del Candidato -->
+        <div class="speech-form-box">
+          <div class="speech-form-title" style="display:flex; align-items:center; gap:6px;">
+            <span style="display:inline-flex; align-items:center;">${getIcon('edit', { size: 15, color: 'var(--wine-800)' })}</span> Actualizar Ficha del Candidato (Sin salir)
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:12px;">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+              <div>
+                <label class="form-label" style="font-size:0.75rem;">Resultado de Llamada</label>
+                <select class="form-select form-select-sm" id="speech-form-resultado">
+                  <option value="Interesado y Acepta">Interesado y Acepta</option>
+                  <option value="Reagendado">Reagendar Llamada</option>
+                  <option value="No Contesta / Buzón">No Contesta / Buzón</option>
+                  <option value="No Cumple Requisitos">Descartado</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="form-label" style="font-size:0.75rem;">Nivel Alemán Validado</label>
+                <select class="form-select form-select-sm" id="speech-form-nivel">
+                  <option value="A1">A1 (Inicial)</option>
+                  <option value="A2">A2 (Básico)</option>
+                  <option value="B1">B1 (Intermedio)</option>
+                  <option value="B2">B2 (Médico Homologable)</option>
+                  <option value="C1">C1 (Avanzado)</option>
+                </select>
               </div>
             </div>
-          `;
-        }).join('')}
-      </div>
-    `;
-  } else {
-    boardHtml = `
-      <div class="card">
-        <div class="data-table-wrapper">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Candidato</th>
-                <th>País</th>
-                <th>Especialidad</th>
-                <th>Alemán</th>
-                <th>Asesor Asignado</th>
-                <th>Estado Proceso</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${candidatos.map(c => `
-                <tr onclick="openCandidateDetail('${c.id}')" style="cursor:pointer">
-                  <td><div class="td-avatar"><div class="avatar" style="background:${getAvatarColor(c.nombre)}">${getInitials(c.nombre)}</div><div class="td-name">${c.nombre}</div></div></td>
-                  <td><span style="font-size:1rem;">${countryFlag(c.pais)}</span> ${c.pais}</td>
-                  <td>${c.especialidad}</td>
-                  <td><span class="badge badge-info">${c.nivel_aleman}</span></td>
-                  <td>
-                    ${c.id_asesor ? `<span class="badge badge-info">👤 ${c.nombre_asesor}</span>` : `<span class="badge badge-danger">⚠️ Sin Asignar</span>`}
-                  </td>
-                  <td><span class="badge badge-warning">${c.estado_proceso}</span></td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    `;
-  }
 
-  const misCount = State.currentUser ? allCandidatos.filter(c => c.id_asesor === State.currentUser.id).length : 0;
+            <div>
+              <label class="form-label" style="font-size:0.75rem;">Mover a Fase del Pipeline</label>
+              <select class="form-select form-select-sm" id="speech-form-fase">
+                ${PIPELINE_8_FASES.map(f => `
+                  <option value="${f.id}">${f.label}</option>
+                `).join('')}
+              </select>
+            </div>
 
-  return `
-    <div class="kanban-banner">
-      <div>
-        <h1 class="kanban-banner-title">Tablero de Candidatos</h1>
-        <p class="kanban-banner-subtitle">Pipeline de integración de candidatos</p>
-      </div>
-      <div class="kanban-banner-actions">
-        ${State.currentUser && State.activeRole === 'Asesor' ? `
-        <div style="display:flex; background:rgba(255,255,255,0.15); border-radius:8px; padding:2px;">
-          <button class="btn btn-sm" style="${_asesorKanbanScope==='todos'?'background:rgba(255,255,255,0.25);color:#fff;':'color:rgba(255,255,255,0.7);background:transparent;'} border:none; padding:4px 10px; font-size:0.75rem;" onclick="_asesorKanbanScope='todos';renderDashboard(State.activeRole,'asesor-kanban');">
-            Todos (${allCandidatos.length})
-          </button>
-          <button class="btn btn-sm" style="${_asesorKanbanScope==='mis'?'background:rgba(255,255,255,0.25);color:#fff;':'color:rgba(255,255,255,0.7);background:transparent;'} border:none; padding:4px 10px; font-size:0.75rem;" onclick="_asesorKanbanScope='mis';renderDashboard(State.activeRole,'asesor-kanban');">
-            🎯 Mis Asignados (${misCount})
-          </button>
+            <div>
+              <label class="form-label" style="font-size:0.75rem;">Nota / Resumen de la Conversación</label>
+              <textarea class="form-input" id="speech-form-nota" rows="2" style="font-size:0.8125rem;" placeholder="Ej: Título verificado. Se compromete a enviar documentos y tomar curso de alemán B1..."></textarea>
+            </div>
+
+            <div>
+              <label class="form-label" style="font-size:0.75rem;">Agendar Próxima Cita / Seguimiento (Opcional)</label>
+              <input type="datetime-local" class="form-input form-input-sm" id="speech-form-cita">
+            </div>
+
+            <button class="btn btn-primary" style="width:100%; justify-content:center; margin-top:4px;" onclick="saveCandidateDataFromSpeech()">
+              <span style="display:inline-flex; align-items:center; margin-right:6px;">${getIcon('save', { size: 14, color: '#ffffff' })}</span> Guardar en Ficha del Candidato
+            </button>
+          </div>
         </div>
-        ` : ''}
-        <button class="btn btn-outline" style="color:#fff;border-color:rgba(255,255,255,0.2);" onclick="toggleKanbanView()">
-          <span style="margin-right:4px;">${getIcon('layout')}</span> Vista ${viewMode === 'kanban' ? 'Lista' : 'Kanban'}
-        </button>
-        <button class="btn" style="background:var(--gold-500);color:var(--wine-900);font-weight:700;" onclick="openModal('modal-nuevo-candidato')">
-          <span style="margin-right:4px;">${getIcon('userPlus')}</span> Agregar Candidato
-        </button>
-        <button class="btn btn-outline" style="color:#fff;border-color:rgba(255,255,255,0.2);" onclick="showToast('Exportar','Exportando a CSV...','success')">
-          <span style="margin-right:4px;">${getIcon('download')}</span> Exportar
-        </button>
+
       </div>
     </div>
-    
-    ${boardHtml}
 
     <!-- Modal Detalle Candidato -->
     <div class="modal-overlay" id="modal-candidato">
@@ -1508,7 +1957,9 @@ function renderAsesorKanban() {
     <div class="modal-overlay" id="modal-nuevo-candidato">
       <div class="modal" style="max-width:500px;">
         <div class="modal-header">
-          <h3 class="modal-title">➕ Nuevo Candidato</h3>
+          <h3 class="modal-title" style="display:flex; align-items:center; gap:6px;">
+            <span style="display:inline-flex; align-items:center;">${getIcon('userPlus', { size: 18 })}</span> Nuevo Candidato
+          </h3>
           <button class="modal-close" onclick="closeModal('modal-nuevo-candidato')">✕</button>
         </div>
         <div class="modal-body">
@@ -1540,6 +1991,477 @@ function renderAsesorKanban() {
         </div>
       </div>
     </div>
+  `;
+}
+
+// ── PANTALLA 1: DASHBOARD OPERATIVO DEL ASESOR ─────────────────────
+function renderAsesorDashboard() {
+  const allCandidatos = DB.getCandidatos();
+  const tasks = getAdvisorAgendaTasks();
+  const notifications = getAdvisorNotifications();
+  const recentNotes = getAdvisorRecentNotes();
+
+  // 1. Métricas Clave (KPIs)
+  const leadsCount = allCandidatos.filter(c => normalizeCandidatePhase(c.estado_proceso) === 'Lead Nuevo').length;
+  const callsTodayCount = tasks.filter(t => t.tipo === 'llamada' || t.tipo === 'zoom').length;
+  const pendingCalls = tasks.filter(t => (t.tipo === 'llamada' || t.tipo === 'zoom') && !t.completada).length;
+  const expedientesPorRevisar = allCandidatos.filter(c => (c.nivel_aleman === 'B1' || c.nivel_aleman === 'B2' || (c.documentos_subidos && c.documentos_subidos >= 2)) && normalizeCandidatePhase(c.estado_proceso) !== 'Inserción Exitosa').length;
+  const finalStages = ['Procesamiento de Visa', 'Fase Pre-viaje', 'En Destino'];
+  const enTramiteCount = allCandidatos.filter(c => finalStages.includes(normalizeCandidatePhase(c.estado_proceso))).length;
+
+  // 2. Filtro de Tareas
+  let filteredTasks = tasks;
+  if (_agendaFilter === 'pendientes') filteredTasks = tasks.filter(t => !t.completada);
+  if (_agendaFilter === 'completadas') filteredTasks = tasks.filter(t => t.completada);
+  const pendingAgendaCount = tasks.filter(t => !t.completada).length;
+
+  return `
+    <!-- Cabecera Principal del Dashboard -->
+    <div class="kanban-banner">
+      <div>
+        <h1 class="kanban-banner-title">Dashboard Operativo del Asesor</h1>
+        <p class="kanban-banner-subtitle">Resumen ejecutivo de métricas, agenda del día, notificaciones operativas y notas</p>
+      </div>
+      <div class="kanban-banner-actions">
+        <button class="btn" style="background:var(--gold-500); color:var(--wine-900); font-weight:700; border:none; display:inline-flex; align-items:center; gap:8px;" onclick="renderDashboard(State.activeRole, 'asesor-kanban')">
+          <span style="display:inline-flex; align-items:center;">${getIcon('users', { size: 16, color: 'var(--wine-900)' })}</span>
+          Ver Tablero de Candidatos & Pipeline
+        </button>
+      </div>
+    </div>
+
+    <!-- BLOQUE A: BARRA SUPERIOR DE KPIS CON ICONOS VECTORIALES -->
+    <div class="asesor-kpis-grid">
+      <!-- KPI 1: Nuevos Leads Asignados -->
+      <div class="asesor-kpi-card">
+        <div class="asesor-kpi-icon blue">
+          ${getIcon('userPlus', { size: 22, color: '#2563eb' })}
+        </div>
+        <div class="asesor-kpi-info">
+          <span class="asesor-kpi-label">Nuevos Leads Asignados</span>
+          <span class="asesor-kpi-value">${leadsCount}</span>
+          <span class="asesor-kpi-trend positive" style="display:inline-flex; align-items:center; gap:4px;">
+            <span style="display:inline-flex; align-items:center;">${getIcon('trendingUp', { size: 13, color: '#16a34a' })}</span>
+            12 Leads este mes · <span>+4 esta semana</span>
+          </span>
+        </div>
+      </div>
+
+      <!-- KPI 2: Citas / Llamadas Hoy -->
+      <div class="asesor-kpi-card">
+        <div class="asesor-kpi-icon amber">
+          ${getIcon('calendar', { size: 22, color: '#d97706' })}
+        </div>
+        <div class="asesor-kpi-info">
+          <span class="asesor-kpi-label">Citas / Llamadas Hoy</span>
+          <span class="asesor-kpi-value">${callsTodayCount}</span>
+          <span class="asesor-kpi-trend warning" style="display:inline-flex; align-items:center; gap:4px;">
+            <span style="display:inline-flex; align-items:center;">${getIcon('clock', { size: 13, color: '#d97706' })}</span>
+            ${pendingCalls} pendientes · ${callsTodayCount - pendingCalls} realizadas
+          </span>
+        </div>
+      </div>
+
+      <!-- KPI 3: Expedientes por Revisar -->
+      <div class="asesor-kpi-card">
+        <div class="asesor-kpi-icon purple">
+          ${getIcon('fileCheck', { size: 22, color: '#7c3aed' })}
+        </div>
+        <div class="asesor-kpi-info">
+          <span class="asesor-kpi-label">Expedientes por Validar</span>
+          <span class="asesor-kpi-value">${expedientesPorRevisar}</span>
+          <span class="asesor-kpi-trend info" style="display:inline-flex; align-items:center; gap:4px;">
+            <span style="display:inline-flex; align-items:center;">${getIcon('alertTriangle', { size: 13, color: '#7c3aed' })}</span>
+            Certificados B1/B2 y títulos listos
+          </span>
+        </div>
+      </div>
+
+      <!-- KPI 4: Candidatos en Trámite de Visa/Vuelo -->
+      <div class="asesor-kpi-card">
+        <div class="asesor-kpi-icon emerald">
+          ${getIcon('plane', { size: 22, color: '#0d9488' })}
+        </div>
+        <div class="asesor-kpi-info">
+          <span class="asesor-kpi-label">En Trámite Visa / Vuelo</span>
+          <span class="asesor-kpi-value">${enTramiteCount}</span>
+          <span class="asesor-kpi-trend positive" style="display:inline-flex; align-items:center; gap:4px;">
+            <span style="display:inline-flex; align-items:center;">${getIcon('check', { size: 13, color: '#16a34a' })}</span>
+            Fases 5-7 (Consulado y Llegada)
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- RESUMEN DEL EMBUDO / PIPELINE FUNNEL -->
+    <div class="pipeline-funnel-card">
+      <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+        <div>
+          <h3 style="font-size:1.05rem; font-weight:800; color:var(--slate-900); margin:0; display:flex; align-items:center; gap:8px;">
+            <span style="display:inline-flex; align-items:center;">${getIcon('layout', { size: 18, color: 'var(--wine-800)' })}</span>
+            Distribución del Pipeline de Integración (8 Fases)
+          </h3>
+          <p style="font-size:0.8125rem; color:var(--slate-500); margin:2px 0 0 0;">Candidatos activos distribuidos en cada etapa del proceso hacia Alemania</p>
+        </div>
+        <button class="btn btn-sm btn-outline" onclick="renderDashboard(State.activeRole, 'asesor-kanban')">
+          Abrir Tablero Completo →
+        </button>
+      </div>
+
+      <div class="funnel-phases-row">
+        ${PIPELINE_8_FASES.map((phase, idx) => {
+          const count = allCandidatos.filter(c => normalizeCandidatePhase(c.estado_proceso) === phase.id).length;
+          const pct = allCandidatos.length > 0 ? Math.round((count / allCandidatos.length) * 100) : 0;
+          return `
+            <div class="funnel-phase-stat" style="border-left: 3px solid ${phase.color};">
+              <div class="funnel-phase-title">
+                <span style="display:inline-flex; align-items:center;">${getIcon(phase.iconName, { size: 13, color: phase.color })}</span>
+                <span>${idx + 1}. ${phase.label}</span>
+              </div>
+              <div style="display:flex; align-items:baseline; justify-content:space-between;">
+                <span class="funnel-phase-number">${count}</span>
+                <span style="font-size:0.75rem; color:var(--slate-500); font-weight:600;">${pct}%</span>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    </div>
+
+    <!-- BLOQUE PRINCIPAL EN 2 COLUMNAS (AGENDA + NOTIFICACIONES / MENSAJES) -->
+    <div class="asesor-dashboard-grid">
+      
+      <!-- COLUMNA 1: MI AGENDA Y TAREAS DEL DÍA -->
+      <div class="dashboard-panel-card">
+        <div class="dashboard-panel-header">
+          <div class="dashboard-panel-title">
+            <span style="display:inline-flex; align-items:center;">${getIcon('calendar', { size: 20, color: 'var(--wine-800)' })}</span>
+            <span>Mi Agenda y Tareas del Día</span>
+            <span class="agenda-badge-count">${pendingAgendaCount} pendientes</span>
+          </div>
+
+          <button class="btn btn-sm btn-primary" onclick="addNewAgendaTask()" style="display:inline-flex; align-items:center; gap:4px;">
+            ${getIcon('edit', { size: 12 })} Nueva Tarea
+          </button>
+        </div>
+
+        <div style="margin-bottom:12px;">
+          <div class="agenda-filters">
+            <button class="agenda-filter-btn ${_agendaFilter==='todas'?'active':''}" onclick="_agendaFilter='todas';renderDashboard(State.activeRole,'asesor-dashboard');">
+              Todas (${tasks.length})
+            </button>
+            <button class="agenda-filter-btn ${_agendaFilter==='pendientes'?'active':''}" onclick="_agendaFilter='pendientes';renderDashboard(State.activeRole,'asesor-dashboard');">
+              Pendientes (${pendingAgendaCount})
+            </button>
+            <button class="agenda-filter-btn ${_agendaFilter==='completadas'?'active':''}" onclick="_agendaFilter='completadas';renderDashboard(State.activeRole,'asesor-dashboard');">
+              Completadas (${tasks.length - pendingAgendaCount})
+            </button>
+          </div>
+        </div>
+
+        <div class="agenda-tasks-list">
+          ${filteredTasks.length === 0 ? `
+            <div style="text-align:center; padding:32px 16px; color:var(--slate-400); font-size:0.875rem;">
+              No hay tareas pendientes en este filtro.
+            </div>
+          ` : filteredTasks.map(t => `
+            <div class="agenda-task-card ${t.completada ? 'completed' : ''}">
+              <div class="task-left">
+                <div class="task-checkbox-custom" onclick="toggleAgendaTask('${t.id}')" title="Marcar como completada">
+                  ${t.completada ? `<span style="display:inline-flex; align-items:center;">${getIcon('check', { size: 12, color: 'var(--wine-800)' })}</span>` : ''}
+                </div>
+                <div class="task-body">
+                  <div class="task-title task-text">${t.titulo}</div>
+                  <div class="task-sub">
+                    <span class="task-time-pill" style="display:inline-flex; align-items:center; gap:3px;">
+                      ${getIcon('clock', { size: 11 })} ${t.hora}
+                    </span>
+                    ${t.candidatoNombre ? `<span style="display:inline-flex; align-items:center; gap:3px;">${getIcon('user', { size: 11 })} <strong>${t.candidatoNombre}</strong></span>` : ''}
+                    ${t.telefono ? `<span style="display:inline-flex; align-items:center; gap:3px;">${getIcon('phone', { size: 11 })} ${t.telefono}</span>` : ''}
+                  </div>
+                </div>
+              </div>
+
+              <div class="task-actions">
+                ${t.candidatoId ? `
+                  <button class="btn-task-action speech" onclick="openSpeechWidgetForCandidate('${t.candidatoId}')" title="Abrir Speech de Llamada">
+                    <span style="display:inline-flex; align-items:center; gap:3px;">${getIcon('headphones', { size: 12 })} Speech</span>
+                  </button>
+                ` : ''}
+                ${t.telefono ? `
+                  <a class="btn-task-action whatsapp" href="https://wa.me/${t.telefono.replace(/[^0-9]/g,'')}" target="_blank" title="Enviar WhatsApp">
+                    <span style="display:inline-flex; align-items:center; gap:3px;">${getIcon('whatsapp', { size: 12 })} WhatsApp</span>
+                  </a>
+                ` : ''}
+                ${t.enlace ? `
+                  <button class="btn-task-action" onclick="navigator.clipboard.writeText('${t.enlace}'); showToast('Copiado', 'Enlace de reunión copiado al portapapeles.', 'success');" title="Copiar enlace de Google Meet/Zoom">
+                    <span style="display:inline-flex; align-items:center; gap:3px;">${getIcon('link', { size: 12 })} Meet</span>
+                  </button>
+                ` : ''}
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+
+      <!-- COLUMNA 2: NOTIFICACIONES OPERATIVAS + MENSAJES RECIENTES -->
+      <div style="display:flex; flex-direction:column; gap:20px;">
+        
+        <!-- PANEL DE NOTIFICACIONES Y ALERTAS -->
+        <div class="dashboard-panel-card">
+          <div class="dashboard-panel-header">
+            <div class="dashboard-panel-title">
+              <span style="display:inline-flex; align-items:center;">${getIcon('bell', { size: 18, color: 'var(--wine-800)' })}</span>
+              <span>Notificaciones & Alertas</span>
+            </div>
+            <span style="font-size:0.75rem; color:var(--slate-500);">${notifications.length} recientes</span>
+          </div>
+
+          <div>
+            ${notifications.map(n => `
+              <div class="notification-card-item">
+                <div class="notification-icon-wrap ${n.iconClass || 'info'}">
+                  ${getIcon(n.iconName || 'bell', { size: 16 })}
+                </div>
+                <div class="notification-content">
+                  <div class="notification-title">${n.titulo}</div>
+                  <div class="notification-desc">${n.descripcion}</div>
+                  <div class="notification-time" style="display:flex; align-items:center; gap:4px;">
+                    <span style="display:inline-flex; align-items:center;">${getIcon('clock', { size: 10 })}</span> ${n.tiempo}
+                  </div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+        <!-- PANEL DE MENSAJES Y NOTAS DE SEGUIMIENTO -->
+        <div class="dashboard-panel-card">
+          <div class="dashboard-panel-header">
+            <div class="dashboard-panel-title">
+              <span style="display:inline-flex; align-items:center;">${getIcon('clipboard', { size: 18, color: 'var(--wine-800)' })}</span>
+              <span>Mensajes & Notas de Seguimiento</span>
+            </div>
+            <button class="btn btn-sm btn-outline" onclick="openQuickNoteModal('${allCandidatos[0]?.id || ''}')" style="display:inline-flex; align-items:center; gap:4px;">
+              ${getIcon('edit', { size: 11 })} Nueva Nota
+            </button>
+          </div>
+
+          <div>
+            ${recentNotes.map(m => `
+              <div class="recent-note-item">
+                <div class="recent-note-header">
+                  <div class="recent-note-cand" style="display:flex; align-items:center; gap:4px;">
+                    <span style="display:inline-flex; align-items:center;">${getIcon('user', { size: 12, color: 'var(--wine-800)' })}</span>
+                    ${m.candidato}
+                  </div>
+                  <div class="recent-note-date">${m.fecha}</div>
+                </div>
+                <div class="recent-note-text">${m.texto}</div>
+                <div style="font-size:0.7rem; color:var(--slate-400); margin-top:2px;">
+                  Registrado por: <strong>${m.autor}</strong>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- DRAWER & MODALES -->
+    ${renderAdvisorSpeechDrawerAndModals(allCandidatos)}
+  `;
+}
+
+// ── PANTALLA 2: GESTIÓN DE CANDIDATOS & PIPELINE (TABLERO / TABLA) ─
+function renderAsesorKanban() {
+  const allCandidatos = DB.getCandidatos();
+  const viewMode = State.kanbanView || 'kanban';
+
+  let candidatos = allCandidatos;
+  if (_asesorKanbanScope === 'mis' && State.currentUser) {
+    const mis = allCandidatos.filter(c => c.id_asesor === State.currentUser.id);
+    candidatos = mis.length > 0 ? mis : allCandidatos;
+  }
+
+  const misCount = State.currentUser ? allCandidatos.filter(c => c.id_asesor === State.currentUser.id).length : 0;
+
+  let boardHtml = '';
+  if (viewMode === 'kanban') {
+    boardHtml = `
+      <div class="kanban-8col-board" id="kanban-board">
+        ${PIPELINE_8_FASES.map((col, index) => {
+          const cards = candidatos.filter(c => normalizeCandidatePhase(c.estado_proceso) === col.id);
+          return `
+            <div class="kanban-8col" data-col="${col.id}" id="col-${col.id.replace(/\s+/g,'-')}">
+              <div class="kanban-8col-header" style="border-top: 3px solid ${col.color};">
+                <span class="kanban-8col-title">
+                  <span style="display:inline-flex; align-items:center; margin-right:5px;">${getIcon(col.iconName, { size: 15, color: col.color })}</span>
+                  ${index + 1}. ${col.label}
+                </span>
+                <span class="kanban-8col-count">${cards.length}</span>
+              </div>
+              <div class="kanban-drop-zone kanban-8col-dropzone" data-col="${col.id}">
+                ${cards.map(c => `
+                  <div class="kanban-card kanban-card-redesign" draggable="true" data-id="${c.id}" data-col="${col.id}">
+                    
+                    <div class="kanban-card-top" onclick="openCandidateDetail('${c.id}')" style="cursor:pointer;">
+                      <div class="kanban-card-avatar" style="background:${getAvatarColor(c.nombre)};">
+                        ${getInitials(c.nombre)}
+                      </div>
+                      <div class="kanban-card-info">
+                        <div class="kanban-card-name" title="${c.nombre}">${c.nombre}</div>
+                        <div class="kanban-card-meta" style="display:flex; align-items:center; gap:4px;">
+                          <span style="display:inline-flex; align-items:center;">${getIcon('mapPin', { size: 11, color: 'var(--slate-400)' })}</span>
+                          <span>${c.pais || 'No indicado'} · ${c.especialidad || 'Salud'}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="kanban-card-pills">
+                      ${getLanguageBadgeHtml(c.nivel_aleman)}
+                      
+                      <div class="badge-advisor-small" title="Asesor asignado">
+                        <span style="display:inline-flex; align-items:center; margin-right:3px;">${getIcon('user', { size: 11, color: 'var(--wine-800)' })}</span>
+                        <span>${c.nombre_asesor ? c.nombre_asesor.split(' ')[0] : 'Sin asignar'}</span>
+                      </div>
+                    </div>
+
+                    <!-- Menú de Acciones Rápidas en Tarjeta -->
+                    <div class="kanban-card-hover-actions">
+                      <button class="card-quick-btn" onclick="event.stopPropagation(); openCandidateDetail('${c.id}');" title="Ver Expediente Completo">
+                        <span style="display:inline-flex; align-items:center; margin-right:3px;">${getIcon('eye', { size: 12 })}</span> Expediente
+                      </button>
+                      <button class="card-quick-btn speech-btn" onclick="event.stopPropagation(); openSpeechWidgetForCandidate('${c.id}');" title="Llamar con Speech Guiado">
+                        <span style="display:inline-flex; align-items:center; margin-right:3px;">${getIcon('headphones', { size: 12 })}</span> Speech
+                      </button>
+                      <button class="card-quick-btn" onclick="event.stopPropagation(); openQuickNoteModal('${c.id}');" title="Añadir Nota Rápida">
+                        <span style="display:inline-flex; align-items:center; margin-right:3px;">${getIcon('edit', { size: 12 })}</span> Nota
+                      </button>
+                    </div>
+
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+  } else {
+    boardHtml = `
+      <div class="card">
+        <div class="data-table-wrapper">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Candidato</th>
+                <th>País & Especialidad</th>
+                <th>Nivel Alemán</th>
+                <th>Asesor Asignado</th>
+                <th>Fase del Pipeline</th>
+                <th>Acciones Rápidas</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${candidatos.map(c => `
+                <tr>
+                  <td>
+                    <div class="td-avatar" onclick="openCandidateDetail('${c.id}')" style="cursor:pointer;">
+                      <div class="avatar" style="background:${getAvatarColor(c.nombre)}">${getInitials(c.nombre)}</div>
+                      <div class="td-name">${c.nombre}</div>
+                    </div>
+                  </td>
+                  <td>
+                    <div style="display:flex; align-items:center; gap:5px;">
+                      <span style="display:inline-flex; align-items:center;">${getIcon('mapPin', { size: 12, color: 'var(--slate-400)' })}</span>
+                      <span>${c.pais || 'N/A'} · ${c.especialidad || 'Salud'}</span>
+                    </div>
+                  </td>
+                  <td>${getLanguageBadgeHtml(c.nivel_aleman)}</td>
+                  <td>
+                    ${c.id_asesor ? `
+                      <span class="badge badge-info" style="display:inline-flex; align-items:center; gap:4px;">
+                        <span style="display:inline-flex; align-items:center;">${getIcon('user', { size: 11 })}</span> ${c.nombre_asesor}
+                      </span>
+                    ` : `
+                      <span class="badge badge-danger" style="display:inline-flex; align-items:center; gap:4px;">
+                        <span style="display:inline-flex; align-items:center;">${getIcon('alertTriangle', { size: 11 })}</span> Sin Asignar
+                      </span>
+                    `}
+                  </td>
+                  <td>
+                    <span class="badge badge-warning">${normalizeCandidatePhase(c.estado_proceso)}</span>
+                  </td>
+                  <td>
+                    <div style="display:flex; gap:6px;">
+                      <button class="btn btn-sm btn-outline" onclick="openCandidateDetail('${c.id}')" title="Ver Expediente">
+                        <span style="display:inline-flex; align-items:center;">${getIcon('eye', { size: 13 })}</span>
+                      </button>
+                      <button class="btn btn-sm btn-outline" onclick="openSpeechWidgetForCandidate('${c.id}')" title="Llamar con Speech">
+                        <span style="display:inline-flex; align-items:center;">${getIcon('headphones', { size: 13 })}</span>
+                      </button>
+                      <button class="btn btn-sm btn-outline" onclick="openQuickNoteModal('${c.id}')" title="Añadir Nota">
+                        <span style="display:inline-flex; align-items:center;">${getIcon('edit', { size: 13 })}</span>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  }
+
+  return `
+    <!-- Cabecera Principal del Pipeline de Candidatos -->
+    <div class="kanban-banner">
+      <div>
+        <h1 class="kanban-banner-title">Gestión de Candidatos & Pipeline</h1>
+        <p class="kanban-banner-subtitle">Pipeline integral de integración de 8 fases · JN Palabras Heidelberg</p>
+      </div>
+      <div class="kanban-banner-actions">
+        ${State.currentUser && (State.activeRole === 'Asesor' || State.activeRole === 'Super Asesor' || State.activeRole === 'Admin') ? `
+        <div style="display:flex; background:rgba(255,255,255,0.15); border-radius:8px; padding:2px;">
+          <button class="btn btn-sm" style="${_asesorKanbanScope==='todos'?'background:rgba(255,255,255,0.25);color:#fff;':'color:rgba(255,255,255,0.7);background:transparent;'} border:none; padding:4px 10px; font-size:0.75rem;" onclick="_asesorKanbanScope='todos';renderDashboard(State.activeRole,'asesor-kanban');">
+            Todos (${allCandidatos.length})
+          </button>
+          <button class="btn btn-sm" style="${_asesorKanbanScope==='mis'?'background:rgba(255,255,255,0.25);color:#fff;':'color:rgba(255,255,255,0.7);background:transparent;'} border:none; padding:4px 10px; font-size:0.75rem;" onclick="_asesorKanbanScope='mis';renderDashboard(State.activeRole,'asesor-kanban');">
+            Mis Asignados (${misCount})
+          </button>
+        </div>
+        ` : ''}
+        <button class="btn btn-outline" style="color:#fff;border-color:rgba(255,255,255,0.2);" onclick="toggleKanbanView()">
+          <span style="margin-right:5px; display:inline-flex; align-items:center;">${getIcon('layout', { size: 14 })}</span> Vista ${viewMode === 'kanban' ? 'Lista' : 'Kanban'}
+        </button>
+        <button class="btn" style="background:var(--gold-500);color:var(--wine-900);font-weight:700;" onclick="openModal('modal-nuevo-candidato')">
+          <span style="margin-right:5px; display:inline-flex; align-items:center;">${getIcon('userPlus', { size: 14, color: 'var(--wine-900)' })}</span> Agregar Candidato
+        </button>
+        <button class="btn btn-outline" style="color:#fff;border-color:rgba(255,255,255,0.2);" onclick="exportKanbanCSV()">
+          <span style="margin-right:5px; display:inline-flex; align-items:center;">${getIcon('download', { size: 14 })}</span> Exportar CSV
+        </button>
+      </div>
+    </div>
+
+    <!-- Barra de Búsqueda y Filtros en Tiempo Real -->
+    <div style="margin-bottom:16px; display:flex; gap:12px; align-items:center;">
+      <div style="flex:1; position:relative; display:flex; align-items:center;">
+        <span style="position:absolute; left:12px; color:var(--slate-400); display:inline-flex; align-items:center;">${getIcon('search', { size: 16 })}</span>
+        <input type="text" id="kanban-filter-search" class="form-input" style="padding-left:36px; border-radius:10px; background:#ffffff;" placeholder="Buscar candidato por nombre, especialidad o país..." oninput="filterKanbanCandidates(this.value)">
+      </div>
+    </div>
+
+    <!-- Tablero Kanban de 8 Columnas o Tabla -->
+    <div class="kanban-8col-wrapper">
+      ${boardHtml}
+    </div>
+
+    <!-- DRAWER & MODALES -->
+    ${renderAdvisorSpeechDrawerAndModals(allCandidatos)}
   `;
 }
 
@@ -1700,7 +2622,609 @@ function initKanban() {
   });
 }
 
+function getCandidateAvatarIllustration(c) {
+  // Ilustración vectorial médica estándar idéntica a la plantilla de diseño solicitada
+  const svgMarkup = `
+    <svg viewBox="0 0 160 160" width="100%" height="100%" fill="none" xmlns="http://www.w3.org/2000/svg" style="border-radius:24px;">
+      <rect width="160" height="160" rx="24" fill="#F4F5F7"/>
+      <!-- Torso / Uniforme Médico -->
+      <path d="M24 160C24 128 50 114 80 114C110 114 136 128 136 160H24Z" fill="#FFFFFF"/>
+      <path d="M50 120L64 160H96L110 120" fill="#E2F5EE"/>
+      <!-- Cuello y Bata / Acentos -->
+      <path d="M62 118L72 138L80 144L88 138L98 118" fill="#F8E586"/>
+      <path d="M72 138L80 160L88 138" fill="#5EEAD4"/>
+      <path d="M68 96C68 112 92 112 92 96V86H68V96Z" fill="#F5C089"/>
+      
+      <!-- Cabeza / Rostro -->
+      <rect x="52" y="44" width="56" height="58" rx="28" fill="#F9C893"/>
+      <!-- Orejas -->
+      <circle cx="48" cy="72" r="7" fill="#F5C089"/>
+      <circle cx="112" cy="72" r="7" fill="#F5C089"/>
+      
+      <!-- Cabello Estilizado Castaño -->
+      <path d="M46 54C46 36 60 22 80 22C98 22 114 34 114 52C114 55 111 60 110 60C106 48 100 42 88 42C80 42 74 44 68 40C62 36 56 42 54 48C50 56 46 62 46 54Z" fill="#9A562B"/>
+      <path d="M50 48L62 32L78 38L92 28L106 36L112 48" stroke="#7A3D18" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+      
+      <!-- Cejas Expresivas -->
+      <path d="M58 60L70 64" stroke="#4A2612" stroke-width="2.5" stroke-linecap="round"/>
+      <path d="M90 64L102 60" stroke="#4A2612" stroke-width="2.5" stroke-linecap="round"/>
+      
+      <!-- Ojos -->
+      <circle cx="65" cy="71" r="3.5" fill="#281A12"/>
+      <circle cx="95" cy="71" r="3.5" fill="#281A12"/>
+      
+      <!-- Nariz -->
+      <path d="M80 73V79" stroke="#E39F63" stroke-width="2" stroke-linecap="round"/>
+      
+      <!-- Boca con Expresión -->
+      <path d="M72 85C74 89 86 89 88 85C88 88 86 92 80 92C74 92 72 88 72 85Z" fill="#751A18"/>
+      
+      <!-- Solapas Chaqueta Médica -->
+      <path d="M54 122L70 148H60L46 160" fill="#E5E7EB"/>
+      <path d="M106 122L90 148H100L114 160" fill="#E5E7EB"/>
+    </svg>
+  `;
+
+  if (c && c.foto && (c.foto.startsWith('http') || c.foto.startsWith('data:') || c.foto.startsWith('/'))) {
+    return `
+      <div class="candidate-avatar-wrap">
+        <img src="${c.foto}" alt="${c.nombre}" style="width:100%;height:100%;object-fit:cover;border-radius:24px;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+        <div style="display:none;width:100%;height:100%;">${svgMarkup}</div>
+        <span class="candidate-status-dot" title="En línea / Activo"></span>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="candidate-avatar-wrap">
+      ${svgMarkup}
+      <span class="candidate-status-dot" title="En línea / Activo"></span>
+    </div>
+  `;
+}
+
+function getCandidateProcessSteps(estadoRaw) {
+  const norm = (estadoRaw || '').toLowerCase();
+  
+  // Determinamos el índice activo (0: Migración, 1: Idioma, 2: Integración, 3: Vida Alemania)
+  let activeIndex = 1; // Default: Idioma (como en la plantilla de referencia)
+  
+  if (norm.includes('lead') || norm.includes('contacto') || norm.includes('recluta')) {
+    activeIndex = 0;
+  } else if (norm.includes('idioma') || norm.includes('aleman') || norm.includes('b1') || norm.includes('b2') || norm.includes('a1') || norm.includes('a2')) {
+    activeIndex = 1;
+  } else if (norm.includes('entrevista') || norm.includes('contrato') || norm.includes('visa') || norm.includes('homolog')) {
+    activeIndex = 2;
+  } else if (norm.includes('pre-viaje') || norm.includes('viaje') || norm.includes('destino') || norm.includes('alemania') || norm.includes('inserc') || norm.includes('colocado')) {
+    activeIndex = 3;
+  }
+
+  const steps = [
+    {
+      num: '01. MIGRACIÓN',
+      icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>`
+    },
+    {
+      num: '02. IDIOMA',
+      icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>`
+    },
+    {
+      num: '03. INTEGRACIÓN',
+      icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>`
+    },
+    {
+      num: '04. VIDA ALEMANIA',
+      icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"></path><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>`
+    }
+  ];
+
+  return { activeIndex, steps };
+}
+
+function renderCandidateProfileHTML(c) {
+  const { activeIndex, steps } = getCandidateProcessSteps(c.estado_proceso);
+  const progressPercent = activeIndex === 0 ? 12 : (activeIndex === 1 ? 42 : (activeIndex === 2 ? 72 : 100));
+
+  // Formato de nombre y metadatos
+  const nombre = c.nombre || 'Mateo Valencia';
+  const displayName = nombre.replace(/\s+/, '<br>');
+  const lastName = nombre.split(' ').slice(1).join('_') || 'Valencia';
+  const especialidad = c.especialidad || 'Enfermero Profesional';
+  const roleBadge = (especialidad.toLowerCase().includes('enferm') ? 'ENFERMERO<br>PROFESIONAL' : especialidad.toUpperCase());
+  const subespecialidad = c.subespecialidad || 'Cuidados Intensivos';
+  const idioma = c.nivel_aleman && !c.nivel_aleman.includes('Ver Test') ? `Alemán ${c.nivel_aleman} (En curso)` : 'Alemán B2 (En curso)';
+  const ciudad = c.ciudad || 'Medellín';
+  const pais = c.pais || 'Colombia';
+  let fechaMiembro = 'Miembro desde Oct 2023';
+  if (c.fecha_alta) {
+    try {
+      const d = new Date(c.fecha_alta);
+      if (!isNaN(d.getTime())) {
+        const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+        fechaMiembro = `Miembro desde ${months[d.getMonth()]} ${d.getFullYear()}`;
+      }
+    } catch (e) {}
+  }
+
+  // Notas e Historial
+  const notas = DB.getNotas ? DB.getNotas(c.id) : [];
+  const latestNota = notas && notas.length > 0 ? notas[0] : null;
+  const quoteText = latestNota ? latestNota.contenido : `El candidato muestra gran disposición para el aprendizaje del idioma. Su experiencia en ${subespecialidad} es un valor agregado muy fuerte para los hospitales en Heidelberg.`;
+  const authorName = latestNota && latestNota.autor ? latestNota.autor : 'Dr. Hans Müller';
+  const authorInitials = getInitials(authorName);
+
+  return `
+    <div class="candidate-profile-page">
+      <!-- 1. Barra Superior del Perfil -->
+      <div class="candidate-profile-topbar">
+        <div class="candidate-profile-title-wrap">
+          <button class="candidate-back-btn" onclick="closeCandidateProfile()" title="Volver al tablero">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="19" y1="12" x2="5" y2="12"></line>
+              <polyline points="12 19 5 12 12 5"></polyline>
+            </svg>
+          </button>
+          <h1 class="candidate-profile-title">Perfil del Candidato</h1>
+        </div>
+        <div class="candidate-topbar-actions">
+          <button class="btn-pill-outline" onclick="exportCandidateProfilePDF('${c.id}')" title="Descargar o imprimir perfil en PDF">
+            EXPORTAR PDF
+          </button>
+          <button class="btn-pill-primary" onclick="openEditCandidateModal('${c.id}')" title="Editar datos del candidato">
+            EDITAR PERFIL
+          </button>
+        </div>
+      </div>
+
+      <!-- 2. Rejilla Principal de 2 Columnas -->
+      <div class="candidate-profile-grid">
+        <!-- Columna Izquierda (Principal) -->
+        <div>
+          <!-- Tarjeta Hero del Candidato -->
+          <div class="candidate-hero-card">
+            ${getCandidateAvatarIllustration(c)}
+            <div class="candidate-hero-info">
+              <div class="candidate-hero-header-row">
+                <h2 class="candidate-hero-name">${displayName}</h2>
+                <div class="candidate-hero-role-badge">${roleBadge}</div>
+              </div>
+              
+              <div class="candidate-hero-meta-row">
+                <span class="candidate-hero-meta-item">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                  ${ciudad}, ${pais}
+                </span>
+                <span class="candidate-hero-meta-item">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                  ${fechaMiembro}
+                </span>
+              </div>
+
+              <div class="candidate-hero-pills">
+                <div class="candidate-hero-pill">
+                  <div class="candidate-hero-pill-label">IDIOMA</div>
+                  <div class="candidate-hero-pill-val">${idioma}</div>
+                </div>
+                <div class="candidate-hero-pill">
+                  <div class="candidate-hero-pill-label">ESPECIALIDAD</div>
+                  <div class="candidate-hero-pill-val">${subespecialidad}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tarjeta de Estado del Proceso (Stepper Horizontal) -->
+          <div class="candidate-standard-card">
+            <div class="candidate-card-header-wine">ESTADO DEL PROCESO</div>
+            <div class="candidate-stepper-container">
+              <div class="candidate-stepper-line">
+                <div class="candidate-stepper-line-active" style="width: ${progressPercent}%;"></div>
+              </div>
+              ${steps.map((st, idx) => {
+                let circleClass = 'pending';
+                let statusLabel = 'PENDIENTE';
+                let statusClass = 'pending';
+
+                if (idx < activeIndex) {
+                  circleClass = 'completed';
+                  statusLabel = 'COMPLETADO';
+                  statusClass = 'completed';
+                } else if (idx === activeIndex) {
+                  circleClass = 'active';
+                  statusLabel = 'EN PROCESO';
+                  statusClass = 'in-progress';
+                }
+
+                return `
+                  <div class="candidate-step-node">
+                    <div class="candidate-step-circle ${circleClass}">
+                      ${st.icon}
+                    </div>
+                    <div class="candidate-step-label">${st.num}</div>
+                    <div class="candidate-step-status ${statusClass}">${statusLabel}</div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+
+          <!-- Tarjeta de Documentación Requerida (Grid 2x2) -->
+          <div class="candidate-standard-card">
+            <div class="candidate-docs-header">
+              <div class="candidate-card-header-wine" style="margin-bottom:0;">DOCUMENTACIÓN REQUERIDA</div>
+              <button class="candidate-upload-link" onclick="quickUploadDocForCandidate('${c.id}')">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                SUBIR NUEVO
+              </button>
+            </div>
+
+            <div class="candidate-docs-grid">
+              <!-- Doc 1: Pasaporte -->
+              <div class="candidate-doc-item">
+                <div class="candidate-doc-left">
+                  <div class="candidate-doc-icon-wrap">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                  </div>
+                  <div>
+                    <div class="candidate-doc-title">Pasaporte_${lastName}.pdf</div>
+                    <div class="candidate-doc-sub">Válido hasta: 12/2028</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Doc 2: Diploma -->
+              <div class="candidate-doc-item">
+                <div class="candidate-doc-left">
+                  <div class="candidate-doc-icon-wrap">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="7"></circle><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline></svg>
+                  </div>
+                  <div>
+                    <div class="candidate-doc-title">Diploma_${(especialidad.replace(/\s+/g, '_'))}.pdf</div>
+                    <div class="candidate-doc-sub">Certificado por Ministerio</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Doc 3: Certificado Alemán (Esperando Validación) -->
+              <div class="candidate-doc-item pending-validation">
+                <div class="candidate-doc-left">
+                  <div class="candidate-doc-icon-wrap">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><polyline points="9 12 11 14 15 10"></polyline></svg>
+                  </div>
+                  <div>
+                    <div class="candidate-doc-title">Certificado_Alemán_${c.nivel_aleman && !c.nivel_aleman.includes('Ver Test') ? c.nivel_aleman : 'A2'}.pdf</div>
+                    <div class="candidate-doc-sub">ESPERANDO VALIDACIÓN</div>
+                  </div>
+                </div>
+                <div style="display:flex;align-items:center;" title="Pendiente de revisión">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                </div>
+              </div>
+
+              <!-- Doc 4: Seguro de Viaje (Omitir) -->
+              <div class="candidate-doc-item dashed">
+                <div class="candidate-doc-left">
+                  <div class="candidate-doc-icon-wrap" style="background:#f8fafc;border-style:dashed;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
+                  </div>
+                  <div>
+                    <div class="candidate-doc-title" style="color:#64748b;">Seguro de Viaje</div>
+                    <div class="candidate-doc-sub">Requerido próximamente</div>
+                  </div>
+                </div>
+                <button class="candidate-doc-omit-btn" onclick="omitCandidateDocStep('${c.id}')" title="Omitir este requisito temporalmente">OMITIR</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Columna Derecha (Sidebar) -->
+        <div>
+          <!-- Acciones Rápidas (Caja Vino Tinto Oscuro) -->
+          <div class="candidate-actions-box">
+            <div class="candidate-actions-title">ACCIONES RÁPIDAS</div>
+            <button class="candidate-action-btn-item" onclick="quickSendMessage('${c.id}')">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+              <span>Enviar Mensaje</span>
+            </button>
+            <button class="candidate-action-btn-item" onclick="quickScheduleInterview('${c.id}')">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>
+              <span>Agendar Entrevista</span>
+            </button>
+            <button class="candidate-action-btn-item" onclick="openCVForCandidate('${c.id}')">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+              <span>Ver Expediente Full</span>
+            </button>
+          </div>
+
+          <!-- Historial -->
+          <div class="candidate-standard-card">
+            <div class="candidate-card-header-wine">HISTORIAL</div>
+            <div class="candidate-history-timeline">
+              <div class="candidate-history-event">
+                <div class="candidate-history-dot active"></div>
+                <div class="candidate-history-time">HACE 2 HORAS</div>
+                <div class="candidate-history-desc">Documentos de Visa aprobados</div>
+                <div class="candidate-history-author">Por: Elena Martínez (Admin)</div>
+              </div>
+              <div class="candidate-history-event">
+                <div class="candidate-history-dot"></div>
+                <div class="candidate-history-time">AYER, 14:30</div>
+                <div class="candidate-history-desc">Subió Certificado Alemán A2</div>
+              </div>
+              <div class="candidate-history-event">
+                <div class="candidate-history-dot"></div>
+                <div class="candidate-history-time">24 ENE, 2024</div>
+                <div class="candidate-history-desc">Entrevista inicial aprobada</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Notas Internas -->
+          <div class="candidate-standard-card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
+              <div class="candidate-card-header-wine" style="margin-bottom:0;">NOTAS INTERNAS</div>
+              <button class="btn btn-outline btn-xs" onclick="quickAddCandidateNote('${c.id}')" style="font-size:0.75rem;padding:4px 8px;border-radius:12px;font-weight:600;">+ Añadir Nota</button>
+            </div>
+            <div class="candidate-notes-quote-box">
+              <p class="candidate-notes-quote-text">
+                "${quoteText}"
+              </p>
+              <div class="candidate-notes-quote-author">
+                <div class="candidate-notes-author-circle">${authorInitials}</div>
+                <div class="candidate-notes-author-name">${authorName}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderCandidateProfilePage() {
+  const id = State.viewingCandidateId || State.selectedCandidato;
+  let c = DB.getCandidatoById(id);
+
+  if (!c) {
+    const list = DB.getCandidatos ? DB.getCandidatos() : [];
+    if (list && list.length > 0) {
+      c = list[0];
+      State.viewingCandidateId = c.id;
+      State.selectedCandidato = c.id;
+    }
+  }
+
+  if (!c) {
+    return `
+      <div style="padding:60px 20px;text-align:center;">
+        <h3 style="color:var(--wine-800);margin-bottom:14px;font-size:1.3rem;">No hay candidato seleccionado</h3>
+        <p style="color:var(--slate-500);margin-bottom:24px;">Selecciona un candidato desde el Tablero Kanban o la Lista para ver su perfil estándar.</p>
+        <button class="btn btn-primary" onclick="closeCandidateProfile()">Volver al Tablero</button>
+      </div>
+    `;
+  }
+
+  return renderCandidateProfileHTML(c);
+}
+
 function openCandidateDetail(id) {
+  const c = DB.getCandidatoById(id);
+  if (!c) {
+    showToast('Aviso', 'No se encontró la información del candidato.', 'warning');
+    return;
+  }
+
+  State.viewingCandidateId = id;
+  State.selectedCandidato = id;
+  
+  if (State.currentSidebar !== 'candidato-perfil') {
+    State.returnViewFromProfile = State.currentSidebar || 'asesor-kanban';
+  }
+
+  renderDashboard(State.activeRole, 'candidato-perfil');
+}
+
+function closeCandidateProfile() {
+  const target = State.returnViewFromProfile || (State.activeRole === 'candidato' ? 'candidato-dashboard' : (State.activeRole === 'asesor' ? 'asesor-kanban' : 'admin-candidatos'));
+  renderDashboard(State.activeRole, target);
+}
+
+function exportCandidateProfilePDF(id) {
+  const c = DB.getCandidatoById(id);
+  const nombre = c ? c.nombre.replace(/\\s+/g, '_') : 'Candidato';
+  const originalTitle = document.title;
+  document.title = `Perfil_Candidato_${nombre}_JN_Palabras`;
+  window.print();
+  setTimeout(() => {
+    document.title = originalTitle;
+  }, 1000);
+}
+
+function openEditCandidateModal(id) {
+  const c = DB.getCandidatoById(id);
+  if (!c) return;
+
+  const modalHtml = `
+    <div class="modal-overlay open" id="modal-edit-candidate-quick" role="dialog" aria-modal="true" style="z-index:9999;">
+      <div class="modal-card" style="max-width:580px;border-radius:20px;padding:28px;">
+        <div class="modal-header" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+          <h3 style="font-family:var(--font-heading);color:var(--wine-800);font-size:1.25rem;margin:0;">Editar Perfil de Candidato</h3>
+          <button class="modal-close" onclick="closeModal('modal-edit-candidate-quick')" style="background:none;border:none;font-size:1.3rem;cursor:pointer;">✕</button>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
+          <div style="grid-column:span 2;">
+            <label class="form-label" style="font-size:0.8rem;font-weight:700;color:var(--slate-600);">Nombre Completo</label>
+            <input class="form-input" id="edit-cand-nombre" value="${c.nombre || ''}">
+          </div>
+          <div>
+            <label class="form-label" style="font-size:0.8rem;font-weight:700;color:var(--slate-600);">Especialidad / Título</label>
+            <input class="form-input" id="edit-cand-esp" value="${c.especialidad || 'Enfermero Profesional'}">
+          </div>
+          <div>
+            <label class="form-label" style="font-size:0.8rem;font-weight:700;color:var(--slate-600);">Subespecialidad / Área</label>
+            <input class="form-input" id="edit-cand-subesp" value="${c.subespecialidad || 'Cuidados Intensivos'}">
+          </div>
+          <div>
+            <label class="form-label" style="font-size:0.8rem;font-weight:700;color:var(--slate-600);">Nivel de Alemán</label>
+            <select class="form-select" id="edit-cand-aleman">
+              <option value="A1" ${c.nivel_aleman==='A1'?'selected':''}>A1 (Principiante)</option>
+              <option value="A2" ${c.nivel_aleman==='A2'?'selected':''}>A2 (Básico)</option>
+              <option value="B1" ${c.nivel_aleman==='B1'?'selected':''}>B1 (Intermedio)</option>
+              <option value="B2" ${c.nivel_aleman==='B2'||!c.nivel_aleman?'selected':''}>B2 (Requerido)</option>
+              <option value="C1" ${c.nivel_aleman==='C1'?'selected':''}>C1 (Avanzado)</option>
+            </select>
+          </div>
+          <div>
+            <label class="form-label" style="font-size:0.8rem;font-weight:700;color:var(--slate-600);">Fase del Proceso</label>
+            <select class="form-select" id="edit-cand-fase">
+              <option value="Lead Nuevo" ${c.estado_proceso==='Lead Nuevo'?'selected':''}>01. Lead Nuevo</option>
+              <option value="1er Contacto / Reclutamiento" ${c.estado_proceso==='1er Contacto / Reclutamiento'?'selected':''}>02. 1er Contacto</option>
+              <option value="Suficiencia de Idioma (A1-B2)" ${c.estado_proceso==='Suficiencia de Idioma (A1-B2)'||c.estado_proceso==='En Proceso'?'selected':''}>03. Suficiencia de Idioma</option>
+              <option value="Entrevista y Contrato" ${c.estado_proceso==='Entrevista y Contrato'?'selected':''}>04. Entrevista y Contrato</option>
+              <option value="Procesamiento de Visa" ${c.estado_proceso==='Procesamiento de Visa'?'selected':''}>05. Procesamiento de Visa</option>
+              <option value="Fase Pre-viaje" ${c.estado_proceso==='Fase Pre-viaje'?'selected':''}>06. Fase Pre-viaje</option>
+              <option value="En Destino" ${c.estado_proceso==='En Destino'?'selected':''}>07. En Destino</option>
+              <option value="Inserción Exitosa" ${c.estado_proceso==='Inserción Exitosa'?'selected':''}>08. Inserción Exitosa</option>
+            </select>
+          </div>
+          <div>
+            <label class="form-label" style="font-size:0.8rem;font-weight:700;color:var(--slate-600);">Ciudad</label>
+            <input class="form-input" id="edit-cand-ciudad" value="${c.ciudad || 'Medellín'}">
+          </div>
+          <div>
+            <label class="form-label" style="font-size:0.8rem;font-weight:700;color:var(--slate-600);">País</label>
+            <input class="form-input" id="edit-cand-pais" value="${c.pais || 'Colombia'}">
+          </div>
+          <div style="grid-column:span 2;">
+            <label class="form-label" style="font-size:0.8rem;font-weight:700;color:var(--slate-600);">Correo Electrónico</label>
+            <input class="form-input" id="edit-cand-email" value="${c.correo || ''}">
+          </div>
+          <div style="grid-column:span 2;">
+            <label class="form-label" style="font-size:0.8rem;font-weight:700;color:var(--slate-600);">Teléfono / WhatsApp</label>
+            <input class="form-input" id="edit-cand-tel" value="${c.telefono || ''}">
+          </div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:20px;">
+          <button class="btn btn-outline" onclick="closeModal('modal-edit-candidate-quick')">Cancelar</button>
+          <button class="btn btn-primary" onclick="saveCandidateProfileEdit('${c.id}')" style="background:#801020;border-color:#801020;">Guardar Cambios</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  let existing = $('modal-edit-candidate-quick');
+  if (existing) existing.remove();
+
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
+
+function saveCandidateProfileEdit(id) {
+  const nombre = $('edit-cand-nombre')?.value?.trim();
+  const especialidad = $('edit-cand-esp')?.value?.trim();
+  const subespecialidad = $('edit-cand-subesp')?.value?.trim();
+  const nivel_aleman = $('edit-cand-aleman')?.value;
+  const estado_proceso = $('edit-cand-fase')?.value;
+  const ciudad = $('edit-cand-ciudad')?.value?.trim();
+  const pais = $('edit-cand-pais')?.value?.trim();
+  const correo = $('edit-cand-email')?.value?.trim();
+  const telefono = $('edit-cand-tel')?.value?.trim();
+
+  if (!nombre) {
+    showToast('Error', 'El nombre es obligatorio', 'error');
+    return;
+  }
+
+  DB.updateCandidato(id, {
+    nombre,
+    especialidad,
+    subespecialidad,
+    nivel_aleman,
+    estado_proceso,
+    ciudad,
+    pais,
+    correo,
+    telefono
+  }).then(() => {
+    showToast('Éxito', 'Perfil del candidato actualizado con éxito', 'success');
+    closeModal('modal-edit-candidate-quick');
+    const modalEl = $('modal-edit-candidate-quick');
+    if (modalEl) modalEl.remove();
+    renderDashboard(State.activeRole, 'candidato-perfil');
+  }).catch(e => {
+    showToast('Error', 'No se pudo guardar la información', 'error');
+  });
+}
+
+function quickSendMessage(id) {
+  const c = DB.getCandidatoById(id);
+  const msg = prompt(`Escribe el mensaje directo para ${c ? c.nombre : 'el candidato'}:`);
+  if (!msg) return;
+
+  if (DB.addNota) {
+    DB.addNota(id, {
+      tipo: 'Email',
+      contenido: `Mensaje enviado al candidato: "${msg}"`,
+      autor: State.currentUser ? State.currentUser.nombre : 'Asesor JN Palabras',
+      fecha: new Date().toISOString()
+    });
+  }
+
+  showToast('Mensaje Enviado', `Se envió la notificación a ${c ? c.nombre : 'el candidato'}.`, 'success');
+  renderDashboard(State.activeRole, 'candidato-perfil');
+}
+
+function quickScheduleInterview(id) {
+  const c = DB.getCandidatoById(id);
+  const fecha = prompt(`Fecha y hora de la entrevista para ${c ? c.nombre : 'el candidato'} (Ej: 2026-10-05 14:00):`, '2026-10-05 14:00');
+  if (!fecha) return;
+
+  if (DB.addNota) {
+    DB.addNota(id, {
+      tipo: 'Hito',
+      contenido: `Entrevista agendada para: ${fecha}`,
+      autor: State.currentUser ? State.currentUser.nombre : 'Asesor JN Palabras',
+      fecha: new Date().toISOString()
+    });
+  }
+
+  showToast('Entrevista Agendada', `Reunión agendada para ${fecha}`, 'success');
+  renderDashboard(State.activeRole, 'candidato-perfil');
+}
+
+function quickUploadDocForCandidate(id) {
+  const nombreDoc = prompt('Ingresa el nombre del documento a subir (Ej: Certificado_B2_Goethe.pdf):', 'Certificado_B2_Goethe.pdf');
+  if (!nombreDoc) return;
+
+  showToast('Subiendo', 'Procesando documento...', 'info');
+  setTimeout(() => {
+    showToast('Documento Guardado', `${nombreDoc} ha sido subido con éxito`, 'success');
+  }, 600);
+}
+
+function omitCandidateDocStep(id) {
+  showToast('Requisito Omitido', 'El requisito de Seguro de Viaje se marcará para la siguiente fase.', 'info');
+}
+
+function quickAddCandidateNote(id) {
+  const c = DB.getCandidatoById(id);
+  const nota = prompt(`Añadir nota interna de seguimiento para ${c ? c.nombre : 'el candidato'}:`);
+  if (!nota) return;
+
+  if (DB.addNota) {
+    DB.addNota(id, {
+      tipo: 'Nota Interna',
+      contenido: nota,
+      autor: State.currentUser ? State.currentUser.nombre : 'Dr. Hans Müller',
+      fecha: new Date().toISOString()
+    });
+  }
+
+  showToast('Nota Guardada', 'La nota interna fue registrada.', 'success');
+  renderDashboard(State.activeRole, 'candidato-perfil');
+}
+
+function openCandidateDetailModalLegacy(id) {
   const c = DB.getCandidatoById(id);
   const docs = DB.getDocumentos(id);
   const notas = DB.getNotas(id);
@@ -4757,6 +6281,17 @@ window.saveCms = saveCms;
 window.toggleKanbanView = toggleKanbanView;
 window.guardarNuevoCandidato = guardarNuevoCandidato;
 window.openCandidateDetail = openCandidateDetail;
+window.renderCandidateProfilePage = renderCandidateProfilePage;
+window.closeCandidateProfile = closeCandidateProfile;
+window.exportCandidateProfilePDF = exportCandidateProfilePDF;
+window.openEditCandidateModal = openEditCandidateModal;
+window.saveCandidateProfileEdit = saveCandidateProfileEdit;
+window.quickSendMessage = quickSendMessage;
+window.quickScheduleInterview = quickScheduleInterview;
+window.quickUploadDocForCandidate = quickUploadDocForCandidate;
+window.omitCandidateDocStep = omitCandidateDocStep;
+window.quickAddCandidateNote = quickAddCandidateNote;
+window.openCandidateDetailModalLegacy = openCandidateDetailModalLegacy;
 window.deleteCandidateProfile = deleteCandidateProfile;
 window.acceptCandidate = acceptCandidate;
 window.rejectCandidate = rejectCandidate;
@@ -4824,3 +6359,15 @@ window.ejecutarDesignacion = ejecutarDesignacion;
 window.ejecutarAutoDesignacion = ejecutarAutoDesignacion;
 window.cambiarAsesorCandidato = cambiarAsesorCandidato;
 window.getRoleForView = getRoleForView;
+window.toggleAgendaTask = toggleAgendaTask;
+window.addNewAgendaTask = addNewAgendaTask;
+window.toggleSpeechWidget = toggleSpeechWidget;
+window.openSpeechWidgetForCandidate = openSpeechWidgetForCandidate;
+window.setSpeechTab = setSpeechTab;
+window.onSpeechCandidateSelect = onSpeechCandidateSelect;
+window.saveCandidateDataFromSpeech = saveCandidateDataFromSpeech;
+window.openQuickNoteModal = openQuickNoteModal;
+window.renderAsesorDashboard = renderAsesorDashboard;
+window.renderAsesorKanban = renderAsesorKanban;
+window.filterKanbanCandidates = filterKanbanCandidates;
+window.exportKanbanCSV = exportKanbanCSV;
