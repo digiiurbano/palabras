@@ -1,8 +1,10 @@
 
 // URL del backend: usa VITE_API_URL en producción o localhost en desarrollo
-let apiUrl = '';
+let apiUrl = 'https://jn-palabras-backend.onrender.com';
 if (typeof window !== 'undefined' && window.VITE_API_URL && window.VITE_API_URL !== 'undefined') {
   apiUrl = window.VITE_API_URL;
+} else if (typeof window !== 'undefined' && localStorage.getItem('jnp_api_url')) {
+  apiUrl = localStorage.getItem('jnp_api_url');
 } else if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
   apiUrl = 'http://localhost:3000';
 }
