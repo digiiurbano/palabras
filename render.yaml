@@ -16,8 +16,9 @@ services:
       - key: DATABASE_URL
         value: postgresql://postgres.qzdqycvkopijggzeiswl:ZpvpR29gqIeipDtH@aws-0-us-west-2.pooler.supabase.com:5432/postgres
 
-  - type: static
+  - type: web
     name: jn-palabras-frontend
+    runtime: static
     rootDir: frontend
     region: frankfurt
     plan: free
