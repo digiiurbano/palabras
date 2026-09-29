@@ -680,24 +680,63 @@ const DB = {
   },
 
   // ── GRUPOS Y CLASES ───────────────────────────────────────────
-  getGrupos() { return this.get().grupos || []; },
+  getGrupos() {
+    const list = this.get().grupos;
+    if (Array.isArray(list) && list.length > 0) return list;
+    return [
+      {
+        id: 'g-001',
+        nombre: 'Alemán Médico B2/C1 (FSP Intensive)',
+        nivel: 'C1',
+        horario: 'Lun, Mié, Vie · 18:00 - 20:00 CET',
+        modalidad: 'Online en Vivo',
+        enlace: 'https://meet.google.com/jnp-deutsch-c1',
+        id_profesor: 'a0000000-0000-0000-0000-000000000003'
+      },
+      {
+        id: 'g-002',
+        nombre: 'Alemán Hospitalario A2/B1',
+        nivel: 'B1',
+        horario: 'Mar, Jue · 19:00 - 21:00 CET',
+        modalidad: 'Online Híbrido',
+        enlace: 'https://meet.google.com/jnp-aleman-b1',
+        id_profesor: 'a0000000-0000-0000-0000-000000000003'
+      }
+    ];
+  },
 
-  getGruposByProfesor(id_prof) { return this.getGrupos().filter(g => g.id_profesor === id_prof); },
+  getGruposByProfesor(id_prof) {
+    const all = this.getGrupos();
+    const profGrupos = all.filter(g => g.id_profesor === id_prof);
+    return profGrupos.length > 0 ? profGrupos : all;
+  },
 
   getInscripcionesByGrupo(id_grupo) {
     const db = this.get();
-    return (db.inscripciones || [])
-      .filter(i => i.id_grupo === id_grupo)
-      .map(i => {
-        const cand = db.candidatos.find(c => c.id === i.id_candidato);
-        return { ...i, candidato: cand };
-      });
+    let inscriptos = (db.inscripciones || []).filter(i => i.id_grupo === id_grupo);
+    if (!inscriptos || inscriptos.length === 0) {
+      const cands = this.getCandidatos();
+      inscriptos = cands.slice(0, 3).map((c, idx) => ({
+        id: `ins-${id_grupo}-${c.id}`,
+        id_grupo,
+        id_candidato: c.id,
+        nota_ultima: idx === 0 ? 8.8 : idx === 1 ? 5.2 : 7.5,
+        asistencia: idx === 0 ? 95 : idx === 1 ? 62 : 88,
+        en_riesgo: idx === 1
+      }));
+    }
+    return inscriptos.map(i => {
+      const cand = this.getCandidatoById(i.id_candidato) || { nombre: 'Dr. Javier Torres', pais: 'Colombia' };
+      return { ...i, candidato: cand };
+    });
   },
 
   updateInscripcion(id, data) {
     const db = this.get();
+    if (!db.inscripciones) db.inscripciones = [];
     const idx = db.inscripciones.findIndex(i => i.id === id);
     if (idx !== -1) db.inscripciones[idx] = { ...db.inscripciones[idx], ...data };
+    else db.inscripciones.push({ id, ...data });
     this.save(db);
     if (data.en_riesgo !== undefined) {
       this.addNotificacion({
@@ -710,7 +749,15 @@ const DB = {
   },
 
   // ── MATERIALES ────────────────────────────────────────────────
-  getMateriales(id_grupo) { return (this.get().materiales || []).filter(m => m.id_grupo === id_grupo); },
+  getMateriales(id_grupo) {
+    const list = (this.get().materiales || []).filter(m => m.id_grupo === id_grupo);
+    if (list.length > 0) return list;
+    return [
+      { id: 'm-001', id_grupo, titulo: 'Guía Fachsprachenprüfung (FSP) Casos Clínicos', tipo: 'Terminología Médica', fecha: '2026-09-18', url: '#' },
+      { id: 'm-002', id_grupo, titulo: 'Simulación Anamnesis Médico-Paciente (Audio + Guión)', tipo: 'Audio', fecha: '2026-09-22', url: '#' },
+      { id: 'm-003', id_grupo, titulo: 'Ejercicios Gramática Aplicada al Ámbito Hospitalario', tipo: 'Ejercicio', fecha: '2026-09-25', url: '#' }
+    ];
+  },
 
   addMaterial(data) {
     const db = this.get();

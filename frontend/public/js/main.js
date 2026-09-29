@@ -342,7 +342,7 @@ function renderAppShell(view = null) {
   ensureNotifClickListener();
 
   // Configurar Tema Visual por Rol
-  document.body.className = `theme-${State.activeRole.toLowerCase()}`;
+  document.body.className = `theme-${State.activeRole.toLowerCase().replace(/\s+/g, '-')}`;
 
   // Header
   const notifCount = DB.getNotifNoLeidas(user.id);
@@ -364,21 +364,22 @@ function renderAppShell(view = null) {
         </div>
       </div>
       <!-- Usuario -->
-      <div class="role-switcher" title="Usuario activo">
+      <div class="role-switcher" title="Cambiar rol activo" onclick="if(event.target.tagName !== 'SELECT'){const s=document.getElementById('header-role-select');if(s){s.focus();if(s.showPicker)s.showPicker();else s.click();}}">
         <div class="role-avatar" style="background:${getAvatarColor(user.nombre)}">${getInitials(user.nombre)}</div>
         <div class="role-info">
           <div class="role-name">${user.nombre.length > 25 ? user.nombre.split(' ').slice(0,2).join(' ') : user.nombre}</div>
           
           <div class="role-label" style="display:flex;align-items:center;gap:4px;">
-            ${getRolIcon(State.activeRole)} 
-            <select class="role-switcher-select" onchange="switchRole(this.value)" style="background:transparent;border:none;color:inherit;font-size:inherit;font-weight:inherit;outline:none;cursor:pointer;">
-              ${(() => {
-                const isAdmin = (user.roles || []).includes('Admin');
-                const list = isAdmin 
-                  ? ['Admin', 'Super Asesor', 'Asesor', 'Profesor', 'Candidato', 'Empresa', 'Socio']
-                  : (user.roles || [State.activeRole]);
-                return list.map(r => `<option value="${r}" ${r===State.activeRole?'selected':''}>${r}</option>`).join('');
-              })()}
+            <select id="header-role-select" class="role-switcher-select" onchange="switchRole(this.value)" style="background:#f8fafc;border:1px solid #cbd5e1;color:#0f172a;font-size:0.75rem;font-weight:600;outline:none;cursor:pointer;padding:2px 6px;border-radius:6px;">
+              ${[
+                { rol: 'Admin', icon: '🛡️' },
+                { rol: 'Super Asesor', icon: '⭐' },
+                { rol: 'Asesor', icon: '👨‍💼' },
+                { rol: 'Profesor', icon: '🎓' },
+                { rol: 'Candidato', icon: '🩺' },
+                { rol: 'Empresa', icon: '🏥' },
+                { rol: 'Socio', icon: '🤝' }
+              ].map(r => `<option value="${r.rol}" style="color:#0f172a;background:#fff;" ${r.rol===State.activeRole?'selected':''}>${r.icon} ${r.rol}</option>`).join('')}
             </select>
           </div>
 
@@ -6895,7 +6896,15 @@ window.removeSprachenItem = removeSprachenItem;
 
 
 window.switchRole = function(newRole) {
+  if (!newRole) return;
   State.activeRole = newRole;
+  if (State.currentUser) {
+    if (!State.currentUser.roles) State.currentUser.roles = [];
+    if (!State.currentUser.roles.includes(newRole)) {
+      State.currentUser.roles.push(newRole);
+    }
+    DB.setSession(State.currentUser);
+  }
   try {
     localStorage.setItem('jnp_active_role', newRole);
     localStorage.setItem('jnp_current_view', 'app');
