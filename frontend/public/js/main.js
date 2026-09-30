@@ -720,6 +720,9 @@ async function renderDashboard(rol, view = null) {
   const fn = renders[id];
   if (fn) {
     try {
+      if (['admin-users', 'admin-candidatos', 'admin-empresas', 'admin-comisiones', 'super-leads', 'super-candidatos', 'asesor-dashboard', 'emp-candidatos', 'socio-referidos'].includes(id)) {
+        await DB.init(true);
+      }
       const html = await fn();
       container.innerHTML = '<div class="animate-fadeInUp">' + html + '</div>';
       // Post-render hooks

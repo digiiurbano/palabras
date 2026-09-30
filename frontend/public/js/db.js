@@ -60,9 +60,44 @@ const DB_STORAGE_KEY = 'jnp_local_db_v2';
 const DB = {
   data: null,
 
-  async init() {
-    // 1. Cargar primero de localStorage para persistencia garantizada inmediata
-    if (!this.data) {
+  async init(forceRefresh = false) {
+    if (API_URL) {
+      try {
+        const res = await fetch(`${API_URL}/api/db?t=${Date.now()}`);
+        if (res.ok) {
+          const remote = await res.json();
+          if (remote && typeof remote === 'object') {
+            const remoteUsers = Array.isArray(remote.usuarios) ? remote.usuarios : [];
+            const sanitizedUsers = remoteUsers.map(u => ({
+              ...u,
+              roles: typeof u.roles === 'string' ? JSON.parse(u.roles) : (Array.isArray(u.roles) ? u.roles : ['Candidato']),
+              avatar: u.avatar || (u.nombre ? u.nombre.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase() : 'U')
+            }));
+
+            // Asegurar usuario Admin por defecto si no viniera
+            if (!sanitizedUsers.some(u => u.correo === 'admin@jnpalabras.com')) {
+              const adm = OFFICIAL_USERS.find(u => u.correo === 'admin@jnpalabras.com');
+              if (adm) sanitizedUsers.push(adm);
+            }
+
+            this.data = {
+              ...INITIAL_DATA,
+              ...remote,
+              usuarios: sanitizedUsers
+            };
+
+            try {
+              localStorage.setItem(DB_STORAGE_KEY, JSON.stringify(this.data));
+            } catch (e) {}
+            return this.data;
+          }
+        }
+      } catch (e) {
+        console.warn("⚠️ Backend online no alcanzable en DB.init, usando respaldo local:", e);
+      }
+    }
+
+    if (!this.data || forceRefresh) {
       try {
         const stored = localStorage.getItem(DB_STORAGE_KEY);
         if (stored) {
@@ -74,50 +109,7 @@ const DB = {
     if (!this.data) {
       this.data = JSON.parse(JSON.stringify(INITIAL_DATA));
     }
-
-    // Asegurar que el usuario admin oficial tenga el nombre correcto en memoria/local
-    if (this.data.usuarios) {
-      const adm = this.data.usuarios.find(u => u.correo === 'admin@jnpalabras.com');
-      if (adm && adm.nombre.includes('Ana')) {
-        adm.nombre = 'Admin JN Palabras';
-        adm.avatar = 'AJ';
-      }
-    }
-
-    // 2. Si hay conexión de backend configurada, sincronizar manteniendo registros locales
-    if (API_URL) {
-      try {
-        const res = await fetch(`${API_URL}/api/db`);
-        if (res.ok) {
-          const remote = await res.json();
-          if (remote && typeof remote === 'object') {
-            const remoteUsers = remote.usuarios || [];
-            const localUsers = (this.data && this.data.usuarios) || [];
-            const mergedUsers = [...remoteUsers];
-            // Conservar usuarios creados localmente que el backend aún no tenga y sincronizarlos a la nube
-            for (const lu of localUsers) {
-              if (!mergedUsers.some(ru => ru.id === lu.id || (lu.correo && ru.correo && ru.correo.toLowerCase() === lu.correo.toLowerCase()))) {
-                mergedUsers.unshift(lu);
-                // Sincronizar automáticamente a la base de datos remota
-                if (API_URL) {
-                  fetch(`${API_URL}/api/users`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(lu)
-                  }).catch(() => {});
-                }
-              }
-            }
-            this.data = { ...this.data, ...remote, usuarios: mergedUsers };
-            try {
-              localStorage.setItem(DB_STORAGE_KEY, JSON.stringify(this.data));
-            } catch (e) {}
-          }
-        }
-      } catch (e) {
-        console.warn("Backend no alcanzable. Usando almacenamiento local persistente.");
-      }
-    }
+    return this.data;
   },
 
   get() {
@@ -230,9 +222,13 @@ const DB = {
         });
         if (res.ok) {
           nuevo = await res.json();
+          await this.init(true); // Resincronizar BD online inmediatamente
+          return nuevo;
+        } else {
+          console.error("❌ Backend rechazó la creación de usuario");
         }
       } catch (e) {
-        console.error("Fallo al crear usuario en backend, aplicando persistencia local");
+        console.error("❌ Error de red al crear usuario online:", e);
       }
     }
     
@@ -268,9 +264,11 @@ const DB = {
         });
         if (res.ok) {
           editado = await res.json();
+          await this.init(true);
+          return editado;
         }
       } catch (e) {
-        console.warn("Fallo al actualizar usuario en backend, aplicando cambio local");
+        console.warn("Fallo al actualizar usuario en backend online");
       }
     }
 
@@ -292,11 +290,11 @@ const DB = {
         await fetch(`${API_URL}/api/users/${id}`, {
           method: 'DELETE'
         });
+        await this.init(true);
       } catch (e) {
-        console.warn("Fallo al eliminar usuario en backend, aplicando cambio local");
+        console.warn("Fallo al eliminar usuario en backend online");
       }
     }
-
     const db = this.get();
     if (!db.usuarios) db.usuarios = [...OFFICIAL_USERS];
     db.usuarios = db.usuarios.filter(u => u.id !== id);
