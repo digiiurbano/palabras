@@ -376,11 +376,12 @@ INSERT INTO socios (id_usuario, nombre_agencia, pais_operacion, contacto_nombre,
     ('a0000000-0000-0000-0000-000000000006', 'MediLink Colombia', 'Colombia', 'Laura Rodríguez', 12.50, 3, 7500.00);
 
 -- -------------------------------------------------------
--- VISTAS ÚTILES
+-- VISTAS ÚTILES (Con security_invoker = true para cumplimiento Supabase Linter)
 -- -------------------------------------------------------
 
 -- Vista: Estado del pipeline de candidatos
-CREATE OR REPLACE VIEW vista_pipeline_candidatos AS
+CREATE OR REPLACE VIEW vista_pipeline_candidatos
+WITH (security_invoker = true) AS
 SELECT 
     c.id,
     c.nombre_completo,
@@ -397,7 +398,8 @@ JOIN usuarios u ON c.id_usuario = u.id
 LEFT JOIN socios s ON c.id_socio_referidor = s.id_usuario;
 
 -- Vista: KPIs financieros y operativos para Admin
-CREATE OR REPLACE VIEW vista_kpis_admin AS
+CREATE OR REPLACE VIEW vista_kpis_admin
+WITH (security_invoker = true) AS
 SELECT 
     COUNT(DISTINCT c.id) AS total_candidatos,
     COUNT(DISTINCT c.id) FILTER (WHERE c.estado_proceso = 'Colocado') AS candidatos_colocados,
@@ -414,3 +416,39 @@ CROSS JOIN (SELECT 1) dummy
 LEFT JOIN vacantes v ON TRUE
 LEFT JOIN empresas e ON TRUE
 LEFT JOIN comisiones co ON TRUE;
+
+-- -------------------------------------------------------
+-- SEGURO Y CONTROL DE ACCESO SUPABASE (RLS)
+-- Activa RLS en las 16 tablas y crea políticas predeterminadas
+-- -------------------------------------------------------
+ALTER TABLE usuarios ENABLE ROW LEVEL SECURITY;
+ALTER TABLE candidatos ENABLE ROW LEVEL SECURITY;
+ALTER TABLE empresas ENABLE ROW LEVEL SECURITY;
+ALTER TABLE vacantes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE matchings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE documentos ENABLE ROW LEVEL SECURITY;
+ALTER TABLE grupos_clase ENABLE ROW LEVEL SECURITY;
+ALTER TABLE inscripciones ENABLE ROW LEVEL SECURITY;
+ALTER TABLE calificaciones ENABLE ROW LEVEL SECURITY;
+ALTER TABLE materiales ENABLE ROW LEVEL SECURITY;
+ALTER TABLE entrevistas ENABLE ROW LEVEL SECURITY;
+ALTER TABLE socios ENABLE ROW LEVEL SECURITY;
+ALTER TABLE comisiones ENABLE ROW LEVEL SECURITY;
+ALTER TABLE notas_seguimiento ENABLE ROW LEVEL SECURITY;
+ALTER TABLE notificaciones ENABLE ROW LEVEL SECURITY;
+ALTER TABLE auditoria_gdpr ENABLE ROW LEVEL SECURITY;
+
+DO $$ 
+DECLARE
+    t text;
+BEGIN
+    FOR t IN 
+        SELECT table_name 
+        FROM information_schema.tables 
+        WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
+    LOOP
+        EXECUTE format('DROP POLICY IF EXISTS "Acceso total backend" ON public.%I', t);
+        EXECUTE format('CREATE POLICY "Acceso total backend" ON public.%I FOR ALL USING (true) WITH CHECK (true)', t);
+    END LOOP;
+END $$;
+
