@@ -3400,7 +3400,7 @@ h1, h2, h3, h4, .public-hero-title, .public-section-title {
 /* BLOQUE D: Widget Flotante Speech & Herramientas */
 .floating-speech-trigger {
   position: fixed;
-  bottom: 24px;
+  bottom: 95px;
   right: 28px;
   z-index: 1050;
   background: linear-gradient(135deg, var(--wine-800), #581c2b);

@@ -388,18 +388,38 @@ function renderAppShell(view = null) {
           ${renderNotifPanel(user.id)}
         </div>
       </div>
-      <!-- Usuario -->
-      <div class="role-switcher" title="Cambiar rol activo" onclick="if(event.target.tagName !== 'SELECT' && event.target.tagName !== 'OPTION'){const s=document.getElementById('header-role-select');if(s){s.focus();if(s.showPicker)try{s.showPicker();}catch(e){}else s.click();}}">
-        <div class="role-avatar" style="background:${getAvatarColor(user.nombre)}">${getInitials(user.nombre)}</div>
-        <div class="role-info">
-          <div class="role-name">${user.nombre.length > 25 ? user.nombre.split(' ').slice(0,2).join(' ') : user.nombre}</div>
-          
-          <div class="role-label" style="display:flex;align-items:center;gap:4px;">
-            <select id="header-role-select" class="role-switcher-select" onchange="switchRole(this.value)" onclick="event.stopPropagation()" style="background:#f8fafc;border:1px solid #cbd5e1;color:#0f172a;font-size:0.75rem;font-weight:600;outline:none;cursor:pointer;padding:2px 6px;border-radius:6px;">
-              ${availableRoleOptions.map(r => `<option value="${r.rol}" style="color:#0f172a;background:#fff;" ${r.rol===State.activeRole?'selected':''}>${r.icon} ${r.rol}</option>`).join('')}
-            </select>
+      <!-- Usuario con selector de rol desplegable personalizado -->
+      <div class="role-switcher-container" style="position:relative;">
+        <div class="role-switcher" onclick="toggleRoleDropdown(event)" title="Cambiar rol activo" style="cursor:pointer; display:flex; align-items:center; gap:8px; padding:5px 12px; background:#f8fafc; border:1px solid #cbd5e1; border-radius:10px; transition:all 0.2s ease;">
+          <div class="role-avatar" style="background:${getAvatarColor(user.nombre)}; width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:0.75rem;">
+            ${getInitials(user.nombre)}
           </div>
+          <div class="role-info" style="display:flex; flex-direction:column; text-align:left;">
+            <div class="role-name" style="font-size:0.8125rem; font-weight:700; color:#0f172a; line-height:1.1;">
+              ${user.nombre.length > 22 ? user.nombre.split(' ').slice(0,2).join(' ') : user.nombre}
+            </div>
+            <div class="role-label" style="font-size:0.725rem; font-weight:600; color:#0284c7; display:flex; align-items:center; gap:3px;">
+              <span>${getRolIcon(State.activeRole)} ${State.activeRole}</span>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+            </div>
+          </div>
+        </div>
 
+        <div id="custom-role-dropdown" class="custom-role-dropdown" style="display:none; position:absolute; top:calc(100% + 6px); right:0; min-width:190px; background:#ffffff; border:1px solid #cbd5e1; border-radius:12px; box-shadow:0 10px 25px rgba(15,23,42,0.18); z-index:9999; padding:6px;">
+          <div style="font-size:0.65rem; font-weight:800; text-transform:uppercase; letter-spacing:0.05em; color:#94a3b8; padding:4px 8px 4px 8px;">
+            Cambiar Rol Activo
+          </div>
+          ${availableRoleOptions.map(r => `
+            <div class="role-dropdown-item ${r.rol === State.activeRole ? 'active' : ''}" 
+                 onclick="selectRoleFromDropdown('${r.rol}')" 
+                 style="display:flex; align-items:center; justify-content:space-between; padding:7px 10px; border-radius:8px; cursor:pointer; font-size:0.8125rem; font-weight:600; color:${r.rol === State.activeRole ? '#0284c7' : '#334155'}; background:${r.rol === State.activeRole ? '#f0f9ff' : 'transparent'}; transition:all 0.15s ease;">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span style="font-size:0.95rem;">${r.icon}</span>
+                <span>${r.rol}</span>
+              </div>
+              ${r.rol === State.activeRole ? `<span style="font-weight:800; color:#0284c7;">✓</span>` : ''}
+            </div>
+          `).join('')}
         </div>
       </div>
       <div style="display:flex;gap:4px;">
@@ -6914,6 +6934,29 @@ window.removeAusbildungItem = removeAusbildungItem;
 window.addSprachenItem = addSprachenItem;
 window.removeSprachenItem = removeSprachenItem;
 
+
+window.toggleRoleDropdown = function(e) {
+  if (e) e.stopPropagation();
+  const dropdown = document.getElementById('custom-role-dropdown');
+  if (dropdown) {
+    const isVisible = dropdown.style.display === 'block';
+    dropdown.style.display = isVisible ? 'none' : 'block';
+  }
+};
+
+window.selectRoleFromDropdown = function(role) {
+  const dropdown = document.getElementById('custom-role-dropdown');
+  if (dropdown) dropdown.style.display = 'none';
+  switchRole(role);
+};
+
+document.addEventListener('click', function(e) {
+  const dropdown = document.getElementById('custom-role-dropdown');
+  const container = e.target ? e.target.closest('.role-switcher-container') : null;
+  if (dropdown && !container) {
+    dropdown.style.display = 'none';
+  }
+});
 
 window.switchRole = function(newRole) {
   if (!newRole) return;
