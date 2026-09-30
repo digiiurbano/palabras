@@ -405,13 +405,13 @@ function renderAppShell(view = null) {
           </div>
         </div>
 
-        <div id="custom-role-dropdown" class="custom-role-dropdown" style="display:none; position:absolute; top:calc(100% + 6px); right:0; min-width:190px; background:#ffffff; border:1px solid #cbd5e1; border-radius:12px; box-shadow:0 10px 25px rgba(15,23,42,0.18); z-index:9999; padding:6px;">
+        <div id="custom-role-dropdown" class="custom-role-dropdown">
           <div style="font-size:0.65rem; font-weight:800; text-transform:uppercase; letter-spacing:0.05em; color:#94a3b8; padding:4px 8px 4px 8px;">
             Cambiar Rol Activo
           </div>
           ${availableRoleOptions.map(r => `
             <div class="role-dropdown-item ${r.rol === State.activeRole ? 'active' : ''}" 
-                 onclick="selectRoleFromDropdown('${r.rol}')" 
+                 onclick="selectRoleFromDropdown('${r.rol}', event)" 
                  style="display:flex; align-items:center; justify-content:space-between; padding:7px 10px; border-radius:8px; cursor:pointer; font-size:0.8125rem; font-weight:600; color:${r.rol === State.activeRole ? '#0284c7' : '#334155'}; background:${r.rol === State.activeRole ? '#f0f9ff' : 'transparent'}; transition:all 0.15s ease;">
               <div style="display:flex; align-items:center; gap:8px;">
                 <span style="font-size:0.95rem;">${r.icon}</span>
@@ -6936,25 +6936,29 @@ window.removeSprachenItem = removeSprachenItem;
 
 
 window.toggleRoleDropdown = function(e) {
-  if (e) e.stopPropagation();
+  if (e) {
+    if (e.stopPropagation) e.stopPropagation();
+    if (e.preventDefault) e.preventDefault();
+  }
   const dropdown = document.getElementById('custom-role-dropdown');
   if (dropdown) {
-    const isVisible = dropdown.style.display === 'block';
-    dropdown.style.display = isVisible ? 'none' : 'block';
+    dropdown.classList.toggle('open');
   }
 };
 
-window.selectRoleFromDropdown = function(role) {
+window.selectRoleFromDropdown = function(role, e) {
+  if (e && e.stopPropagation) e.stopPropagation();
   const dropdown = document.getElementById('custom-role-dropdown');
-  if (dropdown) dropdown.style.display = 'none';
+  if (dropdown) dropdown.classList.remove('open');
   switchRole(role);
 };
 
 document.addEventListener('click', function(e) {
   const dropdown = document.getElementById('custom-role-dropdown');
+  if (!dropdown) return;
   const container = e.target ? e.target.closest('.role-switcher-container') : null;
-  if (dropdown && !container) {
-    dropdown.style.display = 'none';
+  if (!container) {
+    dropdown.classList.remove('open');
   }
 });
 
