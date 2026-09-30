@@ -360,7 +360,11 @@ function renderAppShell(view = null) {
     { rol: 'Socio', icon: '🤝' }
   ];
 
-  let availableRoleOptions = allRolesMeta.filter(r => userRolesList.includes(r.rol));
+  const isAdmin = userRolesList.includes('Admin');
+  let availableRoleOptions = isAdmin
+    ? allRolesMeta
+    : allRolesMeta.filter(r => userRolesList.includes(r.rol));
+
   if (availableRoleOptions.length === 0) {
     availableRoleOptions = [{ rol: State.activeRole || 'Candidato', icon: getRolIcon(State.activeRole) }];
   } else if (State.activeRole && !availableRoleOptions.some(r => r.rol === State.activeRole)) {
@@ -385,13 +389,13 @@ function renderAppShell(view = null) {
         </div>
       </div>
       <!-- Usuario -->
-      <div class="role-switcher" title="Cambiar rol activo" onclick="if(event.target.tagName !== 'SELECT'){const s=document.getElementById('header-role-select');if(s){s.focus();if(s.showPicker)s.showPicker();else s.click();}}">
+      <div class="role-switcher" title="Cambiar rol activo" onclick="if(event.target.tagName !== 'SELECT' && event.target.tagName !== 'OPTION'){const s=document.getElementById('header-role-select');if(s){s.focus();if(s.showPicker)try{s.showPicker();}catch(e){}else s.click();}}">
         <div class="role-avatar" style="background:${getAvatarColor(user.nombre)}">${getInitials(user.nombre)}</div>
         <div class="role-info">
           <div class="role-name">${user.nombre.length > 25 ? user.nombre.split(' ').slice(0,2).join(' ') : user.nombre}</div>
           
           <div class="role-label" style="display:flex;align-items:center;gap:4px;">
-            <select id="header-role-select" class="role-switcher-select" onchange="switchRole(this.value)" style="background:#f8fafc;border:1px solid #cbd5e1;color:#0f172a;font-size:0.75rem;font-weight:600;outline:none;cursor:pointer;padding:2px 6px;border-radius:6px;">
+            <select id="header-role-select" class="role-switcher-select" onchange="switchRole(this.value)" onclick="event.stopPropagation()" style="background:#f8fafc;border:1px solid #cbd5e1;color:#0f172a;font-size:0.75rem;font-weight:600;outline:none;cursor:pointer;padding:2px 6px;border-radius:6px;">
               ${availableRoleOptions.map(r => `<option value="${r.rol}" style="color:#0f172a;background:#fff;" ${r.rol===State.activeRole?'selected':''}>${r.icon} ${r.rol}</option>`).join('')}
             </select>
           </div>
@@ -6913,24 +6917,26 @@ window.removeSprachenItem = removeSprachenItem;
 
 window.switchRole = function(newRole) {
   if (!newRole) return;
-  State.activeRole = newRole;
-  if (State.currentUser) {
-    DB.setSession(State.currentUser);
-  }
-  try {
-    localStorage.setItem('jnp_active_role', newRole);
-    localStorage.setItem('jnp_current_view', 'app');
-  } catch(e) {}
-  document.body.className = `theme-${newRole.toLowerCase().replace(/\s+/g, '-')}`;
-  const firstItem = SIDEBAR_MENUS[newRole]?.[0]?.id || 'admin-overview';
-  State.currentSidebar = firstItem;
-  try {
-    if (firstItem) {
-      localStorage.setItem('jnp_current_sidebar', firstItem);
-      window.history.replaceState(null, '', '#' + firstItem);
+  setTimeout(() => {
+    State.activeRole = newRole;
+    if (State.currentUser) {
+      DB.setSession(State.currentUser);
     }
-  } catch(e) {}
-  renderAppShell(firstItem);
+    try {
+      localStorage.setItem('jnp_active_role', newRole);
+      localStorage.setItem('jnp_current_view', 'app');
+    } catch(e) {}
+    document.body.className = `theme-${newRole.toLowerCase().replace(/\s+/g, '-')}`;
+    const firstItem = SIDEBAR_MENUS[newRole]?.[0]?.id || 'admin-overview';
+    State.currentSidebar = firstItem;
+    try {
+      if (firstItem) {
+        localStorage.setItem('jnp_current_sidebar', firstItem);
+        window.history.replaceState(null, '', '#' + firstItem);
+      }
+    } catch(e) {}
+    renderAppShell(firstItem);
+  }, 10);
 };
 
 window.filtrarLeads = filtrarLeads;
