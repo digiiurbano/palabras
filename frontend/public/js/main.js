@@ -346,6 +346,27 @@ function renderAppShell(view = null) {
 
   // Header
   const notifCount = DB.getNotifNoLeidas(user.id);
+  const userRolesList = (Array.isArray(user?.roles) && user.roles.length > 0)
+    ? user.roles
+    : (user?.rol ? [user.rol] : [State.activeRole || 'Candidato']);
+
+  const allRolesMeta = [
+    { rol: 'Admin', icon: '🛡️' },
+    { rol: 'Super Asesor', icon: '⭐' },
+    { rol: 'Asesor', icon: '👨‍💼' },
+    { rol: 'Profesor', icon: '🎓' },
+    { rol: 'Candidato', icon: '🩺' },
+    { rol: 'Empresa', icon: '🏥' },
+    { rol: 'Socio', icon: '🤝' }
+  ];
+
+  let availableRoleOptions = allRolesMeta.filter(r => userRolesList.includes(r.rol));
+  if (availableRoleOptions.length === 0) {
+    availableRoleOptions = [{ rol: State.activeRole || 'Candidato', icon: getRolIcon(State.activeRole) }];
+  } else if (State.activeRole && !availableRoleOptions.some(r => r.rol === State.activeRole)) {
+    availableRoleOptions.push({ rol: State.activeRole, icon: getRolIcon(State.activeRole) });
+  }
+
   $('app-header-content').innerHTML = `
     <div class="app-logo" onclick="navigateTo(SIDEBAR_MENUS[State.activeRole][0].id)" style="cursor: pointer;" aria-label="Ir al inicio del dashboard">
       <img src="/logo.png" alt="JN Palabras" class="app-logo-img" style="height:32px;width:32px;object-fit:contain;border-radius:50%;">
@@ -371,15 +392,7 @@ function renderAppShell(view = null) {
           
           <div class="role-label" style="display:flex;align-items:center;gap:4px;">
             <select id="header-role-select" class="role-switcher-select" onchange="switchRole(this.value)" style="background:#f8fafc;border:1px solid #cbd5e1;color:#0f172a;font-size:0.75rem;font-weight:600;outline:none;cursor:pointer;padding:2px 6px;border-radius:6px;">
-              ${[
-                { rol: 'Admin', icon: '🛡️' },
-                { rol: 'Super Asesor', icon: '⭐' },
-                { rol: 'Asesor', icon: '👨‍💼' },
-                { rol: 'Profesor', icon: '🎓' },
-                { rol: 'Candidato', icon: '🩺' },
-                { rol: 'Empresa', icon: '🏥' },
-                { rol: 'Socio', icon: '🤝' }
-              ].map(r => `<option value="${r.rol}" style="color:#0f172a;background:#fff;" ${r.rol===State.activeRole?'selected':''}>${r.icon} ${r.rol}</option>`).join('')}
+              ${availableRoleOptions.map(r => `<option value="${r.rol}" style="color:#0f172a;background:#fff;" ${r.rol===State.activeRole?'selected':''}>${r.icon} ${r.rol}</option>`).join('')}
             </select>
           </div>
 
@@ -552,7 +565,10 @@ function renderSidebar(rol) {
   const user = State.currentUser;
   const items = SIDEBAR_MENUS[rol] || [];
   const firstItem = items[0]?.id;
-  State.currentSidebar = State.currentSidebar || firstItem;
+  const itemIds = items.map(i => i.id);
+  if (!State.currentSidebar || !itemIds.includes(State.currentSidebar)) {
+    State.currentSidebar = firstItem;
+  }
 
   $('sidebar-content').innerHTML = `
     <div class="sidebar-section" style="margin-top: var(--space-4);">
@@ -6899,10 +6915,6 @@ window.switchRole = function(newRole) {
   if (!newRole) return;
   State.activeRole = newRole;
   if (State.currentUser) {
-    if (!State.currentUser.roles) State.currentUser.roles = [];
-    if (!State.currentUser.roles.includes(newRole)) {
-      State.currentUser.roles.push(newRole);
-    }
     DB.setSession(State.currentUser);
   }
   try {
@@ -6910,7 +6922,7 @@ window.switchRole = function(newRole) {
     localStorage.setItem('jnp_current_view', 'app');
   } catch(e) {}
   document.body.className = `theme-${newRole.toLowerCase().replace(/\s+/g, '-')}`;
-  const firstItem = SIDEBAR_MENUS[newRole]?.[0]?.id;
+  const firstItem = SIDEBAR_MENUS[newRole]?.[0]?.id || 'admin-overview';
   State.currentSidebar = firstItem;
   try {
     if (firstItem) {
