@@ -6857,71 +6857,44 @@ window.showToast = showToast;
 window.submitRegistration = submitRegistration;
 window.navigateTo = navigateTo;
 window.toggleNotifPanel = toggleNotifPanel;
-window.marcarNotifLeidas = marcarNotifLeidas;
-window.showTab = showTab;
-window.filterBlindCards = filterBlindCards;
-window.openRegistrationModal = openRegistrationModal;
+// Functions for candidate document actions
+function quickUploadDocForCandidate(id) {
+  const candidato = DB.getCandidatos().find(c => c.id === id);
+  const nombre = candidato ? candidato.nombre : 'Candidato';
+  showToast('Subir Documento', `Selecciona un archivo PDF para subir a la carpeta de ${nombre}.`, 'info', 4000);
+}
+
+function omitCandidateDocStep(id) {
+  const candidato = DB.getCandidatos().find(c => c.id === id);
+  const nombre = candidato ? candidato.nombre : 'Candidato';
+  showToast('Requisito Omitido', `Se ha marcado la omisión temporal del requisito para ${nombre}.`, 'warning', 4000);
+}
+
 // Dashboard inline handlers
-window.editUser = editUser;
-window.saveUser = saveUser;
-window.deleteUser = deleteUser;
-window.createUser = createUser;
-window.filterTable = filterTable;
-window.saveCms = saveCms;
-window.toggleKanbanView = toggleKanbanView;
-window.guardarNuevoCandidato = guardarNuevoCandidato;
-window.openCandidateDetail = openCandidateDetail;
-window.renderCandidateProfilePage = renderCandidateProfilePage;
-window.closeCandidateProfile = closeCandidateProfile;
-window.exportCandidateProfilePDF = exportCandidateProfilePDF;
-window.openEditCandidateModal = openEditCandidateModal;
-window.saveCandidateProfileEdit = saveCandidateProfileEdit;
-window.quickSendMessage = quickSendMessage;
-window.quickScheduleInterview = quickScheduleInterview;
-window.quickUploadDocForCandidate = quickUploadDocForCandidate;
-window.omitCandidateDocStep = omitCandidateDocStep;
-window.quickAddCandidateNote = quickAddCandidateNote;
-window.openCandidateDetailModalLegacy = openCandidateDetailModalLegacy;
-window.deleteCandidateProfile = deleteCandidateProfile;
-window.acceptCandidate = acceptCandidate;
-window.rejectCandidate = rejectCandidate;
-window.reviewDoc = reviewDoc;
-window.showRejectModal = showRejectModal;
-window.addQuickNote = addQuickNote;
-window.selectMatchCand = selectMatchCand;
-window.selectMatchVac = selectMatchVac;
-window.ejecutarMatch = ejecutarMatch;
-window.notificarAsesorRiesgo = notificarAsesorRiesgo;
-window.guardarCalif = guardarCalif;
-window.registrarExamen = registrarExamen;
-window.subirMaterial = subirMaterial;
-window.simulateUpload = simulateUpload;
-window.uploadDocSimulate = uploadDocSimulate;
-window.playVideo = playVideo;
-window.solicitarEntrevista = solicitarEntrevista;
-window.confirmarEntrevista = confirmarEntrevista;
-window.toggleVacante = toggleVacante;
-window.deleteVacante = deleteVacante;
-window.crearVacante = crearVacante;
-window.setStars = setStars;
-window.enviarFeedback = enviarFeedback;
-window.registrarCandidatoSocio = registrarCandidatoSocio;
-window.simulateExcelUpload = simulateExcelUpload;
-window.downloadTemplate = downloadTemplate;
-// CV Builder handlers
-window.openCVForCandidate = openCVForCandidate;
-window.switchCVTab = switchCVTab;
-window.saveCVForm = saveCVForm;
-window.selectCandidateForCV = selectCandidateForCV;
-window.createNewCandidateCV = createNewCandidateCV;
-window.printLebenslauf = printLebenslauf;
-window.handleCvPhotoUpload = handleCvPhotoUpload;
-window.addWerdegangItem = addWerdegangItem;
-window.removeWerdegangItem = removeWerdegangItem;
-window.addAusbildungItem = addAusbildungItem;
-window.removeAusbildungItem = removeAusbildungItem;
-window.addSprachenItem = addSprachenItem;
-window.removeSprachenItem = removeSprachenItem;
+const _windowExports = {
+  marcarNotifLeidas, showTab, filterBlindCards, openRegistrationModal,
+  editUser, saveUser, deleteUser, createUser, filterTable, saveCms,
+  toggleKanbanView, guardarNuevoCandidato, openCandidateDetail,
+  renderCandidateProfilePage, closeCandidateProfile, exportCandidateProfilePDF,
+  openEditCandidateModal, saveCandidateProfileEdit, quickSendMessage,
+  quickScheduleInterview, quickUploadDocForCandidate, omitCandidateDocStep,
+  quickAddCandidateNote, openCandidateDetailModalLegacy, deleteCandidateProfile,
+  acceptCandidate, rejectCandidate, reviewDoc, showRejectModal, addQuickNote,
+  selectMatchCand, selectMatchVac, ejecutarMatch, notificarAsesorRiesgo,
+  guardarCalif, registrarExamen, subirMaterial, simulateUpload, uploadDocSimulate,
+  playVideo, solicitarEntrevista, confirmarEntrevista, toggleVacante, deleteVacante,
+  crearVacante, setStars, enviarFeedback, registrarCandidatoSocio, simulateExcelUpload,
+  downloadTemplate, openCVForCandidate, switchCVTab, saveCVForm, selectCandidateForCV,
+  createNewCandidateCV, printLebenslauf, handleCvPhotoUpload, addWerdegangItem,
+  removeWerdegangItem, addAusbildungItem, removeAusbildungItem, addSprachenItem,
+  removeSprachenItem
+};
+
+for (const [key, fn] of Object.entries(_windowExports)) {
+  if (typeof fn !== 'undefined') {
+    window[key] = fn;
+  }
+}
 
 
 window.toggleRoleDropdown = function(e) {
