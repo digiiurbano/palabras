@@ -350,7 +350,7 @@ function renderAppShell(view = null) {
     ? user.roles
     : (user?.rol ? [user.rol] : [State.activeRole || 'Candidato']);
 
-  const allRolesMeta = [
+  const availableRoleOptions = [
     { rol: 'Admin', icon: '🛡️' },
     { rol: 'Super Asesor', icon: '⭐' },
     { rol: 'Asesor', icon: '👨‍💼' },
@@ -359,17 +359,6 @@ function renderAppShell(view = null) {
     { rol: 'Empresa', icon: '🏥' },
     { rol: 'Socio', icon: '🤝' }
   ];
-
-  const isAdmin = userRolesList.includes('Admin');
-  let availableRoleOptions = isAdmin
-    ? allRolesMeta
-    : allRolesMeta.filter(r => userRolesList.includes(r.rol));
-
-  if (availableRoleOptions.length === 0) {
-    availableRoleOptions = [{ rol: State.activeRole || 'Candidato', icon: getRolIcon(State.activeRole) }];
-  } else if (State.activeRole && !availableRoleOptions.some(r => r.rol === State.activeRole)) {
-    availableRoleOptions.push({ rol: State.activeRole, icon: getRolIcon(State.activeRole) });
-  }
 
   $('app-header-content').innerHTML = `
     <div class="app-logo" onclick="navigateTo(SIDEBAR_MENUS[State.activeRole][0].id)" style="cursor: pointer;" aria-label="Ir al inicio del dashboard">
@@ -6942,14 +6931,24 @@ window.toggleRoleDropdown = function(e) {
   }
   const dropdown = document.getElementById('custom-role-dropdown');
   if (dropdown) {
-    dropdown.classList.toggle('open');
+    const isVisible = dropdown.style.display === 'block' || dropdown.classList.contains('open');
+    if (isVisible) {
+      dropdown.style.display = 'none';
+      dropdown.classList.remove('open');
+    } else {
+      dropdown.style.display = 'block';
+      dropdown.classList.add('open');
+    }
   }
 };
 
 window.selectRoleFromDropdown = function(role, e) {
   if (e && e.stopPropagation) e.stopPropagation();
   const dropdown = document.getElementById('custom-role-dropdown');
-  if (dropdown) dropdown.classList.remove('open');
+  if (dropdown) {
+    dropdown.style.display = 'none';
+    dropdown.classList.remove('open');
+  }
   switchRole(role);
 };
 
@@ -6958,6 +6957,7 @@ document.addEventListener('click', function(e) {
   if (!dropdown) return;
   const container = e.target ? e.target.closest('.role-switcher-container') : null;
   if (!container) {
+    dropdown.style.display = 'none';
     dropdown.classList.remove('open');
   }
 });
@@ -6967,6 +6967,10 @@ window.switchRole = function(newRole) {
   setTimeout(() => {
     State.activeRole = newRole;
     if (State.currentUser) {
+      if (!State.currentUser.roles) State.currentUser.roles = [];
+      if (!State.currentUser.roles.includes(newRole)) {
+        State.currentUser.roles.push(newRole);
+      }
       DB.setSession(State.currentUser);
     }
     try {
@@ -6983,6 +6987,7 @@ window.switchRole = function(newRole) {
       }
     } catch(e) {}
     renderAppShell(firstItem);
+    showToast('Rol Cambiado', `Perfil activo actualizado a ${newRole}.`, 'info', 2500);
   }, 10);
 };
 
