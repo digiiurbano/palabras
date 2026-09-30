@@ -350,7 +350,7 @@ function renderAppShell(view = null) {
     ? user.roles
     : (user?.rol ? [user.rol] : [State.activeRole || 'Candidato']);
 
-  const availableRoleOptions = [
+  const allRolesMeta = [
     { rol: 'Admin', icon: '🛡️' },
     { rol: 'Super Asesor', icon: '⭐' },
     { rol: 'Asesor', icon: '👨‍💼' },
@@ -359,6 +359,18 @@ function renderAppShell(view = null) {
     { rol: 'Empresa', icon: '🏥' },
     { rol: 'Socio', icon: '🤝' }
   ];
+
+  const isAdmin = userRolesList.includes('Admin');
+  let availableRoleOptions = isAdmin
+    ? allRolesMeta
+    : allRolesMeta.filter(r => userRolesList.includes(r.rol));
+
+  if (availableRoleOptions.length === 0) {
+    availableRoleOptions = [{ rol: State.activeRole || 'Candidato', icon: getRolIcon(State.activeRole) }];
+  } else if (State.activeRole && !availableRoleOptions.some(r => r.rol === State.activeRole)) {
+    const meta = allRolesMeta.find(r => r.rol === State.activeRole);
+    availableRoleOptions.push(meta || { rol: State.activeRole, icon: getRolIcon(State.activeRole) });
+  }
 
   $('app-header-content').innerHTML = `
     <div class="app-logo" onclick="navigateTo(SIDEBAR_MENUS[State.activeRole][0].id)" style="cursor: pointer;" aria-label="Ir al inicio del dashboard">

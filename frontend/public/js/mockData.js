@@ -12,6 +12,16 @@ const INITIAL_DATA = {
       "ultimo_acceso": "2026-09-16T20:53:40.885Z"
     },
     {
+      "id": "d973ef09-e8ea-4181-9919-5e9393c221e7",
+      "nombre": "Jonathan Urbano",
+      "roles": ["Super Asesor", "Asesor", "Profesor"],
+      "correo": "jonathanpk97@gmail.com",
+      "contrasena": "JNPalabrasSuper2026!",
+      "avatar": "JU",
+      "activo": true,
+      "fecha_creacion": "2026-09-28"
+    },
+    {
       "id": "u-super-001",
       "nombre": "Mariana Vega (Super Asesora)",
       "roles": ["Super Asesor"],

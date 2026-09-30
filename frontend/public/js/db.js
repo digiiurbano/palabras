@@ -19,6 +19,11 @@ const OFFICIAL_USERS = [
     avatar: 'AJ', activo: true, fecha_creacion: '2024-01-15'
   },
   {
+    id: 'd973ef09-e8ea-4181-9919-5e9393c221e7', nombre: 'Jonathan Urbano', roles: ['Super Asesor', 'Asesor', 'Profesor'],
+    correo: 'jonathanpk97@gmail.com', contrasena: 'JNPalabrasSuper2026!',
+    avatar: 'JU', activo: true, fecha_creacion: '2026-09-28'
+  },
+  {
     id: 'a0000000-0000-0000-0000-000000000007', nombre: 'Mariana Vega (Super Asesora)', roles: ['Super Asesor'],
     correo: 'superasesor@jnpalabras.com', contrasena: 'JNPalabrasSuper2026!',
     avatar: 'MV', activo: true, fecha_creacion: '2024-02-01'
