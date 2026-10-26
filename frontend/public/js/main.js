@@ -247,6 +247,13 @@ function showApp(view = null) {
 // ──────────────────────────────────────────────────────────────────
 // AUTENTICACIÓN
 // ──────────────────────────────────────────────────────────────────
+function toggleLoginPassword() {
+  const input = $('login-pass');
+  if (!input) return;
+  input.type = input.type === 'password' ? 'text' : 'password';
+}
+window.toggleLoginPassword = toggleLoginPassword;
+
 async function handleLogin(e) {
   e.preventDefault();
   const correo = $('login-email').value.trim();
@@ -257,22 +264,40 @@ async function handleLogin(e) {
     return;
   }
 
-  let user = await DB.findUsuario(correo, pass);
-  
-  if (user) {
-    State.currentUser = user;
-    if (user && !State.activeRole) State.activeRole = (user.roles && user.roles.length > 0) ? user.roles[0] : 'Candidato';
-    State.currentSidebar = null;
-    try {
-      localStorage.setItem('jnp_active_role', State.activeRole);
-      localStorage.removeItem('jnp_current_sidebar');
-    } catch(e) {}
-    DB.setSession(user);
-    showToast('Bienvenido/a', `Hola ${user.nombre.split(' ')[0]}! Has iniciado sesión como ${State.activeRole}.`, 'success');
-    showApp();
-  } else {
-    showToast('Error de acceso', 'Correo o contraseña incorrectos.', 'error');
-    $('login-email').style.borderColor = 'var(--danger)';
+  const submitBtn = e.target.querySelector('button[type="submit"]') || $('login-form')?.querySelector('button[type="submit"]');
+  const originalHtml = submitBtn ? submitBtn.innerHTML : 'Iniciar Sesión';
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span style="display:inline-block;width:14px;height:14px;border:2px solid #fff;border-top-color:transparent;border-radius:50%;animation:spin 0.6s linear infinite;margin-right:6px;vertical-align:middle;"></span> Verificando...';
+  }
+
+  try {
+    let user = await DB.findUsuario(correo, pass);
+    
+    if (user) {
+      State.currentUser = user;
+      if (user && !State.activeRole) State.activeRole = (user.roles && user.roles.length > 0) ? user.roles[0] : 'Candidato';
+      State.currentSidebar = null;
+      try {
+        localStorage.setItem('jnp_active_role', State.activeRole);
+        localStorage.removeItem('jnp_current_sidebar');
+      } catch(e) {}
+      DB.setSession(user);
+      showToast('Bienvenido/a', `¡Hola ${user.nombre.split(' ')[0]}! Has iniciado sesión como ${State.activeRole}.`, 'success');
+      showApp();
+    } else {
+      showToast('Error de acceso', 'Correo o contraseña incorrectos. Contraseña estándar: JNPalabrasSuper2026!', 'error');
+      $('login-email').style.borderColor = 'var(--danger)';
+      $('login-pass').style.borderColor = 'var(--danger)';
+    }
+  } catch(err) {
+    console.error('Error durante el login:', err);
+    showToast('Error de conexión', 'Ocurrió un error al verificar credenciales. Intenta de nuevo.', 'error');
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = originalHtml;
+    }
   }
 }
 

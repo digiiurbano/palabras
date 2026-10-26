@@ -90,7 +90,10 @@
         </div>
         <div class="form-group">
           <label class="form-label" for="login-pass" style="color:var(--slate-700)" data-i18n="login_pass">Contraseña</label>
-          <input class="form-input" type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password" required>
+          <div style="position:relative;">
+            <input class="form-input" type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password" required style="padding-right:42px;">
+            <button type="button" onclick="toggleLoginPassword()" style="position:absolute; right:8px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; font-size:1.15rem; color:var(--slate-400); padding:4px 6px;" title="Ver u ocultar contraseña">👁️</button>
+          </div>
         </div>
         <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;" data-i18n="login_btn">Iniciar Sesión</button>
         <div style="text-align:center;font-size:.8125rem;color:var(--slate-500);margin-top:16px;">
@@ -840,11 +843,11 @@
 <!-- ══════════════════════════════════════════════════════════
      SCRIPTS
      ══════════════════════════════════════════════════════════ -->
-  <script src="/js/i18n.js?v=v6"></script>
-  <script src="/js/db.js?v=v19"></script>
-  <script src="/js/icons.js?v=v19"></script>
-  <script src="/js/mockData.js?v=v19"></script>
-  <script src="/js/main.js?v=v19"></script>
+  <script src="/js/i18n.js?v=v7"></script>
+  <script src="/js/db.js?v=v20"></script>
+  <script src="/js/icons.js?v=v20"></script>
+  <script src="/js/mockData.js?v=v20"></script>
+  <script src="/js/main.js?v=v20"></script>
 
   <!-- OFFCANVAS INTERACTIVO -->
   <div class="offcanvas-overlay" id="application-overlay" onclick="closeApplicationOffcanvas()"></div>
