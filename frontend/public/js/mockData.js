@@ -22,6 +22,16 @@ const INITIAL_DATA = {
       "fecha_creacion": "2026-09-28"
     },
     {
+      "id": "u-jose-wiechens",
+      "nombre": "Jose Wiechens",
+      "roles": ["Super Asesor", "Asesor", "Profesor"],
+      "correo": "jose.wiechens@jnpalabras.com",
+      "contrasena": "JNPalabrasSuper2026!",
+      "avatar": "JW",
+      "activo": true,
+      "fecha_creacion": "2026-09-29"
+    },
+    {
       "id": "u-super-001",
       "nombre": "Mariana Vega (Super Asesora)",
       "roles": ["Super Asesor"],

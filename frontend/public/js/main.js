@@ -281,7 +281,10 @@ function quickLogin(target) {
   const passInput = $('login-pass');
   if (!emailInput || !passInput) return;
 
-  if (target === 'jonathan') {
+  if (target === 'jose') {
+    emailInput.value = 'jose.wiechens@jnpalabras.com';
+    passInput.value = 'JNPalabrasSuper2026!';
+  } else if (target === 'jonathan') {
     emailInput.value = 'jonathanpk97@gmail.com';
     passInput.value = 'JNPalabrasSuper2026!';
   } else if (target === 'admin') {

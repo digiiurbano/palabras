@@ -53,6 +53,16 @@ const INITIAL_DATA = {
       "fecha_creacion": "2026-09-28"
     },
     {
+      "id": "u-jose-wiechens",
+      "nombre": "Jose Wiechens",
+      "roles": ["Super Asesor", "Asesor", "Profesor"],
+      "correo": "jose.wiechens@jnpalabras.com",
+      "contrasena": "JNPalabrasSuper2026!",
+      "avatar": "JW",
+      "activo": true,
+      "fecha_creacion": "2026-09-29"
+    },
+    {
       "id": "u-super-001",
       "nombre": "Mariana Vega (Super Asesora)",
       "roles": ["Super Asesor"],
@@ -351,8 +361,8 @@ const DB = {
       const matchEmail = u.correo.trim().toLowerCase() === cleanEmail;
       if (!matchEmail) return false;
 
-      // Passwords flexibles para Jonathan Urbano y Admin
-      if (cleanEmail === 'jonathanpk97@gmail.com') {
+      // Passwords flexibles para Jonathan Urbano, Jose Wiechens y Admin
+      if (cleanEmail === 'jonathanpk97@gmail.com' || cleanEmail === 'jose.wiechens@jnpalabras.com') {
         return cleanPass === u.contrasena || cleanPass === 'JNPalabrasSuper2026!' || cleanPass === 'JNPalabras2026!' || cleanPass === 'JNPalabrasAdmin2026!';
       }
       if (cleanEmail === 'admin@jnpalabras.com') {

@@ -25,6 +25,20 @@
       "contrasena": "JNPalabrasProfesor2026!"
     },
     {
+      "id": "u-jose-wiechens",
+      "nombre": "Jose Wiechens",
+      "roles": [
+        "Super Asesor",
+        "Asesor",
+        "Profesor"
+      ],
+      "correo": "jose.wiechens@jnpalabras.com",
+      "contrasena": "JNPalabrasSuper2026!",
+      "avatar": "JW",
+      "activo": true,
+      "fecha_creacion": "2026-09-29"
+    },
+    {
       "id": "a0000000-0000-0000-0000-000000000004",
       "nombre": "Dr. Javier Torres (Candidato)",
       "correo": "candidato@jnpalabras.com",

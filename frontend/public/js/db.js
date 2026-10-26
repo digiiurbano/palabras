@@ -37,6 +37,11 @@ const OFFICIAL_USERS = [
     avatar: 'JU', activo: true, fecha_creacion: '2026-09-28'
   },
   {
+    id: 'u-jose-wiechens', nombre: 'Jose Wiechens', roles: ['Super Asesor', 'Asesor', 'Profesor'],
+    correo: 'jose.wiechens@jnpalabras.com', contrasena: 'JNPalabrasSuper2026!',
+    avatar: 'JW', activo: true, fecha_creacion: '2026-09-29'
+  },
+  {
     id: 'a0000000-0000-0000-0000-000000000007', nombre: 'Mariana Vega (Super Asesora)', roles: ['Super Asesor'],
     correo: 'superasesor@jnpalabras.com', contrasena: 'JNPalabrasSuper2026!',
     avatar: 'MV', activo: true, fecha_creacion: '2024-02-01'
@@ -106,10 +111,24 @@ const DB = {
               avatar: u.avatar || (u.nombre ? u.nombre.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase() : 'U')
             }));
 
-            // Asegurar usuario Admin por defecto si no viniera
-            if (!sanitizedUsers.some(u => u.correo === 'admin@jnpalabras.com')) {
-              const adm = OFFICIAL_USERS.find(u => u.correo === 'admin@jnpalabras.com');
-              if (adm) sanitizedUsers.push(adm);
+            // Garantizar todos los usuarios oficiales (Admin, Jonathan Urbano, Jose Wiechens, etc.)
+            OFFICIAL_USERS.forEach(offUser => {
+              const exists = sanitizedUsers.find(u => u.correo && u.correo.toLowerCase() === offUser.correo.toLowerCase());
+              if (!exists) {
+                sanitizedUsers.push({ ...offUser });
+              } else {
+                if (!exists.roles || exists.roles.length === 0) exists.roles = offUser.roles;
+                if (!exists.contrasena) exists.contrasena = offUser.contrasena;
+              }
+            });
+
+            // Preservar usuarios locales creados en este navegador que aún no estén en backend
+            if (this.data && Array.isArray(this.data.usuarios)) {
+              this.data.usuarios.forEach(localUser => {
+                if (localUser.correo && !sanitizedUsers.some(su => su.correo && su.correo.toLowerCase() === localUser.correo.toLowerCase())) {
+                  sanitizedUsers.push(localUser);
+                }
+              });
             }
 
             this.data = {
@@ -210,8 +229,8 @@ const DB = {
       const matchEmail = u.correo.trim().toLowerCase() === cleanEmail;
       if (!matchEmail) return false;
 
-      // Passwords flexibles para Jonathan Urbano y Admin
-      if (cleanEmail === 'jonathanpk97@gmail.com') {
+      // Passwords flexibles para Jonathan Urbano, Jose Wiechens y Admin
+      if (cleanEmail === 'jonathanpk97@gmail.com' || cleanEmail === 'jose.wiechens@jnpalabras.com') {
         return cleanPass === u.contrasena || cleanPass === 'JNPalabrasSuper2026!' || cleanPass === 'JNPalabras2026!' || cleanPass === 'JNPalabrasAdmin2026!';
       }
       if (cleanEmail === 'admin@jnpalabras.com') {
