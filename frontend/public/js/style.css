@@ -4415,3 +4415,166 @@ h1, h2, h3, h4, .public-hero-title, .public-section-title {
   border-bottom-color: #801020;
 }
 
+/* =============================================================
+   APLICACIÓN & WORKFLOW DE APROBACIÓN DE CANDIDATOS (CRM)
+   ============================================================= */
+.candidate-application-alert-banner {
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  border: 1.5px solid #f59e0b;
+  border-radius: 20px;
+  padding: 20px 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 16px rgba(245, 158, 11, 0.12);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  animation: fadeIn 0.3s ease;
+}
+
+.candidate-integrated-tag.pending {
+  background: #fef3c7 !important;
+  color: #92400e !important;
+  border: 1px solid #fde68a !important;
+  font-weight: 800;
+}
+
+.candidate-app-details-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-left: 4px solid #801020;
+  border-radius: 20px;
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+}
+
+.btn-crm-call {
+  background: #2563eb !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  border: none !important;
+  padding: 10px 18px !important;
+  border-radius: 12px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+}
+
+.btn-crm-call:hover {
+  background: #1d4ed8 !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+}
+
+.btn-accept-application {
+  background: #16a34a !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  border: none !important;
+  padding: 10px 20px !important;
+  border-radius: 12px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(22, 163, 74, 0.25);
+}
+
+.btn-accept-application:hover {
+  background: #15803d !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(22, 163, 74, 0.35);
+}
+
+.speech-app-preview-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 14px;
+  margin-top: 12px;
+  font-size: 0.8125rem;
+}
+
+.speech-app-preview-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 14px;
+  margin-top: 8px;
+}
+
+/* ─── LANGUAGE SWITCHER (MULTI-IDIOMA: ES / DE / EN) ──────── */
+.lang-switcher {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(15, 23, 42, 0.06);
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 20px;
+  padding: 2px 4px;
+  gap: 2px;
+  transition: all 0.2s ease;
+}
+
+.public-navbar .lang-switcher {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(217, 119, 6, 0.35);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.lang-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 14px;
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--slate-600);
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.lang-btn .lang-flag {
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.lang-btn .lang-code {
+  letter-spacing: 0.5px;
+}
+
+.lang-btn:hover {
+  color: var(--wine-900);
+  background: rgba(114, 47, 55, 0.08);
+}
+
+.lang-btn.active {
+  background: var(--wine-900);
+  color: #ffffff !important;
+  box-shadow: 0 2px 6px rgba(114, 47, 55, 0.35);
+}
+
+/* Selector en Login Screen */
+.login-lang-box {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 100;
+}
+
+.login-lang-box .lang-switcher {
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+}
+
+
+

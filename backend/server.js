@@ -7,10 +7,13 @@ const { isPostgresConfigured, query } = require('./db/pool');
 const app = express();
 
 // CORS: permite cualquier origen (dev, producción en Render, Vercel, vistas previas, etc.)
-app.use(cors({
+const corsOptions = {
   origin: true,
-  credentials: true
-}));
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept']
+};
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // Endpoint de estado del sistema y BD con Heartbeat a PostgreSQL
@@ -166,6 +169,60 @@ app.delete('/api/candidatos/:id', async (req, res) => {
   }
 });
 
+// Empresas / Clínicas (B2B)
+app.get('/api/empresas', async (req, res) => {
+  try {
+    const empresas = await DB.getEmpresasAsync();
+    res.json(empresas);
+  } catch (err) {
+    console.error('Error en GET /api/empresas:', err.message);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+app.get('/api/empresas/:id', async (req, res) => {
+  try {
+    const empresa = await DB.getEmpresaByIdAsync(req.params.id);
+    if (empresa) res.json(empresa);
+    else res.status(404).json({ error: 'Empresa no encontrada' });
+  } catch (err) {
+    console.error('Error en GET /api/empresas/:id:', err.message);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+app.post('/api/empresas', async (req, res) => {
+  try {
+    const nueva = await DB.createEmpresaAsync(req.body);
+    res.status(201).json(nueva);
+  } catch (err) {
+    console.error('Error en POST /api/empresas:', err.message);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+app.put('/api/empresas/:id', async (req, res) => {
+  try {
+    const editada = await DB.updateEmpresaAsync(req.params.id, req.body);
+    if (editada) res.json(editada);
+    else res.status(404).json({ error: 'Empresa no encontrada' });
+  } catch (err) {
+    console.error('Error en PUT /api/empresas/:id:', err.message);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
+app.delete('/api/empresas/:id', async (req, res) => {
+  try {
+    const eliminada = await DB.deleteEmpresaAsync(req.params.id);
+    if (eliminada) res.json({ success: true });
+    else res.status(404).json({ error: 'Empresa no encontrada' });
+  } catch (err) {
+    console.error('Error en DELETE /api/empresas/:id:', err.message);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+});
+
 // Full state endpoint (retrocompatibilidad)
 app.get('/api/db', async (req, res) => {
   try {
@@ -197,9 +254,26 @@ app.post('/api/reset', async (req, res) => {
   }
 });
 
+// Manejador 404 para endpoints API no existentes
+app.use((req, res) => {
+  res.status(404).json({ error: 'Ruta API no encontrada' });
+});
+
+// Manejador global de errores
+app.use((err, req, res, next) => {
+  console.error('❌ Error no capturado en backend:', err);
+  res.status(500).json({ error: 'Error interno del servidor' });
+});
+
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+
+const server = app.listen(PORT, () => {
   const mode = isPostgresConfigured() ? '🐘 PostgreSQL' : '💾 In-Memory Fallback';
   console.log(`✅ Servidor backend de JN Palabras ejecutándose en http://localhost:${PORT}`);
   console.log(`🗄️  Modo de Base de Datos: ${mode}`);
 });
+
+server.on('close', () => console.log('⚠️ Server closed!'));
+server.on('error', (e) => console.error('❌ Server error:', e));
+
+module.exports = app;

@@ -1,16 +1,29 @@
 
 // URL del backend: usa localhost en desarrollo y Render en producción
-let apiUrl = 'http://localhost:3000';
-if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
-  apiUrl = 'http://localhost:3000';
-} else if (typeof window !== 'undefined' && window.VITE_API_URL && window.VITE_API_URL !== 'undefined') {
-  apiUrl = window.VITE_API_URL;
-} else if (typeof window !== 'undefined' && localStorage.getItem('jnp_api_url')) {
-  apiUrl = localStorage.getItem('jnp_api_url');
-} else {
-  apiUrl = 'https://jn-palabras-backend.onrender.com';
+const OFFICIAL_BACKEND_URL = 'https://jn-palabras-backend.onrender.com';
+let apiUrl = OFFICIAL_BACKEND_URL;
+
+if (typeof window !== 'undefined') {
+  const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  if (isLocal) {
+    apiUrl = 'http://localhost:3000';
+  } else {
+    // Limpieza de URLs de backend obsoletas o inexistentes (e.g. palabras-vyn1)
+    const storedUrl = localStorage.getItem('jnp_api_url');
+    if (storedUrl && storedUrl.includes('palabras-vyn1.onrender.com')) {
+      localStorage.removeItem('jnp_api_url');
+    }
+
+    if (window.VITE_API_URL && window.VITE_API_URL !== 'undefined' && !window.VITE_API_URL.includes('palabras-vyn1.onrender.com')) {
+      apiUrl = window.VITE_API_URL;
+    } else {
+      const validStoredUrl = localStorage.getItem('jnp_api_url');
+      apiUrl = (validStoredUrl && !validStoredUrl.includes('palabras-vyn1.onrender.com')) ? validStoredUrl : OFFICIAL_BACKEND_URL;
+    }
+  }
 }
 const API_URL = apiUrl;
+
 
 const OFFICIAL_USERS = [
   {
@@ -330,12 +343,27 @@ const DB = {
     const usuarios = this.getUsuarios();
     return list.map(c => {
       const asesor = c.id_asesor ? usuarios.find(u => u.id === c.id_asesor) : null;
+      let esp = c.especialidad || c.especialidad_medica;
+      if (!esp || esp.includes('Ver Test')) {
+        esp = c.respuestas_elegibilidad?.profession || 'Enfermero/a Profesional';
+      }
+      let aleman = c.nivel_aleman || c.nivel_aleman_actual;
+      if (!aleman || aleman.includes('Ver Test')) {
+        aleman = c.respuestas_elegibilidad?.german || 'A1';
+      }
+
+      // Solicitud pendiente si está en Lead Nuevo y no ha sido formalmente aprobado
+      const estadoProcesoNorm = (c.estado_proceso || 'Lead Nuevo');
+      const isLead = estadoProcesoNorm.toLowerCase().includes('lead') || estadoProcesoNorm.toLowerCase().includes('nuevo');
+      const estadoSolicitud = c.estado_solicitud || (isLead && !c.aprobado_por ? 'Pendiente' : 'Aprobada');
+
       return {
         ...c,
         nombre: c.nombre || c.nombre_completo,
         pais: c.pais || c.pais_origen,
-        especialidad: c.especialidad || c.especialidad_medica,
-        nivel_aleman: c.nivel_aleman || c.nivel_aleman_actual,
+        especialidad: esp,
+        nivel_aleman: aleman,
+        estado_solicitud: estadoSolicitud,
         id_asesor: c.id_asesor || null,
         nombre_asesor: c.nombre_asesor || (asesor ? asesor.nombre : null)
       };
@@ -651,6 +679,376 @@ const DB = {
     db.vacantes = db.vacantes.filter(v => v.id !== id);
     db.kpis.vacantes_activas = Math.max(0, db.kpis.vacantes_activas - 1);
     this.save(db);
+  },
+
+  // ── EMPRESAS Y HOSPITALES (B2B) ───────────────────────────────
+  getEmpresas() {
+    const db = this.get();
+    if (!db.empresas || !Array.isArray(db.empresas) || db.empresas.length === 0) {
+      db.empresas = [
+        {
+          id: 'c0000000-0000-0000-0000-000000000001',
+          id_usuario: 'a0000000-0000-0000-0000-000000000005',
+          nombre_clinica: 'Klinikum Stuttgart',
+          tipo_centro: 'Hospital Universitario',
+          region_alemania: 'Baden-Württemberg',
+          ciudad: 'Stuttgart',
+          contacto_nombre: 'Dr. Hans Müller',
+          contacto_cargo: 'Leitung Personalrecruiting',
+          correo_contacto: 'rrhh@klinikum-stuttgart.de',
+          telefono: '+49 711 2780',
+          numero_camas: 2200,
+          etapa_b2b: '1er Contacto / Llamada',
+          especialidades_requeridas: ['Enfermería UCI', 'Quirófano / OP', 'Medicina Interna'],
+          plazas_solicitadas: 15,
+          nivel_aleman_solicitado: 'B2 Pflege',
+          origen_lead: 'Prospección B2B',
+          urgencia: 'Inmediata (< 1 mes)',
+          alojamiento: 'Dispone de residencia para personal (Personalwohnheim)',
+          asesor_asignado: 'Carlos Martínez',
+          notas: 'Hospital de máxima categoría con alta demanda de enfermeros de UCI. Buscan candidatos con experiencia previa de al menos 1 año.',
+          historial_crm: [
+            {
+              id: 'crm-1',
+              fecha: '2026-10-10T14:30:00Z',
+              asesor: 'Carlos Martínez',
+              tipo: 'Llamada Telefónica',
+              resultado: 'Reunión de Diagnóstico Agendada',
+              notas: 'Hablé con el Dr. Müller. Muy interesados en enfermeros intensivistas con B2. Aceptan candidatos en proceso de homologación.',
+              proxima_cita: '2026-10-18T10:00:00'
+            }
+          ],
+          activo: true,
+          fecha_creacion: '2026-09-17T22:31:59.475Z',
+          fecha_ultimo_contacto: '2026-10-10T14:30:00Z'
+        },
+        {
+          id: 'c0000000-0000-0000-0000-000000000002',
+          nombre_clinica: 'Universitätsklinikum Heidelberg',
+          tipo_centro: 'Hospital Universitario',
+          region_alemania: 'Baden-Württemberg',
+          ciudad: 'Heidelberg',
+          contacto_nombre: 'Frau Sabine Becker',
+          contacto_cargo: 'Pflegedirektorin',
+          correo_contacto: 'pflege.recruiting@med.uni-heidelberg.de',
+          telefono: '+49 6221 560',
+          numero_camas: 2000,
+          etapa_b2b: 'Propuesta / Convenio',
+          especialidades_requeridas: ['Enfermería Pediátrica', 'Oncología', 'Anestesia'],
+          plazas_solicitadas: 25,
+          nivel_aleman_solicitado: 'B2',
+          origen_lead: 'Formulario Web Hospitales',
+          urgencia: 'Corto plazo (1-3 meses)',
+          alojamiento: 'Ayuda financiera para alquiler durante primeros 6 meses',
+          asesor_asignado: 'Mariana Vega',
+          notas: 'Convenio marco en revisión legal. Excelente centro colaborador cercano a la sede de JN Palabras.',
+          historial_crm: [
+            {
+              id: 'crm-2',
+              fecha: '2026-10-12T11:00:00Z',
+              asesor: 'Mariana Vega',
+              tipo: 'Videollamada Teams',
+              resultado: 'Propuesta Enviada',
+              notas: 'Presentamos el dossier de JN Palabras. Enviamos borrador de convenio marco de reclutamiento ético.',
+              proxima_cita: '2026-10-20T11:30:00'
+            }
+          ],
+          activo: true,
+          fecha_creacion: '2026-09-20T10:00:00.000Z',
+          fecha_ultimo_contacto: '2026-10-12T11:00:00Z'
+        },
+        {
+          id: 'c0000000-0000-0000-0000-000000000003',
+          nombre_clinica: 'Charité – Universitätsmedizin Berlin',
+          tipo_centro: 'Hospital Universitario',
+          region_alemania: 'Berlin',
+          ciudad: 'Berlin',
+          contacto_nombre: 'Herr Markus Wagner',
+          contacto_cargo: 'Personalabteilung Pflege',
+          correo_contacto: 'karriere@charite.de',
+          telefono: '+49 30 45050',
+          numero_camas: 3100,
+          etapa_b2b: 'Lead B2B Nuevo',
+          especialidades_requeridas: ['Quirófano / OP', 'Urgencias / Notaufnahme'],
+          plazas_solicitadas: 30,
+          nivel_aleman_solicitado: 'B2',
+          origen_lead: 'Formulario Web Hospitales',
+          urgencia: 'Corto plazo (1-3 meses)',
+          alojamiento: 'Residencia temporal para recién llegados',
+          asesor_asignado: 'Jonathan Urbano',
+          notas: 'Solicitud recibida a través del portal de empresas para incorporar enfermeros quirúrgicos.',
+          historial_crm: [],
+          activo: true,
+          fecha_creacion: '2026-10-14T09:15:00.000Z',
+          fecha_ultimo_contacto: '2026-10-14T09:15:00Z'
+        },
+        {
+          id: 'c0000000-0000-0000-0000-000000000004',
+          nombre_clinica: 'Seniorenresidenz am Park München',
+          tipo_centro: 'Seniorenresidenz / Geriatría',
+          region_alemania: 'Bayern',
+          ciudad: 'München',
+          contacto_nombre: 'Frau Gerda Richter',
+          contacto_cargo: 'Einrichtungsleitung',
+          correo_contacto: 'leitung@senioren-muenchen.de',
+          telefono: '+49 89 32190',
+          numero_camas: 180,
+          etapa_b2b: 'Contrato Firmado',
+          especialidades_requeridas: ['Geriatría / Altenpflege', 'Fisioterapia'],
+          plazas_solicitadas: 8,
+          nivel_aleman_solicitado: 'B2',
+          origen_lead: 'Prospección B2B',
+          urgencia: 'Inmediata (< 1 mes)',
+          alojamiento: 'Habitaciones amuebladas en la propia residencia',
+          asesor_asignado: 'Carlos Martínez',
+          notas: 'Contrato de colaboración firmado. Plazas garantizadas con turnos organizados y clima laboral muy positivo.',
+          historial_crm: [
+            {
+              id: 'crm-3',
+              fecha: '2026-10-05T16:00:00Z',
+              asesor: 'Carlos Martínez',
+              tipo: 'Firma Presencial / Digital',
+              resultado: 'Contrato Firmado Exitosamente',
+              notas: 'Convenio activo por 2 años. Recibimos solicitud prioritaria de 8 enfermeros geriátricos.',
+              proxima_cita: null
+            }
+          ],
+          activo: true,
+          fecha_creacion: '2026-09-10T12:00:00.000Z',
+          fecha_ultimo_contacto: '2026-10-05T16:00:00Z'
+        }
+      ];
+      this.save(db);
+    }
+    return db.empresas;
+  },
+
+  async syncEmpresas() {
+    if (API_URL) {
+      try {
+        const res = await fetch(`${API_URL}/api/empresas?t=${Date.now()}`);
+        if (res.ok) {
+          const remoteList = await res.json();
+          if (Array.isArray(remoteList) && remoteList.length > 0) {
+            const db = this.get();
+            db.empresas = remoteList;
+            if (!db.kpis) db.kpis = {};
+            db.kpis.empresas_clientes = remoteList.length;
+            this.save(db);
+            return remoteList;
+          }
+        }
+      } catch (e) {
+        console.warn('Error sincronizando empresas:', e);
+      }
+    }
+    return this.getEmpresas();
+  },
+
+  getEmpresaById(id) {
+    if (!id) return null;
+    return this.getEmpresas().find(e => e.id === id || e.id_usuario === id) || null;
+  },
+
+  createEmpresa(data) {
+    const db = this.get();
+    if (!db.empresas) db.empresas = [];
+    
+    const nueva = {
+      id: data.id || ('c-' + Date.now()),
+      id_usuario: data.id_usuario || null,
+      nombre_clinica: data.nombre_clinica || data.nombre || 'Clínica / Hospital',
+      tipo_centro: data.tipo_centro || data.tipo || 'Klinikum',
+      region_alemania: data.region_alemania || data.region || 'Baden-Württemberg',
+      ciudad: data.ciudad || 'Heidelberg',
+      direccion: data.direccion || '',
+      contacto_nombre: data.contacto_nombre || data.contacto || 'Contacto Principal',
+      contacto_cargo: data.contacto_cargo || data.cargo || 'Recursos Humanos / Pflegedirektion',
+      correo_contacto: data.correo_contacto || data.correo || '',
+      telefono: data.telefono || '',
+      sitio_web: data.sitio_web || '',
+      numero_camas: parseInt(data.numero_camas || data.camas || 0, 10),
+      etapa_b2b: data.etapa_b2b || 'Lead B2B Nuevo',
+      especialidades_requeridas: Array.isArray(data.especialidades_requeridas) 
+        ? data.especialidades_requeridas 
+        : (data.especialidades_requeridas ? [data.especialidades_requeridas] : ['Enfermería General']),
+      plazas_solicitadas: parseInt(data.plazas_solicitadas || data.plazas || 1, 10),
+      nivel_aleman_solicitado: data.nivel_aleman_solicitado || 'B2',
+      origen_lead: data.origen_lead || 'Formulario Web Hospitales',
+      urgencia: data.urgencia || 'Corto plazo (1-3 meses)',
+      alojamiento: data.alojamiento || 'En evaluación',
+      asesor_asignado: data.asesor_asignado || 'Carlos Martínez',
+      notas: data.notas || '',
+      historial_crm: Array.isArray(data.historial_crm) ? data.historial_crm : [],
+      activo: true,
+      fecha_creacion: new Date().toISOString(),
+      fecha_ultimo_contacto: new Date().toISOString()
+    };
+
+    db.empresas.unshift(nueva);
+    if (!db.kpis) db.kpis = {};
+    db.kpis.empresas_clientes = (db.kpis.empresas_clientes || 0) + 1;
+
+    // Notificación automática al equipo
+    this.addNotificacion({
+      id_usuario_dest: 'u-asesor-001',
+      tipo: 'Nuevo_Lead_B2B',
+      titulo: 'Nuevo Lead Hospital B2B',
+      mensaje: `Nueva solicitud institucional recibida de ${nueva.nombre_clinica} (${nueva.ciudad}) por ${nueva.plazas_solicitadas} plazas.`
+    }, db);
+
+    this.save(db);
+    return nueva;
+  },
+
+  updateEmpresa(id, data) {
+    const db = this.get();
+    if (!db.empresas) db.empresas = [];
+    const idx = db.empresas.findIndex(e => e.id === id || e.id_usuario === id);
+    if (idx !== -1) {
+      db.empresas[idx] = { 
+        ...db.empresas[idx], 
+        ...data,
+        fecha_actualizacion: new Date().toISOString()
+      };
+      this.save(db);
+      return db.empresas[idx];
+    }
+    return null;
+  },
+
+  deleteEmpresa(id) {
+    const db = this.get();
+    if (!db.empresas) return false;
+    db.empresas = db.empresas.filter(e => e.id !== id && e.id_usuario !== id);
+    if (db.kpis && db.kpis.empresas_clientes) {
+      db.kpis.empresas_clientes = Math.max(0, db.kpis.empresas_clientes - 1);
+    }
+    this.save(db);
+    return true;
+  },
+
+  addInteraccionEmpresa(idEmpresa, interaccion) {
+    const db = this.get();
+    if (!db.empresas) return null;
+    const emp = db.empresas.find(e => e.id === idEmpresa || e.id_usuario === idEmpresa);
+    if (!emp) return null;
+    if (!Array.isArray(emp.historial_crm)) emp.historial_crm = [];
+
+    const nuevoLog = {
+      id: 'crm-' + Date.now(),
+      fecha: new Date().toISOString(),
+      asesor: interaccion.asesor || 'Asesor JN Palabras',
+      tipo: interaccion.tipo || 'Llamada Telefónica',
+      resultado: interaccion.resultado || 'Contacto realizado',
+      notas: interaccion.notas || '',
+      proxima_cita: interaccion.proxima_cita || null
+    };
+
+    emp.historial_crm.unshift(nuevoLog);
+    emp.fecha_ultimo_contacto = nuevoLog.fecha;
+    if (interaccion.nueva_etapa) {
+      emp.etapa_b2b = interaccion.nueva_etapa;
+    }
+    this.save(db);
+    return nuevoLog;
+  },
+
+  bulkImportEmpresas(empresasNuevas) {
+    const db = this.get();
+    if (!db.empresas) db.empresas = [];
+    let count = 0;
+
+    empresasNuevas.forEach(raw => {
+      const nueva = {
+        id: 'c-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5),
+        id_usuario: null,
+        nombre_clinica: raw.nombre_clinica || raw.nombre || raw['Nombre de la Clínica'] || raw['Hospital'] || 'Clínica Importada',
+        tipo_centro: raw.tipo_centro || raw.tipo || raw['Tipo de Centro'] || 'Klinikum',
+        region_alemania: raw.region_alemania || raw.region || raw['Bundesland'] || raw['Región'] || 'Baden-Württemberg',
+        ciudad: raw.ciudad || raw['Ciudad'] || 'Alemania',
+        direccion: raw.direccion || raw['Dirección'] || '',
+        contacto_nombre: raw.contacto_nombre || raw.contacto || raw['Contacto'] || raw['Responsable'] || 'Dirección de RRHH',
+        contacto_cargo: raw.contacto_cargo || raw.cargo || raw['Cargo'] || 'Recursos Humanos',
+        correo_contacto: raw.correo_contacto || raw.correo || raw['Email'] || raw['Correo'] || '',
+        telefono: raw.telefono || raw['Teléfono'] || raw['Telefono'] || '',
+        sitio_web: raw.sitio_web || raw['Sitio Web'] || '',
+        numero_camas: parseInt(raw.numero_camas || raw.camas || raw['Camas'] || 0, 10),
+        etapa_b2b: raw.etapa_b2b || raw['Etapa'] || 'Lead B2B Nuevo',
+        especialidades_requeridas: Array.isArray(raw.especialidades_requeridas) 
+          ? raw.especialidades_requeridas 
+          : (raw.especialidades_requeridas || raw['Especialidades'] ? String(raw.especialidades_requeridas || raw['Especialidades']).split(',').map(s=>s.trim()) : ['Enfermería General']),
+        plazas_solicitadas: parseInt(raw.plazas_solicitadas || raw.plazas || raw['Vacantes'] || raw['Plazas'] || 1, 10),
+        nivel_aleman_solicitado: raw.nivel_aleman_solicitado || raw['Nivel Alemán'] || 'B2',
+        origen_lead: 'Importación Excel',
+        urgencia: raw.urgencia || raw['Urgencia'] || 'Corto plazo (1-3 meses)',
+        alojamiento: raw.alojamiento || raw['Alojamiento'] || 'Por definir',
+        asesor_asignado: raw.asesor_asignado || raw['Asesor Asignado'] || 'Carlos Martínez',
+        notas: raw.notas || raw['Notas'] || raw['Comentarios'] || '',
+        historial_crm: [],
+        activo: true,
+        fecha_creacion: new Date().toISOString(),
+        fecha_ultimo_contacto: new Date().toISOString()
+      };
+      db.empresas.unshift(nueva);
+      count++;
+    });
+
+    if (!db.kpis) db.kpis = {};
+    db.kpis.empresas_clientes = (db.kpis.empresas_clientes || 0) + count;
+
+    this.addNotificacion({
+      id_usuario_dest: 'u-asesor-001',
+      tipo: 'Importacion_B2B',
+      titulo: 'Base de Datos B2B Importada',
+      mensaje: `Se han importado exitosamente ${count} empresas / clínicas a la base de datos.`
+    }, db);
+
+    this.save(db);
+    return count;
+  },
+
+  bulkImportCandidatos(candidatosNuevos) {
+    const db = this.get();
+    if (!db.candidatos) db.candidatos = [];
+    let count = 0;
+
+    candidatosNuevos.forEach(raw => {
+      const nuevo = {
+        id: 'c-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5),
+        nombre: raw.nombre || raw['Nombre Completo'] || raw['Nombre'] || 'Candidato Importado',
+        correo: raw.correo || raw.email || raw['Correo'] || raw['Email'] || '',
+        telefono: raw.telefono || raw['Teléfono'] || raw['Telefono'] || '',
+        pais: raw.pais || raw['País'] || raw['Pais'] || 'Colombia',
+        profesion: raw.profesion || raw.especialidad || raw['Profesión'] || raw['Especialidad'] || 'Enfermería General',
+        especialidad: raw.especialidad || raw.profesion || raw['Especialidad'] || 'Enfermería General',
+        nivel_aleman: raw.nivel_aleman || raw['Nivel Alemán'] || raw['Nivel Aleman'] || 'A1',
+        experiencia_anos: parseInt(raw.experiencia_anos || raw['Años de Experiencia'] || raw['Experiencia'] || 2, 10),
+        estado_proceso: raw.estado_proceso || raw['Estado'] || 'Lead Nuevo',
+        estado_solicitud: 'Aprobada',
+        origen: 'Importación Excel',
+        fecha_registro: new Date().toISOString(),
+        aprobado_por: 'Super Asesor',
+        aprobado_en: new Date().toISOString(),
+        notas: raw.notas || raw['Notas'] || raw['Comentarios'] || '',
+        activo: true
+      };
+      db.candidatos.unshift(nuevo);
+      count++;
+    });
+
+    if (!db.kpis) db.kpis = {};
+    db.kpis.total_candidatos = (db.kpis.total_candidatos || 0) + count;
+
+    this.addNotificacion({
+      id_usuario_dest: 'u-asesor-001',
+      tipo: 'Importacion_Candidatos',
+      titulo: 'Candidatos Importados',
+      mensaje: `Se han importado ${count} nuevos candidatos desde Excel a la base de datos.`
+    }, db);
+
+    this.save(db);
+    return count;
   },
 
   // ── NOTIFICACIONES ────────────────────────────────────────────

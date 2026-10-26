@@ -940,6 +940,100 @@ const DB = {
     this.save(db);
   },
 
+  // ── EMPRESAS (B2B) ────────────────────────────────────────────
+  getEmpresas() {
+    return this.get().empresas || [];
+  },
+
+  async getEmpresasAsync() {
+    if (isPostgresConfigured()) {
+      try {
+        const res = await query('SELECT * FROM empresas ORDER BY fecha_creacion DESC;');
+        return res.rows;
+      } catch (err) {
+        console.warn('⚠️ Query error en PostgreSQL getEmpresasAsync:', err.message);
+      }
+    }
+    return this.getEmpresas();
+  },
+
+  getEmpresaById(id) {
+    return this.getEmpresas().find(e => e.id === id || e.id_usuario === id) || null;
+  },
+
+  async getEmpresaByIdAsync(id) {
+    if (isPostgresConfigured() && id && IS_UUID_REGEX.test(id)) {
+      try {
+        const res = await query('SELECT * FROM empresas WHERE id = $1 LIMIT 1;', [id]);
+        if (res.rows.length) return res.rows[0];
+      } catch (err) {}
+    }
+    return this.getEmpresaById(id);
+  },
+
+  createEmpresa(data) {
+    const db = this.get();
+    if (!db.empresas) db.empresas = [];
+    const nueva = {
+      id: data.id || ('c-' + Date.now()),
+      id_usuario: data.id_usuario || null,
+      nombre_clinica: data.nombre_clinica || data.nombre || 'Clínica',
+      tipo_centro: data.tipo_centro || data.tipo || 'Klinikum',
+      region_alemania: data.region_alemania || data.region || 'Baden-Württemberg',
+      ciudad: data.ciudad || 'Heidelberg',
+      contacto_nombre: data.contacto_nombre || data.contacto || 'Contacto',
+      contacto_cargo: data.contacto_cargo || 'Recursos Humanos',
+      correo_contacto: data.correo_contacto || data.correo || '',
+      telefono: data.telefono || '',
+      numero_camas: data.numero_camas || 0,
+      plazas_solicitadas: data.plazas_solicitadas || 1,
+      especialidades_requeridas: data.especialidades_requeridas || ['Enfermería General'],
+      nivel_aleman_solicitado: data.nivel_aleman_solicitado || 'B2',
+      etapa_b2b: data.etapa_b2b || 'Lead B2B Nuevo',
+      alojamiento: data.alojamiento || '',
+      notas: data.notas || '',
+      historial_crm: data.historial_crm || [],
+      activo: true,
+      fecha_creacion: new Date().toISOString(),
+      fecha_ultimo_contacto: new Date().toISOString()
+    };
+    db.empresas.unshift(nueva);
+    this.save(db);
+    return nueva;
+  },
+
+  async createEmpresaAsync(data) {
+    return this.createEmpresa(data);
+  },
+
+  updateEmpresa(id, data) {
+    const db = this.get();
+    if (!db.empresas) db.empresas = [];
+    const idx = db.empresas.findIndex(e => e.id === id || e.id_usuario === id);
+    if (idx !== -1) {
+      db.empresas[idx] = { ...db.empresas[idx], ...data, fecha_actualizacion: new Date().toISOString() };
+      this.save(db);
+      return db.empresas[idx];
+    }
+    return null;
+  },
+
+  async updateEmpresaAsync(id, data) {
+    return this.updateEmpresa(id, data);
+  },
+
+  deleteEmpresa(id) {
+    const db = this.get();
+    if (!db.empresas) return false;
+    db.empresas = db.empresas.filter(e => e.id !== id && e.id_usuario !== id);
+    this.save(db);
+    return true;
+  },
+
+  async deleteEmpresaAsync(id) {
+    return this.deleteEmpresa(id);
+  },
+
   // ── NOTIFICACIONES ────────────────────────────────────────────
   getNotificaciones(id_usuario) {
     return this.get().notificaciones

@@ -14,6 +14,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/js/style.css?v=cand_v5">
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
 
@@ -42,45 +43,61 @@
      PANTALLA DE LOGIN
      ══════════════════════════════════════════════════════════ -->
 <div id="login-screen" role="dialog" aria-modal="true" aria-label="Inicio de sesión">
+  <!-- Selector de idioma en esquina superior derecha de Login -->
+  <div class="login-lang-box">
+    <div class="lang-switcher">
+      <button type="button" class="lang-btn active" data-lang="es" onclick="i18n.setLanguage('es')" title="Español">
+        <span class="lang-flag">🇪🇸</span> <span class="lang-code">ES</span>
+      </button>
+      <button type="button" class="lang-btn" data-lang="de" onclick="i18n.setLanguage('de')" title="Deutsch">
+        <span class="lang-flag">🇩🇪</span> <span class="lang-code">DE</span>
+      </button>
+      <button type="button" class="lang-btn" data-lang="en" onclick="i18n.setLanguage('en')" title="English">
+        <span class="lang-flag">🇬🇧</span> <span class="lang-code">EN</span>
+      </button>
+    </div>
+  </div>
+
   <!-- Brand Side -->
-  <div class="login-brand-side">
-    <div style="background:var(--wine-800); border-radius:12px; padding:24px; box-shadow:0 12px 40px rgba(0,0,0,0.5);">
+  <div class="login-brand-side" onclick="showPublic(); window.scrollTo({top:0, behavior:'smooth'});" style="cursor: pointer;" title="Volver a la página principal web">
+    <div style="background:var(--wine-800); border-radius:12px; padding:24px; box-shadow:0 12px 40px rgba(0,0,0,0.5); transition:transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
       <img src="/logo.png" alt="JN Palabras" style="width:160px; height:auto; display:block;">
     </div>
     <div style="margin-top:24px; text-align:center;">
-      <h2 style="font-size:2rem; font-weight:700; font-family:var(--font-serif); margin-bottom:8px;">Gestión de Talento</h2>
-      <p style="font-size:1.1rem; opacity:0.9;">Heidelberg · Alemania</p>
+      <h2 style="font-size:2rem; font-weight:700; font-family:var(--font-serif); margin-bottom:8px;" data-i18n="login_brand_title">Gestión de Talento</h2>
+      <p style="font-size:1.1rem; opacity:0.9;" data-i18n="login_brand_subtitle">Heidelberg · Alemania</p>
+      <div style="margin-top:14px; display:inline-flex; align-items:center; gap:6px; font-size:0.875rem; color:var(--gold-400); font-weight:600;">
+        <span>←</span> <span>Volver a la web</span>
+      </div>
     </div>
   </div>
 
   <!-- Form Side -->
   <div class="login-form-side">
     <div class="login-box animate-scaleIn">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <button type="button" onclick="showPublic(); window.scrollTo({top:0, behavior:'smooth'});" style="background:none; border:none; color:var(--slate-500); cursor:pointer; font-size:0.85rem; display:inline-flex; align-items:center; gap:6px; padding:0;">
+          <span style="font-size:1.1rem;">←</span> Volver a la web principal
+        </button>
+      </div>
       <div style="text-align:center;margin-bottom:24px;">
-        <h2 style="font-size:1.75rem;font-weight:800;color:var(--slate-900);">Bienvenido a la Plataforma</h2>
+        <h2 style="font-size:1.75rem;font-weight:800;color:var(--slate-900);" data-i18n="login_title">Bienvenido a la Plataforma</h2>
       </div>
       <form class="login-form" id="login-form" onsubmit="handleLogin(event)" novalidate>
         <div class="form-group">
-          <label class="form-label" for="login-email" style="color:var(--slate-700)">Correo electrónico</label>
-          <input class="form-input" type="email" id="login-email" placeholder="correo@ejemplo.com" autocomplete="email" required>
+          <label class="form-label" for="login-email" style="color:var(--slate-700)" data-i18n="login_email">Correo electrónico</label>
+          <input class="form-input" type="email" id="login-email" placeholder="correo@ejemplo.com" data-i18n-placeholder="login_email_ph" autocomplete="email" required>
         </div>
         <div class="form-group">
-          <label class="form-label" for="login-pass" style="color:var(--slate-700)">Contraseña</label>
+          <label class="form-label" for="login-pass" style="color:var(--slate-700)" data-i18n="login_pass">Contraseña</label>
           <input class="form-input" type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password" required>
         </div>
-        <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;">Iniciar Sesión</button>
+        <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;" data-i18n="login_btn">Iniciar Sesión</button>
         <div style="text-align:center;font-size:.8125rem;color:var(--slate-500);margin-top:16px;">
-          ¿Eres candidato nuevo? 
-          <button type="button" onclick="showPublic();setTimeout(()=>scrollToSection('eligibilidad'),300);" style="color:var(--gold-600);font-weight:600;background:none;border:none;cursor:pointer;">Realiza el test de elegibilidad</button>
+          <span data-i18n="login_new_cand">¿Eres candidato nuevo?</span> 
+          <button type="button" onclick="showPublic();setTimeout(()=>scrollToSection('eligibilidad'),300);" style="color:var(--gold-600);font-weight:600;background:none;border:none;cursor:pointer;" data-i18n="login_test_link">Realiza el test de elegibilidad</button>
         </div>
       </form>
-
-          </div>
-        </div>
-      </div>
-
-      <div style="text-align:center;margin-top:20px;">
-      </div>
     </div>
   </div>
 </div>
@@ -117,17 +134,23 @@
         <img src="/logo.png" alt="JN Palabras Logo" style="height: 48px; width: auto; border-radius: 6px;">
         <div class="nav-logo-text" style="color:var(--warm-900);">
           <span style="font-weight:800; font-size:1.1rem; display:block;">JN Palabras</span>
-          <span style="font-size:0.75rem; letter-spacing:1px; text-transform:uppercase;">Heidelberg · Deutschland</span>
+          <span style="font-size:0.75rem; letter-spacing:1px; text-transform:uppercase;" data-i18n="brand_sub">Heidelberg · Deutschland</span>
         </div>
       </div>
       <div class="nav-links" role="menubar" style="display:flex; gap: 32px; align-items: center;">
-        <a href="#proceso" class="nav-link" role="menuitem" onclick="scrollToSection('proceso')">Nuestro Proceso</a>
-        <a href="#about" class="nav-link" role="menuitem" onclick="scrollToSection('about')">Nosotros</a>
-        <a href="#contact" class="nav-link" role="menuitem" onclick="scrollToSection('contact')">Contacto</a>
+        <a href="#proceso" class="nav-link" role="menuitem" onclick="scrollToSection('proceso')" data-i18n="nav_process">Nuestro Proceso</a>
+        <a href="#about" class="nav-link" role="menuitem" onclick="scrollToSection('about')" data-i18n="nav_about">Nosotros</a>
+        <a href="#contact" class="nav-link" role="menuitem" onclick="scrollToSection('contact')" data-i18n="nav_contact">Contacto</a>
       </div>
-      <div class="nav-actions" style="display:flex; gap: 16px;">
-        <button class="btn btn-outline" onclick="showLogin()" id="nav-login-btn">Iniciar Sesión</button>
-        <button class="btn-redesign-primary" onclick="scrollToSection('eligibilidad')">Únete a JN Palabras</button>
+      <div class="nav-actions" style="display:flex; gap: 12px; align-items:center;">
+        <div class="lang-switcher" style="margin-right: 4px;">
+          <button class="lang-btn" data-lang="es" onclick="i18n.setLanguage('es')"><span class="lang-flag">🇪🇸</span><span class="lang-code">ES</span></button>
+          <button class="lang-btn" data-lang="de" onclick="i18n.setLanguage('de')"><span class="lang-flag">🇩🇪</span><span class="lang-code">DE</span></button>
+          <button class="lang-btn" data-lang="en" onclick="i18n.setLanguage('en')"><span class="lang-flag">🇬🇧</span><span class="lang-code">EN</span></button>
+        </div>
+        <button class="btn btn-outline" onclick="openHospitalFunnel()" style="border-color:var(--gold-600); color:var(--wine-900); font-weight:700; display:inline-flex; align-items:center; gap:6px;" data-i18n="nav_b2b">🏥 Für Kliniken (B2B)</button>
+        <button class="btn btn-outline" onclick="showLogin()" id="nav-login-btn" data-i18n="nav_login">Iniciar Sesión</button>
+        <button class="btn-redesign-primary" onclick="scrollToSection('eligibilidad')" data-i18n="nav_join">Únete a JN Palabras</button>
       </div>
     </div>
   </nav>
@@ -137,14 +160,15 @@
     <div class="hero-redesign-container">
       <div class="hero-redesign-content animate-fadeInUp">
         <h1 class="hero-redesign-title">
-          Lleva tu carrera médica al <span class="text-gold">corazón de Europa</span>
+          <span data-i18n="hero_title_pre">Lleva tu carrera médica al </span><span class="text-gold" data-i18n="hero_title_gold">corazón de Europa</span>
         </h1>
-        <p class="hero-redesign-text">
+        <p class="hero-redesign-text" data-i18n="hero_desc">
           El programa de 4 pasos para profesionales de la salud. Te acompañamos desde tu país de origen hasta tu primer día de trabajo en Alemania.
         </p>
         <div class="hero-redesign-actions">
-          <button class="btn-redesign-primary" onclick="openApplicationOffcanvas()">Comienza el Proceso</button>
-          <button class="btn-redesign-secondary" onclick="scrollToSection('proceso')">Conoce Más</button>
+          <button class="btn-redesign-primary" onclick="openApplicationOffcanvas()" data-i18n="hero_btn_start">Comienza el Proceso</button>
+          <button class="btn-redesign-secondary" onclick="openHospitalFunnel()" style="background:rgba(217,119,6,0.15); border:1px solid var(--gold-600); color:var(--wine-900); font-weight:700;" data-i18n="hero_btn_hospital">🏥 Soy un Hospital / Clínica</button>
+          <button class="btn-redesign-secondary" onclick="scrollToSection('proceso')" data-i18n="hero_btn_more">Conoce Más</button>
         </div>
       </div>
       <div class="hero-redesign-image animate-fadeInUp delay-200">
@@ -165,15 +189,15 @@
       </div>
       <div class="about-redesign-content animate-fadeInUp delay-200">
         <h2 class="section-subtitle">
-          Más que una agencia, <span class="text-gold">tu aliado estratégico</span>
+          <span data-i18n="about_title_pre">Más que una agencia, </span><span class="text-gold" data-i18n="about_title_gold">tu aliado estratégico</span>
         </h2>
-        <div class="about-redesign-highlight">
+        <div class="about-redesign-highlight" data-i18n="about_highlight">
           "Nuestra misión es hacer de Alemania tu nuevo hogar profesional."
         </div>
-        <p class="about-redesign-text">
+        <p class="about-redesign-text" data-i18n="about_desc">
           Entendemos que emigrar es uno de los pasos más importantes de tu vida. Por eso no solo te encontramos un trabajo; te preparamos culturalmente, te enseñamos el idioma y nos aseguramos de que tu homologación y visado sean un éxito.
         </p>
-        <div class="about-redesign-quote">
+        <div class="about-redesign-quote" data-i18n="about_quote">
           98% de nuestros candidatos se integran exitosamente en el sistema de salud alemán durante su primer año.
         </div>
       </div>
@@ -182,29 +206,29 @@
 
   <!-- PROCESS SECTION -->
   <section class="public-process-redesign" id="proceso">
-    <h2 class="process-title animate-fadeInUp">Nuestro Programa de <span>4 Pasos</span></h2>
-    <p class="process-subtitle animate-fadeInUp delay-100">Un acompañamiento integral diseñado específicamente para médicos y enfermeros internacionales.</p>
+    <h2 class="process-title animate-fadeInUp"><span data-i18n="process_title_pre">Nuestro Programa de </span><span data-i18n="process_title_span">4 Pasos</span></h2>
+    <p class="process-subtitle animate-fadeInUp delay-100" data-i18n="process_desc">Un acompañamiento integral diseñado específicamente para médicos y enfermeros internacionales.</p>
     
     <div class="process-cards-grid">
       <div class="process-card animate-fadeInUp delay-200">
         <div class="process-number wine">1</div>
-        <h4>Visa y Migración</h4>
-        <p>Gestionamos la homologación de tu título (Anerkennung), trámites consulares y el visado de trabajo.</p>
+        <h4 data-i18n="step1_title">Visa y Migración</h4>
+        <p data-i18n="step1_desc">Gestionamos la homologación de tu título (Anerkennung), trámites consulares y el visado de trabajo.</p>
       </div>
       <div class="process-card animate-fadeInUp delay-300">
         <div class="process-number gold">2</div>
-        <h4>Idioma Alemán</h4>
-        <p>Capacitación intensiva orientada al sector salud, preparándote para la Fachsprachenprüfung (FSP).</p>
+        <h4 data-i18n="step2_title">Idioma Alemán</h4>
+        <p data-i18n="step2_desc">Capacitación intensiva orientada al sector salud, preparándote para la Fachsprachenprüfung (FSP).</p>
       </div>
       <div class="process-card animate-fadeInUp delay-400">
         <div class="process-number wine">3</div>
-        <h4>Interculturalidad</h4>
-        <p>Coaching de adaptación para que tu integración al equipo de trabajo alemán sea natural.</p>
+        <h4 data-i18n="step3_title">Interculturalidad</h4>
+        <p data-i18n="step3_desc">Coaching de adaptación para que tu integración al equipo de trabajo alemán sea natural.</p>
       </div>
       <div class="process-card animate-fadeInUp delay-500">
         <div class="process-number gold">4</div>
-        <h4>Vida en Alemania</h4>
-        <p>Acompañamiento en la búsqueda de vivienda, empadronamiento, seguros y cuentas bancarias.</p>
+        <h4 data-i18n="step4_title">Vida en Alemania</h4>
+        <p data-i18n="step4_desc">Acompañamiento en la búsqueda de vivienda, empadronamiento, seguros y cuentas bancarias.</p>
       </div>
     </div>
   </section>
@@ -212,36 +236,36 @@
   <!-- TEST DE ELEGIBILIDAD (Offcanvas Trigger) -->
   <section id="eligibilidad" class="public-cta-banner">
     <div class="cta-banner-circle animate-scaleIn">
-      <h2>Transforma tu futuro hoy</h2>
-      <p>Descubre si eres elegible en menos de 3 minutos</p>
-      <button class="btn-redesign-primary" style="margin-top:24px; background:var(--wine-950);" onclick="openApplicationOffcanvas()">Test de Elegibilidad</button>
+      <h2 data-i18n="cta_title">Transforma tu futuro hoy</h2>
+      <p data-i18n="cta_desc">Descubre si eres elegible en menos de 3 minutos</p>
+      <button class="btn-redesign-primary" style="margin-top:24px; background:var(--wine-950);" onclick="openApplicationOffcanvas()" data-i18n="cta_btn">Test de Elegibilidad</button>
     </div>
   </section>
 
   <!-- CONTACT SECTION -->
   <section class="public-contact-redesign" id="contact">
     <div class="contact-redesign-info animate-fadeInUp">
-      <h2 class="contact-title">Hablemos de <span>tu futuro</span></h2>
-      <p class="contact-desc">Nuestro equipo en Heidelberg está listo para resolver tus dudas. Contáctanos y daremos el primer paso juntos.</p>
+      <h2 class="contact-title"><span data-i18n="contact_title_pre">Hablemos de </span><span data-i18n="contact_title_span">tu futuro</span></h2>
+      <p class="contact-desc" data-i18n="contact_desc">Nuestro equipo en Heidelberg está listo para resolver tus dudas. Contáctanos y daremos el primer paso juntos.</p>
       
       <div class="contact-item">
         <div class="contact-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></div>
         <div class="contact-details">
-          <h5>Sede Principal</h5>
-          <p>Heidelberg, Baden-Württemberg, Alemania</p>
+          <h5 data-i18n="contact_hq_title">Sede Principal</h5>
+          <p data-i18n="contact_hq_val">Heidelberg, Baden-Württemberg, Alemania</p>
         </div>
       </div>
       <div class="contact-item">
         <div class="contact-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
         <div class="contact-details">
-          <h5>Correo Electrónico</h5>
+          <h5 data-i18n="contact_email_title">Correo Electrónico</h5>
           <p>info@jnpalabras.com</p>
         </div>
       </div>
       <div class="contact-item">
         <div class="contact-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg></div>
         <div class="contact-details">
-          <h5>Teléfono</h5>
+          <h5 data-i18n="contact_tel_title">Teléfono</h5>
           <p>+49 6221 000 000</p>
         </div>
       </div>
@@ -257,27 +281,27 @@
       <form onsubmit="submitContact(event)">
         <div class="form-group-row">
           <div class="form-group">
-            <label for="c-name">Nombre Completo</label>
-            <input type="text" id="c-name" required placeholder="Ej. Dra. María Pérez">
+            <label for="c-name" data-i18n="form_name_label">Nombre Completo</label>
+            <input type="text" id="c-name" required placeholder="Ej. Dra. María Pérez" data-i18n-placeholder="form_name_ph">
           </div>
           <div class="form-group">
-            <label for="c-email">Correo</label>
-            <input type="email" id="c-email" required placeholder="correo@ejemplo.com">
+            <label for="c-email" data-i18n="form_email_label">Correo</label>
+            <input type="email" id="c-email" required placeholder="correo@ejemplo.com" data-i18n-placeholder="form_email_ph">
           </div>
         </div>
         <div class="form-group" style="margin-bottom:24px;">
-          <label for="c-subject">Motivo</label>
+          <label for="c-subject" data-i18n="form_subject_label">Motivo</label>
           <select id="c-subject">
-            <option>Quiero trabajar en Alemania</option>
-            <option>Empresa buscando talento</option>
-            <option>Otra consulta</option>
+            <option data-i18n="form_opt_candidate">Quiero trabajar en Alemania</option>
+            <option data-i18n="form_opt_hospital">Empresa buscando talento</option>
+            <option data-i18n="form_opt_other">Otra consulta</option>
           </select>
         </div>
         <div class="form-group">
-          <label for="c-message">Mensaje</label>
-          <textarea id="c-message" required placeholder="Cuéntanos sobre tu situación..."></textarea>
+          <label for="c-message" data-i18n="form_msg_label">Mensaje</label>
+          <textarea id="c-message" required placeholder="Cuéntanos sobre tu situación..." data-i18n-placeholder="form_msg_ph"></textarea>
         </div>
-        <button type="submit" class="btn-redesign-submit">Enviar Mensaje</button>
+        <button type="submit" class="btn-redesign-submit" data-i18n="form_btn_submit">Enviar Mensaje</button>
       </form>
     </div>
   </section>
@@ -287,30 +311,31 @@
     <div class="footer-redesign-grid">
       <div class="footer-brand">
         <img src="/logo.png" alt="JN Palabras" style="height: 48px; border-radius: 4px; filter: grayscale(100%) brightness(200%);">
-        <p>Tu aliado estratégico para la captación, homologación e integración socio-laboral en el sistema de salud alemán.</p>
+        <p data-i18n="footer_desc">Tu aliado estratégico para la captación, homologación e integración socio-laboral en el sistema de salud alemán.</p>
       </div>
       <div class="footer-col">
-        <h5>Candidatos</h5>
+        <h5 data-i18n="footer_cand_title">Candidatos</h5>
         <ul>
-          <li><a href="#" onclick="openApplicationOffcanvas()">Test de Elegibilidad</a></li>
-          <li><a href="#proceso" onclick="scrollToSection('proceso')">Nuestro Proceso</a></li>
-          <li><a href="#" onclick="showLogin()">Portal de Candidato</a></li>
+          <li><a href="#" onclick="openApplicationOffcanvas()" data-i18n="footer_test">Test de Elegibilidad</a></li>
+          <li><a href="#proceso" onclick="scrollToSection('proceso')" data-i18n="footer_process">Nuestro Proceso</a></li>
+          <li><a href="#" onclick="showLogin()" data-i18n="footer_portal">Portal de Candidato</a></li>
         </ul>
       </div>
       <div class="footer-col">
-        <h5>Empresa</h5>
+        <h5 data-i18n="footer_emp_title">Empresa</h5>
         <ul>
-          <li><a href="#about" onclick="scrollToSection('about')">Sobre Nosotros</a></li>
-          <li><a href="#contact" onclick="scrollToSection('contact')">Contacto</a></li>
-          <li><a href="#">Privacidad (RGPD)</a></li>
+          <li><a href="#" onclick="openHospitalFunnel()" data-i18n="footer_b2b_funnel">Solicitar Personal (B2B)</a></li>
+          <li><a href="#about" onclick="scrollToSection('about')" data-i18n="footer_about">Sobre Nosotros</a></li>
+          <li><a href="#contact" onclick="scrollToSection('contact')" data-i18n="footer_contact">Contacto</a></li>
+          <li><a href="#" data-i18n="footer_privacy">Privacidad (RGPD)</a></li>
         </ul>
       </div>
     </div>
     <div class="footer-bottom">
-      <div>&copy; 2025 JN Palabras GmbH. Todos los derechos reservados.</div>
+      <div data-i18n="footer_rights">&copy; 2026 JN Palabras GmbH. Todos los derechos reservados.</div>
       <div class="footer-bottom-links">
-        <a href="#">Impressum</a>
-        <a href="#">Cookies</a>
+        <a href="#" data-i18n="footer_impressum">Impressum</a>
+        <a href="#" data-i18n="footer_cookies">Cookies</a>
       </div>
     </div>
   </footer>
@@ -405,70 +430,347 @@
   </div>
 </div>
 
-<!-- Modal Hospital B2B -->
+<!-- ══════════════════════════════════════════════════════════
+     FUNNEL INTERACTIVO MULTI-PASO PARA EMPRESAS Y HOSPITALES (B2B)
+     ══════════════════════════════════════════════════════════ -->
 <div class="modal-overlay" id="modal-hospital" role="dialog" aria-modal="true" aria-labelledby="modal-hosp-title">
-  <div class="modal" style="max-width:560px;">
-    <div class="modal-header">
-      <h3 class="modal-title" id="modal-hosp-title" style="display:flex;align-items:center;gap:8px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><line x1="8" y1="6" x2="8.01" y2="6"/><line x1="12" y1="6" x2="12.01" y2="6"/><line x1="16" y1="6" x2="16.01" y2="6"/></svg> Solicitar Talento Cualificado</h3>
-      <button class="modal-close" onclick="closeModal('modal-hospital')" aria-label="Cerrar">✕</button>
-    </div>
-    <div class="modal-body">
-      <form style="display:flex;flex-direction:column;gap:16px;" onsubmit="submitHospital(event)">
-        <div class="form-group">
-          <label class="form-label" for="hosp-nombre">Nombre de la empresa / organización *</label>
-          <input class="form-input" id="hosp-nombre" placeholder="Tech Solutions GmbH" required>
+  <div class="modal" style="max-width:680px; padding:0; overflow:hidden; border-radius:16px;">
+    <!-- Header del Funnel -->
+    <div style="background:linear-gradient(135deg, var(--wine-900) 0%, var(--wine-800) 100%); color:#fff; padding:24px 28px 18px; border-bottom:3px solid var(--gold-500);">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+        <div>
+          <div style="font-size:0.75rem; text-transform:uppercase; letter-spacing:1.5px; color:var(--gold-400); font-weight:700; margin-bottom:4px;">
+            🏥 B2B Talent Partnership · Deutschland
+          </div>
+          <h3 id="modal-hosp-title" style="font-size:1.4rem; font-weight:800; font-family:var(--font-serif); margin:0; color:#ffffff;">
+            Solicitud de Personal de Salud Cualificado
+          </h3>
+          <p style="font-size:0.85rem; color:rgba(255,255,255,0.8); margin:4px 0 0;">
+            Conectamos su clínica o residencia con enfermeros y médicos internacionales homologados.
+          </p>
         </div>
-        <div class="grid grid-2" style="gap:12px;">
+        <button class="modal-close" onclick="closeModal('modal-hospital')" aria-label="Cerrar" style="color:#fff; background:rgba(255,255,255,0.15); border-radius:50%; width:32px; height:32px; display:flex; align-items:center; justify-content:center; border:none; cursor:pointer;">✕</button>
+      </div>
+
+      <!-- Barra de Pasos del Funnel -->
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-top:20px; gap:8px;" id="hospital-funnel-steps-bar">
+        <div class="hosp-step-indicator active" id="hosp-ind-1" style="flex:1; display:flex; flex-direction:column; gap:4px;">
+          <div class="hosp-bar" style="height:4px; border-radius:2px; background:var(--gold-500); transition:all 0.3s;"></div>
+          <span style="font-size:0.7rem; color:var(--gold-400); font-weight:700;">1. Centro</span>
+        </div>
+        <div class="hosp-step-indicator" id="hosp-ind-2" style="flex:1; display:flex; flex-direction:column; gap:4px;">
+          <div class="hosp-bar" style="height:4px; border-radius:2px; background:rgba(255,255,255,0.25); transition:all 0.3s;"></div>
+          <span style="font-size:0.7rem; color:rgba(255,255,255,0.6); font-weight:600;">2. Perfiles</span>
+        </div>
+        <div class="hosp-step-indicator" id="hosp-ind-3" style="flex:1; display:flex; flex-direction:column; gap:4px;">
+          <div class="hosp-bar" style="height:4px; border-radius:2px; background:rgba(255,255,255,0.25); transition:all 0.3s;"></div>
+          <span style="font-size:0.7rem; color:rgba(255,255,255,0.6); font-weight:600;">3. Condiciones</span>
+        </div>
+        <div class="hosp-step-indicator" id="hosp-ind-4" style="flex:1; display:flex; flex-direction:column; gap:4px;">
+          <div class="hosp-bar" style="height:4px; border-radius:2px; background:rgba(255,255,255,0.25); transition:all 0.3s;"></div>
+          <span style="font-size:0.7rem; color:rgba(255,255,255,0.6); font-weight:600;">4. Contacto</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cuerpo del Funnel -->
+    <div class="modal-body" style="padding:24px 28px; max-height:65vh; overflow-y:auto;">
+      <!-- PASO 1: Centro Sanitario & Ubicación -->
+      <div id="hosp-step-1" class="hosp-funnel-step">
+        <div style="font-weight:700; color:var(--slate-800); font-size:1.05rem; margin-bottom:14px; display:flex; align-items:center; gap:8px;">
+          🏛️ Paso 1: Datos de la Institución y Ubicación
+        </div>
+        <div style="display:flex; flex-direction:column; gap:14px;">
           <div class="form-group">
-            <label class="form-label" for="hosp-region">Estado federado (Bundesland)</label>
-            <select class="form-select" id="hosp-region">
-              <option>Bayern</option><option>Baden-Württemberg</option><option>Nordrhein-Westfalen</option>
-              <option>Berlin</option><option>Hamburg</option><option>Hessen</option>
-              <option>Niedersachsen</option><option>Sachsen</option><option>Otro</option>
+            <label class="form-label" for="hosp-nombre">Nombre de la Clínica / Hospital / Organización *</label>
+            <input class="form-input" id="hosp-nombre" placeholder="Ej. Klinikum Heidelberg / Seniorenzentrum Bayern" required>
+          </div>
+          <div class="grid grid-2" style="gap:12px;">
+            <div class="form-group">
+              <label class="form-label" for="hosp-tipo">Tipo de Institución Sanitaria *</label>
+              <select class="form-select" id="hosp-tipo">
+                <option value="Hospital Universitario">Hospital Universitario (Universitätsklinikum)</option>
+                <option value="Klinikum Regional" selected>Hospital General / Klinikum Regional</option>
+                <option value="Seniorenresidenz / Geriatría">Seniorenresidenz / Residencia Geriátrica</option>
+                <option value="Reha-Klinik">Reha-Klinik / Centro de Rehabilitación</option>
+                <option value="MVZ / Policlínica">MVZ (Medizinisches Versorgungszentrum)</option>
+                <option value="Ambulanter Pflegedienst">Servicio de Atención Domiciliaria</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="hosp-region">Estado Federado (Bundesland) *</label>
+              <select class="form-select" id="hosp-region">
+                <option value="Baden-Württemberg" selected>Baden-Württemberg</option>
+                <option value="Bayern">Bayern</option>
+                <option value="Nordrhein-Westfalen">Nordrhein-Westfalen (NRW)</option>
+                <option value="Hessen">Hessen</option>
+                <option value="Berlin">Berlin</option>
+                <option value="Hamburg">Hamburg</option>
+                <option value="Niedersachsen">Niedersachsen</option>
+                <option value="Sachsen">Sachsen</option>
+                <option value="Rheinland-Pfalz">Rheinland-Pfalz</option>
+                <option value="Schleswig-Holstein">Schleswig-Holstein</option>
+                <option value="Thüringen">Thüringen</option>
+                <option value="Otro Estado">Otro Estado</option>
+              </select>
+            </div>
+          </div>
+          <div class="grid grid-2" style="gap:12px;">
+            <div class="form-group">
+              <label class="form-label" for="hosp-ciudad">Ciudad / Standort *</label>
+              <input class="form-input" id="hosp-ciudad" placeholder="Ej. Heidelberg, Stuttgart, München..." required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="hosp-camas">Capacidad (Camas / Plazas aprox.)</label>
+              <input class="form-input" type="number" id="hosp-camas" placeholder="Ej. 450">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PASO 2: Perfiles Médicos & Plazas -->
+      <div id="hosp-step-2" class="hosp-funnel-step" style="display:none;">
+        <div style="font-weight:700; color:var(--slate-800); font-size:1.05rem; margin-bottom:14px; display:flex; align-items:center; gap:8px;">
+          🩺 Paso 2: Perfiles de Salud y Demanda de Plazas
+        </div>
+        <div style="display:flex; flex-direction:column; gap:14px;">
+          <div>
+            <label class="form-label" style="font-weight:700;">Especialidades Requeridas (Seleccione las prioritarias):</label>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:6px;">
+              <label style="display:flex; align-items:center; gap:8px; font-size:0.875rem; background:#f8fafc; padding:8px 12px; border-radius:8px; border:1px solid #e2e8f0; cursor:pointer;">
+                <input type="checkbox" name="hosp-spec" value="Enfermería General" checked> Enfermería General (Pflegefachkraft)
+              </label>
+              <label style="display:flex; align-items:center; gap:8px; font-size:0.875rem; background:#f8fafc; padding:8px 12px; border-radius:8px; border:1px solid #e2e8f0; cursor:pointer;">
+                <input type="checkbox" name="hosp-spec" value="Enfermería UCI / Anestesia" checked> UCI / Intensivstation
+              </label>
+              <label style="display:flex; align-items:center; gap:8px; font-size:0.875rem; background:#f8fafc; padding:8px 12px; border-radius:8px; border:1px solid #e2e8f0; cursor:pointer;">
+                <input type="checkbox" name="hosp-spec" value="Quirófano / OP-Pflege"> Quirófano (OP-Pflege)
+              </label>
+              <label style="display:flex; align-items:center; gap:8px; font-size:0.875rem; background:#f8fafc; padding:8px 12px; border-radius:8px; border:1px solid #e2e8f0; cursor:pointer;">
+                <input type="checkbox" name="hosp-spec" value="Geriatría / Altenpflege"> Geriatría / Altenpflege
+              </label>
+              <label style="display:flex; align-items:center; gap:8px; font-size:0.875rem; background:#f8fafc; padding:8px 12px; border-radius:8px; border:1px solid #e2e8f0; cursor:pointer;">
+                <input type="checkbox" name="hosp-spec" value="Médicos Asistentes"> Médicos Asistentes (Assistenzarzt)
+              </label>
+              <label style="display:flex; align-items:center; gap:8px; font-size:0.875rem; background:#f8fafc; padding:8px 12px; border-radius:8px; border:1px solid #e2e8f0; cursor:pointer;">
+                <input type="checkbox" name="hosp-spec" value="Médicos Especialistas"> Médicos Especialistas (Facharzt)
+              </label>
+            </div>
+          </div>
+
+          <div class="grid grid-2" style="gap:12px; margin-top:4px;">
+            <div class="form-group">
+              <label class="form-label" for="hosp-plazas">Número de Plazas Solicitadas *</label>
+              <select class="form-select" id="hosp-plazas">
+                <option value="1 a 2 plazas">1 - 2 plazas</option>
+                <option value="3 a 5 plazas" selected>3 - 5 plazas</option>
+                <option value="6 a 10 plazas">6 - 10 plazas</option>
+                <option value="11 a 20 plazas">11 - 20 plazas</option>
+                <option value="Más de 20 plazas">Más de 20 plazas (Contratación masiva)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="hosp-aleman">Nivel de Alemán Requerido *</label>
+              <select class="form-select" id="hosp-aleman">
+                <option value="B2 Pflege (Recomendado)" selected>B2 Pflege certificado (Estándar)</option>
+                <option value="B1 con compromiso de B2">B1 (Con curso en Alemania hacia B2)</option>
+                <option value="C1 / FSP Médico">C1 / FSP (Médicos con examen aprobado)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PASO 3: Condiciones & Alojamiento -->
+      <div id="hosp-step-3" class="hosp-funnel-step" style="display:none;">
+        <div style="font-weight:700; color:var(--slate-800); font-size:1.05rem; margin-bottom:14px; display:flex; align-items:center; gap:8px;">
+          🏠 Paso 3: Condiciones de Integración y Plazos
+        </div>
+        <div style="display:flex; flex-direction:column; gap:14px;">
+          <div class="form-group">
+            <label class="form-label" for="hosp-urgencia">Urgencia de Incorporación Deseada *</label>
+            <select class="form-select" id="hosp-urgencia">
+              <option value="Inmediata (< 2 meses)" selected>Inmediata (&lt; 2 meses) · Talento listo para homologar</option>
+              <option value="Corto plazo (3-6 meses)">Corto plazo (3 a 6 meses)</option>
+              <option value="Planificación anual (6-12 meses)">Planificación anual (Cohorte planificada)</option>
             </select>
           </div>
+
           <div class="form-group">
-            <label class="form-label" for="hosp-tipo">Sector o Industria</label>
-            <select class="form-select" id="hosp-tipo">
-              <option>Tecnología / IT</option><option>Ingeniería</option>
-              <option>Salud / Clínica</option><option>Servicios B2B</option>
+            <label class="form-label" for="hosp-alojamiento">Facilidad de Alojamiento para los Profesionales (Wohnen) *</label>
+            <select class="form-select" id="hosp-alojamiento">
+              <option value="Dispone de residencia para personal (Personalwohnheim)" selected>Disponemos de residencia propia (Personalwohnheim)</option>
+              <option value="Ayuda económica / subvención de alquiler">Ofrecemos ayuda financiera / subsidio de alquiler</option>
+              <option value="Apoyo en búsqueda de piso">Brindamos apoyo en la búsqueda, sin vivienda propia</option>
+              <option value="A coordinar con JN Palabras">A coordinar con la consultora JN Palabras</option>
             </select>
           </div>
-        </div>
-        <div class="form-group">
-          <label class="form-label" for="hosp-contacto">Nombre del responsable de RRHH *</label>
-          <input class="form-input" id="hosp-contacto" placeholder="Dr. Hans Müller" required>
-        </div>
-        <div class="grid grid-2" style="gap:12px;">
+
           <div class="form-group">
-            <label class="form-label" for="hosp-correo">Correo de contacto *</label>
-            <input class="form-input" type="email" id="hosp-correo" placeholder="rrhh@empresa.de" required>
-          </div>
-          <div class="form-group">
-            <label class="form-label" for="hosp-tel">Teléfono</label>
-            <input class="form-input" id="hosp-tel" placeholder="+49 89 ...">
+            <label class="form-label" for="hosp-notas-extra">Comentarios sobre los turnos o requisitos especiales</label>
+            <textarea class="form-textarea" id="hosp-notas-extra" placeholder="Ej. Turnos rotativos, necesidad de guardias, homologación directa en el Regierungspräsidium..." style="min-height:70px;"></textarea>
           </div>
         </div>
-        <div class="form-group">
-          <label class="form-label" for="hosp-especialidad">Especialidad requerida</label>
-          <select class="form-select" id="hosp-especialidad">
-            <option>Desarrollo de Software</option><option>Ingeniería Eléctrica</option><option>Medicina / Enfermería</option>
-            <option>Gestión Comercial</option><option>Recursos Humanos</option><option>Otro perfil profesional</option>
-          </select>
+      </div>
+
+      <!-- PASO 4: Contacto del Responsable & Agendamiento -->
+      <div id="hosp-step-4" class="hosp-funnel-step" style="display:none;">
+        <div style="font-weight:700; color:var(--slate-800); font-size:1.05rem; margin-bottom:14px; display:flex; align-items:center; gap:8px;">
+          👤 Paso 4: Persona de Contacto y Reunión de Diagnóstico
         </div>
-        <div class="form-group">
-          <label class="form-label" for="hosp-plazas">Número de plazas necesarias</label>
-          <input class="form-input" type="number" id="hosp-plazas" value="1" min="1">
+        <div style="display:flex; flex-direction:column; gap:14px;">
+          <div class="grid grid-2" style="gap:12px;">
+            <div class="form-group">
+              <label class="form-label" for="hosp-contacto">Nombre del Responsable *</label>
+              <input class="form-input" id="hosp-contacto" placeholder="Dr. / Frau / Herr..." required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="hosp-cargo">Cargo en la Institución *</label>
+              <input class="form-input" id="hosp-cargo" placeholder="Pflegedirektor/in, HR Leitung..." value="Dirección de Enfermería (Pflegedirektion)" required>
+            </div>
+          </div>
+
+          <div class="grid grid-2" style="gap:12px;">
+            <div class="form-group">
+              <label class="form-label" for="hosp-correo">Correo Institucional *</label>
+              <input class="form-input" type="email" id="hosp-correo" placeholder="personal@klinikum.de" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="hosp-tel">Teléfono Directo *</label>
+              <input class="form-input" id="hosp-tel" placeholder="+49 ... / +34 ..." required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="hosp-fecha">Fecha y Hora Preferida para Videollamada Inicial (15 min)</label>
+            <input class="form-input" type="datetime-local" id="hosp-fecha">
+          </div>
+
+          <div style="padding:10px 14px; background:#f0fdf4; border-radius:8px; border-left:4px solid #16a34a; font-size:0.8rem; color:#166534;">
+            🔒 <strong>Compromiso Ético & Confidencialidad:</strong> JN Palabras se rige por el Código de Conducta de la OMS para la contratación ética de personal sanitario y el RGPD europeo.
+          </div>
         </div>
-        <div class="form-group">
-          <label class="form-label" for="hosp-fecha">Fecha preferida para videollamada</label>
-          <input class="form-input" type="datetime-local" id="hosp-fecha">
+      </div>
+
+      <!-- PASO 5: Confirmación de Éxito -->
+      <div id="hosp-step-success" class="hosp-funnel-step" style="display:none; text-align:center; padding:20px 10px;">
+        <div style="font-size:3.5rem; margin-bottom:12px;">🎉</div>
+        <h4 style="font-size:1.5rem; font-weight:800; color:var(--wine-900); margin-bottom:8px; font-family:var(--font-serif);">
+          Vielen Dank für Ihre Anfrage!
+        </h4>
+        <div style="font-size:1rem; font-weight:700; color:var(--gold-600); margin-bottom:12px;">
+          ¡Solicitud Registrada con Éxito en JN Palabras!
         </div>
-      </form>
+        <p style="font-size:0.9rem; color:var(--slate-600); max-width:480px; margin:0 auto 16px; line-height:1.5;">
+          Hemos asignado su expediente a nuestro equipo de relaciones hospitalarias en Heidelberg. En breve nos pondremos en contacto para confirmar los perfiles idóneos y la fecha de la videollamada.
+        </p>
+        <div id="hosp-success-summary" style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:14px; max-width:450px; margin:0 auto 20px; text-align:left; font-size:0.85rem;"></div>
+        <button class="btn btn-primary" onclick="closeModal('modal-hospital')" style="padding:10px 24px; font-weight:700;">
+          Cerrar y Volver a la Web
+        </button>
+      </div>
     </div>
-    <div class="modal-footer">
-      <button class="btn btn-outline" onclick="closeModal('modal-hospital')">Cancelar</button>
-      <button class="btn btn-primary" onclick="submitHospital()" style="display:inline-flex;align-items:center;gap:6px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Enviar Solicitud</button>
+
+    <!-- Footer de Navegación del Funnel -->
+    <div class="modal-footer" id="hosp-funnel-footer" style="padding:16px 28px; background:#f8fafc; border-top:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center;">
+      <button class="btn btn-outline" id="hosp-btn-prev" onclick="navHospitalFunnel(-1)" style="display:none;">
+        ← Anterior
+      </button>
+      <div style="margin-left:auto; display:flex; gap:10px;">
+        <button class="btn btn-outline" onclick="closeModal('modal-hospital')">Cancelar</button>
+        <button class="btn btn-primary" id="hosp-btn-next" onclick="navHospitalFunnel(1)" style="background:var(--wine-900); border-color:var(--wine-900); display:inline-flex; align-items:center; gap:6px;">
+          Siguiente Paso →
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     MODAL PARA SUBIR BASES DE DATOS EXCEL / CSV (SUPER ASESORES & ASESORES)
+     ══════════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="modal-excel-import" role="dialog" aria-modal="true" aria-labelledby="modal-excel-title">
+  <div class="modal" style="max-width:720px; padding:0; overflow:hidden; border-radius:16px;">
+    <div style="background:linear-gradient(135deg, #1e293b 0%, #0f172a 100%); color:#fff; padding:22px 28px; border-bottom:3px solid var(--gold-500); display:flex; justify-content:space-between; align-items:center;">
+      <div>
+        <div style="font-size:0.75rem; text-transform:uppercase; letter-spacing:1px; color:var(--gold-400); font-weight:700;">
+          📊 Carga Masiva de Datos
+        </div>
+        <h3 id="modal-excel-title" style="font-size:1.35rem; font-weight:800; margin:2px 0 0; color:#fff;">
+          Subir Base de Datos (Excel / CSV)
+        </h3>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-excel-import')" aria-label="Cerrar" style="color:#fff; background:rgba(255,255,255,0.1); border-radius:50%; width:32px; height:32px; display:flex; align-items:center; justify-content:center; border:none; cursor:pointer;">✕</button>
+    </div>
+
+    <div class="modal-body" style="padding:24px 28px; max-height:70vh; overflow-y:auto;">
+      <!-- Selector de Tipo de Datos -->
+      <div style="display:flex; gap:12px; margin-bottom:20px;">
+        <label style="flex:1; display:flex; align-items:center; gap:10px; padding:12px 16px; border:2px solid var(--gold-500); background:rgba(217,119,6,0.06); border-radius:10px; cursor:pointer; font-weight:700; color:var(--slate-800);">
+          <input type="radio" name="excel-import-type" value="empresas" checked onchange="onExcelImportTypeChange(this.value)">
+          <div>
+            <div>🏥 Empresas & Clínicas (B2B)</div>
+            <div style="font-size:0.75rem; font-weight:normal; color:var(--slate-500);">Hospitales, residencias, contactos de RRHH</div>
+          </div>
+        </label>
+        <label style="flex:1; display:flex; align-items:center; gap:10px; padding:12px 16px; border:1px solid #cbd5e1; background:#f8fafc; border-radius:10px; cursor:pointer; font-weight:700; color:var(--slate-800);">
+          <input type="radio" name="excel-import-type" value="candidatos" onchange="onExcelImportTypeChange(this.value)">
+          <div>
+            <div>👨‍⚕️ Candidatos Médicos / Enfermeros</div>
+            <div style="font-size:0.75rem; font-weight:normal; color:var(--slate-500);">Perfiles de talento, idioma, especialidad</div>
+          </div>
+        </label>
+      </div>
+
+      <!-- Barra de Descarga de Plantilla Modelo -->
+      <div style="display:flex; align-items:center; justify-content:space-between; background:#f1f5f9; padding:12px 16px; border-radius:10px; margin-bottom:18px;">
+        <div style="font-size:0.85rem; color:var(--slate-700);">
+          💡 <strong>¿No tienes el formato?</strong> Descarga nuestra plantilla oficial con las columnas exactas:
+        </div>
+        <button class="btn btn-sm btn-outline" onclick="descargarPlantillaExcelActual()" style="display:inline-flex; align-items:center; gap:6px; font-weight:700; border-color:var(--gold-600); color:var(--gold-700); background:#fff;">
+          📥 Descargar Plantilla .xlsx
+        </button>
+      </div>
+
+      <!-- Zona Drag & Drop -->
+      <div id="excel-drop-zone" style="border:2px dashed #94a3b8; border-radius:12px; padding:32px 20px; text-align:center; background:#fafafa; cursor:pointer; transition:all 0.2s;" onclick="document.getElementById('excel-file-input').click()" ondragover="event.preventDefault(); this.style.borderColor='var(--gold-600)'; this.style.background='#fffbeb';" ondragleave="this.style.borderColor='#94a3b8'; this.style.background='#fafafa';" ondrop="handleExcelFileDrop(event)">
+        <input type="file" id="excel-file-input" accept=".xlsx, .xls, .csv" style="display:none;" onchange="handleExcelFileSelect(this.files[0])">
+        <div style="font-size:2.8rem; margin-bottom:10px;">📑</div>
+        <div style="font-weight:700; font-size:1rem; color:var(--slate-800); margin-bottom:4px;">
+          Arrastra tu archivo Excel (.xlsx, .xls) o CSV aquí
+        </div>
+        <div style="font-size:0.8rem; color:var(--slate-500); margin-bottom:14px;">
+          o haz clic para examinar archivos de tu ordenador
+        </div>
+        <button type="button" class="btn btn-sm btn-outline" style="pointer-events:none;">
+          Seleccionar Archivo
+        </button>
+      </div>
+
+      <!-- Vista Previa de Filas Parseadas -->
+      <div id="excel-preview-container" style="display:none; margin-top:20px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <div style="font-weight:700; color:var(--slate-800); font-size:0.9rem;" id="excel-preview-count">
+            <!-- X registros detectados -->
+          </div>
+          <button class="btn btn-xs btn-outline" onclick="resetExcelUpload()" style="color:var(--danger);">
+            ✕ Quitar archivo
+          </button>
+        </div>
+        <div style="max-height:180px; overflow:auto; border:1px solid #e2e8f0; border-radius:8px;">
+          <table class="data-table" id="excel-preview-table" style="font-size:0.75rem; margin:0;">
+            <thead id="excel-preview-thead"></thead>
+            <tbody id="excel-preview-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer" style="padding:16px 28px; background:#f8fafc; border-top:1px solid #e2e8f0; display:flex; justify-content:space-between;">
+      <button class="btn btn-outline" onclick="closeModal('modal-excel-import')">Cerrar</button>
+      <button class="btn btn-primary" id="excel-import-btn" onclick="executeExcelImport()" disabled style="background:#10b981; border-color:#10b981; display:inline-flex; align-items:center; gap:6px;">
+        🚀 Confirmar e Importar a Base de Datos
+      </button>
     </div>
   </div>
 </div>
@@ -538,6 +840,7 @@
 <!-- ══════════════════════════════════════════════════════════
      SCRIPTS
      ══════════════════════════════════════════════════════════ -->
+  <script src="/js/i18n.js?v=v1"></script>
   <script src="/js/db.js?v=v14"></script>
   <script src="/js/icons.js?v=v14"></script>
   <script src="/js/mockData.js?v=v14"></script>
@@ -560,7 +863,329 @@
   </div>
 
 <script>
-  // Funciones adicionales de formularios públicos
+  // Funciones de navegación y envío del Funnel B2B para Hospitales
+  let currentHospStep = 1;
+  const TOTAL_HOSP_STEPS = 4;
+
+  function openHospitalFunnel() {
+    currentHospStep = 1;
+    showHospitalFunnelStep(1);
+    openModal('modal-hospital');
+  }
+  window.openHospitalFunnel = openHospitalFunnel;
+
+  function showHospitalFunnelStep(step) {
+    currentHospStep = step;
+    for (let i = 1; i <= TOTAL_HOSP_STEPS; i++) {
+      const el = document.getElementById(`hosp-step-${i}`);
+      if (el) el.style.display = (i === step) ? 'block' : 'none';
+      
+      const ind = document.getElementById(`hosp-ind-${i}`);
+      if (ind) {
+        const bar = ind.querySelector('.hosp-bar');
+        const text = ind.querySelector('span');
+        if (i < step) {
+          if (bar) bar.style.background = '#10b981';
+          if (text) { text.style.color = '#10b981'; text.innerHTML = `✓ ${i}. Listo`; }
+        } else if (i === step) {
+          if (bar) bar.style.background = 'var(--gold-500)';
+          if (text) text.style.color = 'var(--gold-400)';
+        } else {
+          if (bar) bar.style.background = 'rgba(255,255,255,0.25)';
+          if (text) text.style.color = 'rgba(255,255,255,0.6)';
+        }
+      }
+    }
+    const successStep = document.getElementById('hosp-step-success');
+    if (successStep) successStep.style.display = 'none';
+
+    const prevBtn = document.getElementById('hosp-btn-prev');
+    const nextBtn = document.getElementById('hosp-btn-next');
+    const footer = document.getElementById('hosp-funnel-footer');
+    if (footer) footer.style.display = 'flex';
+    if (prevBtn) prevBtn.style.display = (step > 1) ? 'inline-flex' : 'none';
+    if (nextBtn) {
+      nextBtn.innerHTML = (step === TOTAL_HOSP_STEPS) 
+        ? '🚀 Enviar Solicitud a JN Palabras' 
+        : 'Siguiente Paso →';
+      nextBtn.style.background = (step === TOTAL_HOSP_STEPS) ? '#10b981' : 'var(--wine-900)';
+    }
+  }
+
+  function navHospitalFunnel(delta) {
+    if (delta > 0) {
+      // Validaciones por paso
+      if (currentHospStep === 1) {
+        const nombre = document.getElementById('hosp-nombre')?.value.trim();
+        const ciudad = document.getElementById('hosp-ciudad')?.value.trim();
+        if (!nombre || !ciudad) {
+          showToast('Campos requeridos', 'Por favor ingresa el nombre de la institución y la ciudad.', 'warning');
+          return;
+        }
+      } else if (currentHospStep === 4) {
+        submitHospitalFunnel();
+        return;
+      }
+      showHospitalFunnelStep(currentHospStep + 1);
+    } else {
+      if (currentHospStep > 1) {
+        showHospitalFunnelStep(currentHospStep - 1);
+      }
+    }
+  }
+  window.navHospitalFunnel = navHospitalFunnel;
+
+  function submitHospitalFunnel() {
+    const nombre = document.getElementById('hosp-nombre')?.value.trim();
+    const tipo = document.getElementById('hosp-tipo')?.value;
+    const region = document.getElementById('hosp-region')?.value;
+    const ciudad = document.getElementById('hosp-ciudad')?.value.trim();
+    const camas = document.getElementById('hosp-camas')?.value;
+    
+    const checkboxes = Array.from(document.querySelectorAll('input[name="hosp-spec"]:checked'));
+    const especialidades = checkboxes.map(cb => cb.value);
+    if (especialidades.length === 0) especialidades.push('Enfermería General');
+    
+    const plazas = document.getElementById('hosp-plazas')?.value;
+    const nivelAleman = document.getElementById('hosp-aleman')?.value;
+    const urgencia = document.getElementById('hosp-urgencia')?.value;
+    const alojamiento = document.getElementById('hosp-alojamiento')?.value;
+    const notasExtra = document.getElementById('hosp-notas-extra')?.value.trim();
+    
+    const contacto = document.getElementById('hosp-contacto')?.value.trim();
+    const cargo = document.getElementById('hosp-cargo')?.value.trim();
+    const correo = document.getElementById('hosp-correo')?.value.trim();
+    const telefono = document.getElementById('hosp-tel')?.value.trim();
+    const fechaReunion = document.getElementById('hosp-fecha')?.value;
+
+    if (!contacto || !correo || !telefono) {
+      showToast('Campos requeridos', 'Por favor indica el nombre de contacto, correo institucional y teléfono.', 'warning');
+      return;
+    }
+
+    const nuevaEmpresa = DB.createEmpresa({
+      nombre_clinica: nombre,
+      tipo_centro: tipo,
+      region_alemania: region,
+      ciudad: ciudad,
+      numero_camas: camas,
+      especialidades_requeridas: especialidades,
+      plazas_solicitadas: plazas,
+      nivel_aleman_solicitado: nivelAleman,
+      urgencia: urgencia,
+      alojamiento: alojamiento,
+      contacto_nombre: contacto,
+      contacto_cargo: cargo,
+      correo_contacto: correo,
+      telefono: telefono,
+      origen_lead: 'Formulario Funnel Web Hospitales',
+      etapa_b2b: 'Lead B2B Nuevo',
+      notas: `Solicitud vía funnel web. Preferencia reunión: ${fechaReunion || 'A convenir'}. Requisitos: ${notasExtra || 'Ninguno'}.`,
+      historial_crm: fechaReunion ? [{
+        id: 'crm-' + Date.now(),
+        fecha: new Date().toISOString(),
+        asesor: 'Sistema Web',
+        tipo: 'Solicitud Web',
+        resultado: 'Reunión Solicitada por Hospital',
+        notas: `El hospital solicitó reunión para: ${fechaReunion}.`,
+        proxima_cita: fechaReunion
+      }] : []
+    });
+
+    // Ocultar pasos anteriores y mostrar pantalla de éxito
+    for (let i = 1; i <= TOTAL_HOSP_STEPS; i++) {
+      const el = document.getElementById(`hosp-step-${i}`);
+      if (el) el.style.display = 'none';
+    }
+    const successStep = document.getElementById('hosp-step-success');
+    if (successStep) successStep.style.display = 'block';
+
+    const summaryBox = document.getElementById('hosp-success-summary');
+    if (summaryBox) {
+      summaryBox.innerHTML = `
+        <div style="font-weight:700; color:var(--wine-900); margin-bottom:6px;">📋 Resumen de Solicitud #${nuevaEmpresa.id.slice(-6)}</div>
+        <div><strong>Institución:</strong> ${nuevaEmpresa.nombre_clinica} (${nuevaEmpresa.ciudad}, ${nuevaEmpresa.region_alemania})</div>
+        <div><strong>Responsable:</strong> ${nuevaEmpresa.contacto_nombre} · ${nuevaEmpresa.contacto_cargo}</div>
+        <div><strong>Plazas solicitadas:</strong> ${plazas} (${especialidades.join(', ')})</div>
+        <div><strong>Nivel Alemán:</strong> ${nivelAleman}</div>
+        <div><strong>Fecha sugerida reunión:</strong> ${fechaReunion ? new Date(fechaReunion).toLocaleString() : 'A coordinar'}</div>
+      `;
+    }
+
+    const footer = document.getElementById('hosp-funnel-footer');
+    if (footer) footer.style.display = 'none';
+
+    showToast('🏥 Solicitud B2B Registrada', `Gracias por confiar en JN Palabras. Nos pondremos en contacto con ${contacto} en breve.`, 'success', 8000);
+  }
+  window.submitHospitalFunnel = submitHospitalFunnel;
+
+  // ── CONTROLADOR DE IMPORTACIÓN EXCEL / CSV ────────────────────────
+  let _parsedExcelRows = [];
+  let _currentExcelType = 'empresas';
+
+  function openExcelImportModal(tipo = 'empresas') {
+    _currentExcelType = tipo;
+    const radios = document.getElementsByName('excel-import-type');
+    radios.forEach(r => { r.checked = (r.value === tipo); });
+    resetExcelUpload();
+    openModal('modal-excel-import');
+  }
+  window.openExcelImportModal = openExcelImportModal;
+
+  function onExcelImportTypeChange(val) {
+    _currentExcelType = val;
+    resetExcelUpload();
+  }
+  window.onExcelImportTypeChange = onExcelImportTypeChange;
+
+  function resetExcelUpload() {
+    _parsedExcelRows = [];
+    const input = document.getElementById('excel-file-input');
+    if (input) input.value = '';
+    const preview = document.getElementById('excel-preview-container');
+    if (preview) preview.style.display = 'none';
+    const dropZone = document.getElementById('excel-drop-zone');
+    if (dropZone) dropZone.style.display = 'block';
+    const btn = document.getElementById('excel-import-btn');
+    if (btn) btn.disabled = true;
+  }
+  window.resetExcelUpload = resetExcelUpload;
+
+  function handleExcelFileDrop(e) {
+    e.preventDefault();
+    const files = e.dataTransfer?.files;
+    if (files && files.length > 0) {
+      handleExcelFileSelect(files[0]);
+    }
+  }
+  window.handleExcelFileDrop = handleExcelFileDrop;
+
+  function handleExcelFileSelect(file) {
+    if (!file) return;
+    if (typeof XLSX === 'undefined') {
+      showToast('Error', 'La librería SheetJS no está cargada en el navegador.', 'error');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
+        const json = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
+        
+        if (!json || json.length === 0) {
+          showToast('Archivo vacío', 'No se encontraron filas con datos en la primera hoja del archivo.', 'warning');
+          return;
+        }
+
+        _parsedExcelRows = json;
+        renderExcelPreview(json);
+      } catch (err) {
+        console.error('Error parseando Excel:', err);
+        showToast('Error al leer archivo', 'Comprueba que sea un archivo .xlsx, .xls o .csv válido.', 'error');
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  }
+  window.handleExcelFileSelect = handleExcelFileSelect;
+
+  function renderExcelPreview(rows) {
+    const dropZone = document.getElementById('excel-drop-zone');
+    if (dropZone) dropZone.style.display = 'none';
+    const preview = document.getElementById('excel-preview-container');
+    if (preview) preview.style.display = 'block';
+    
+    const countEl = document.getElementById('excel-preview-count');
+    if (countEl) {
+      countEl.innerHTML = `✅ <strong>${rows.length} registros</strong> detectados listos para importar a ${_currentExcelType === 'empresas' ? 'Empresas/Hospitales' : 'Candidatos'}:`;
+    }
+
+    const headers = Object.keys(rows[0] || {});
+    const thead = document.getElementById('excel-preview-thead');
+    if (thead) {
+      thead.innerHTML = `<tr>${headers.map(h => `<th style="padding:6px 10px; background:#f1f5f9; color:#334155;">${h}</th>`).join('')}</tr>`;
+    }
+
+    const tbody = document.getElementById('excel-preview-tbody');
+    if (tbody) {
+      const sample = rows.slice(0, 5);
+      tbody.innerHTML = sample.map(r => `
+        <tr>
+          ${headers.map(h => `<td style="padding:6px 10px; max-width:140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${r[h]}</td>`).join('')}
+        </tr>
+      `).join('') + (rows.length > 5 ? `<tr><td colspan="${headers.length}" style="text-align:center; color:#64748b; font-style:italic; padding:6px;">... y ${rows.length - 5} registros más</td></tr>` : '');
+    }
+
+    const btn = document.getElementById('excel-import-btn');
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = `🚀 Confirmar e Importar ${rows.length} Registros`;
+    }
+  }
+
+  function executeExcelImport() {
+    if (!_parsedExcelRows || _parsedExcelRows.length === 0) return;
+    const btn = document.getElementById('excel-import-btn');
+    if (btn) { btn.disabled = true; btn.innerHTML = '⏳ Procesando importación...'; }
+
+    try {
+      let count = 0;
+      if (_currentExcelType === 'empresas') {
+        count = DB.bulkImportEmpresas(_parsedExcelRows);
+      } else {
+        count = DB.bulkImportCandidatos(_parsedExcelRows);
+      }
+      
+      closeModal('modal-excel-import');
+      showToast('🎉 Importación Exitosa', `Se agregaron ${count} registros a la base de datos de manera inmediata.`, 'success', 8000);
+
+      // Si el asesor está en la vista actual, recargarla
+      if (typeof renderDashboard === 'function' && typeof State !== 'undefined') {
+        renderDashboard(State.activeRole, State.currentSidebar);
+      }
+    } catch (err) {
+      console.error('Error importando registros:', err);
+      showToast('Error', 'Ocurrió un error al guardar en la base de datos.', 'error');
+      if (btn) { btn.disabled = false; btn.innerHTML = 'Reintentar Importación'; }
+    }
+  }
+  window.executeExcelImport = executeExcelImport;
+
+  function descargarPlantillaExcelActual() {
+    if (typeof XLSX === 'undefined') {
+      showToast('Error', 'SheetJS no está disponible para exportar.', 'error');
+      return;
+    }
+
+    if (_currentExcelType === 'empresas') {
+      const data = [
+        ['Nombre_Clinica', 'Tipo_Centro', 'Bundesland', 'Ciudad', 'Contacto_Nombre', 'Cargo', 'Email_Contacto', 'Telefono', 'Camas', 'Vacantes', 'Especialidades', 'Nivel_Aleman', 'Urgencia', 'Alojamiento', 'Notas'],
+        ['Klinikum Stuttgart', 'Hospital Universitario', 'Baden-Württemberg', 'Stuttgart', 'Dr. Hans Müller', 'HR Leitung', 'rrhh@klinikum-stuttgart.de', '+49 711 2780', '2200', '15', 'Enfermería UCI, OP-Pflege', 'B2', 'Inmediata (< 1 mes)', 'Dispone de residencia', 'Prioridad personal con experiencia previa en cuidados intensivos.'],
+        ['Seniorenzentrum München', 'Seniorenresidenz / Geriatría', 'Bayern', 'München', 'Frau Gerda Richter', 'Einrichtungsleitung', 'leitung@senioren-muenchen.de', '+49 89 32190', '180', '6', 'Geriatría, Fisioterapia', 'B2', 'Corto plazo (3-6 meses)', 'Habitaciones amuebladas', 'Turnos fijos y ambiente multicultural de apoyo.']
+      ];
+      const ws = XLSX.utils.aoa_to_sheet(data);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Empresas_Hospitales');
+      XLSX.writeFile(wb, 'Plantilla_Empresas_Hospitales_JN_Palabras.xlsx');
+      showToast('Plantilla Descargada', 'Se ha generado Plantilla_Empresas_Hospitales_JN_Palabras.xlsx', 'success');
+    } else {
+      const data = [
+        ['Nombre_Completo', 'Email', 'Telefono', 'Pais', 'Profesion', 'Especialidad', 'Nivel_Aleman', 'Experiencia_Anos', 'Estado_Proceso', 'Notas'],
+        ['Dra. Camila Morales', 'camila.morales@ejemplo.com', '+57 310 123 4567', 'Colombia', 'Medicina General', 'Urgencias', 'B2', '3', 'Lead Nuevo', 'Título legalizado y con apostilla listo para Anerkennung.'],
+        ['Lic. Diego Silva', 'diego.silva@ejemplo.com', '+54 9 11 4455 6677', 'Argentina', 'Enfermería', 'Cuidados Intensivos / UCI', 'B1', '5', 'Lead Nuevo', 'Estudiando actualmente hacia B2 Pflege.']
+      ];
+      const ws = XLSX.utils.aoa_to_sheet(data);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Candidatos');
+      XLSX.writeFile(wb, 'Plantilla_Candidatos_JN_Palabras.xlsx');
+      showToast('Plantilla Descargada', 'Se ha generado Plantilla_Candidatos_JN_Palabras.xlsx', 'success');
+    }
+  }
+  window.descargarPlantillaExcelActual = descargarPlantillaExcelActual;
+
+  // Funciones de formularios públicos de contacto y aliados
   function submitContact(e) {
     e?.preventDefault();
     const nombre = document.getElementById('contact-nombre')?.value.trim();
@@ -573,10 +1198,7 @@
 
   function submitHospital(e) {
     e?.preventDefault();
-    const nombre = document.getElementById('hosp-nombre')?.value.trim();
-    if (!nombre) { showToast('Error','Completa los campos requeridos.','error'); return; }
-    closeModal('modal-hospital');
-    showToast('🏥 Solicitud recibida', `Gracias por contactar a JN Palabras. Nuestro equipo B2B te contactará para coordinar una videollamada.`, 'success', 7000);
+    openHospitalFunnel();
   }
 
   function submitAliado(e) {

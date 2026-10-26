@@ -201,10 +201,19 @@ function showPublic() {
   const loginBtn = $('nav-login-btn');
   if (loginBtn) {
     if (State.currentUser) {
-      loginBtn.textContent = 'Mi Perfil';
+      const panelText = typeof i18n !== 'undefined'
+        ? (i18n.currentLang === 'de' ? 'Mein Dashboard' : (i18n.currentLang === 'en' ? 'My Dashboard' : 'Mi Panel'))
+        : 'Mi Panel';
+      loginBtn.innerHTML = `👤 ${panelText}`;
+      loginBtn.style.borderColor = 'var(--gold-600)';
+      loginBtn.style.color = 'var(--wine-900)';
+      loginBtn.style.fontWeight = '700';
       loginBtn.onclick = () => showApp();
     } else {
-      loginBtn.textContent = 'Iniciar Sesión';
+      loginBtn.textContent = typeof i18n !== 'undefined' ? i18n.t('nav_login') : 'Iniciar Sesión';
+      loginBtn.style.borderColor = '';
+      loginBtn.style.color = '';
+      loginBtn.style.fontWeight = '';
       loginBtn.onclick = showLogin;
     }
   }
@@ -373,12 +382,15 @@ function renderAppShell(view = null) {
   }
 
   $('app-header-content').innerHTML = `
-    <div class="app-logo" onclick="navigateTo(SIDEBAR_MENUS[State.activeRole][0].id)" style="cursor: pointer;" aria-label="Ir al inicio del dashboard">
+    <div class="app-logo" onclick="showPublic(); window.scrollTo({top:0, behavior:'smooth'});" style="cursor: pointer;" title="Ir a la página principal web" aria-label="Ir a la página principal web">
       <img src="/logo.png" alt="JN Palabras" class="app-logo-img" style="height:32px;width:32px;object-fit:contain;border-radius:50%;">
       <span class="app-logo-name">JN Palabras</span>
     </div>
 
     <div class="header-actions">
+      <!-- Selector de Idioma -->
+      ${typeof i18n !== 'undefined' ? i18n.renderLanguageSwitcherHTML() : ''}
+
       <!-- Notificaciones -->
       <div class="relative">
         <button class="header-icon-btn" onclick="toggleNotifPanel()" id="notif-btn" aria-label="Notificaciones">
@@ -537,6 +549,7 @@ const SIDEBAR_MENUS = {
   'Super Asesor': [
     { id:'super-leads',       icon: getIcon('newTag'),   label:'Bandeja de Leads'     },
     { id:'super-kanban',      icon: getIcon('Asesor'),   label:'Kanban General'       },
+    { id:'asesor-empresas',   icon: getIcon('briefcase'),label:'Empresas & Clínicas (B2B)' },
     { id:'super-asesores',    icon: getIcon('network'),  label:'Equipo de Asesores'   },
     { id:'super-candidatos',  icon: getIcon('Candidato'),label:'Todos los Candidatos' },
     { id:'super-matching',    icon: getIcon('search'),   label:'Matching IA'          },
@@ -544,6 +557,7 @@ const SIDEBAR_MENUS = {
   Asesor: [
     { id:'asesor-dashboard',  icon: getIcon('layout'),    label:'Dashboard'                           },
     { id:'asesor-kanban',     icon: getIcon('users'),     label:'Candidatos (Pipeline)'               },
+    { id:'asesor-empresas',   icon: getIcon('briefcase'), label:'Empresas & Clínicas (B2B)'          },
     { id:'asesor-base-datos', icon: getIcon('Admin'),     label:'Base de Datos & Expedientes'         },
     { id:'asesor-cv-builder', icon: getIcon('fileText'),  label:'Hojas de Vida (CV) & Documentos'     },
     { id:'asesor-matching',   icon: getIcon('search'),    label:'Matching IA'                         },
@@ -689,6 +703,7 @@ async function renderDashboard(rol, view = null) {
     // Asesor
     'asesor-dashboard':   renderAsesorDashboard,
     'asesor-kanban':      renderAsesorKanban,
+    'asesor-empresas':    renderAsesorEmpresas,
     'asesor-base-datos':  renderAdminCandidatos,
     'asesor-expedientes': renderAsesorExpedientes,
     'asesor-cv-builder':  renderAsesorCVBuilder,
@@ -720,13 +735,17 @@ async function renderDashboard(rol, view = null) {
   const fn = renders[id];
   if (fn) {
     try {
-      if (['admin-users', 'admin-candidatos', 'admin-empresas', 'admin-comisiones', 'super-leads', 'super-candidatos', 'asesor-dashboard', 'emp-candidatos', 'socio-referidos'].includes(id)) {
+      if (['admin-users', 'admin-candidatos', 'admin-empresas', 'admin-comisiones', 'super-leads', 'super-candidatos', 'asesor-dashboard', 'emp-candidatos', 'socio-referidos', 'asesor-empresas'].includes(id)) {
         await DB.init(true);
+      }
+      if (id === 'asesor-empresas' || id === 'admin-empresas') {
+        await DB.syncEmpresas();
       }
       const html = await fn();
       container.innerHTML = '<div class="animate-fadeInUp">' + html + '</div>';
       // Post-render hooks
       if (id === 'asesor-dashboard' || id === 'asesor-kanban' || id === 'super-kanban') initKanban();
+      if (id === 'asesor-empresas' || id === 'admin-empresas') initB2BKanban();
       if (id === 'emp-vacantes')  initVacanteForm();
       if (id === 'admin-users')   initUserForm();
     } catch (e) {
@@ -1400,33 +1419,1158 @@ function renderAdminComisiones() {
   `;
 }
 
+// ──────────────────────────────────────────────────────────────────
+// ── GESTIÓN DE EMPRESAS & CLÍNICAS (B2B) + CRM DE LLAMADAS
+// ──────────────────────────────────────────────────────────────────
+let _b2bViewMode = 'kanban'; // 'kanban' | 'tabla'
+let _b2bSearchTerm = '';
+let _b2bFilterRegion = 'todas';
+let _b2bFilterEtapa = 'todas';
+let _currentB2BCRMEmpresaId = null;
+let _currentB2BSpeechTab = 'apertura';
+let _b2bCurrentPage = 1;
+const _b2bPageSize = 25;
+
+function setB2BPage(page) {
+  _b2bCurrentPage = page;
+  renderDashboard(State.activeRole, State.currentSidebar);
+}
+window.setB2BPage = setB2BPage;
+
+const B2B_PIPELINE_STAGES = [
+  { id: 'Lead B2B Nuevo',           label: 'Lead B2B Nuevo',           color: '#64748b', bg: '#f1f5f9', icon: 'userPlus' },
+  { id: '1er Contacto / Llamada',    label: '1er Contacto / Llamada',    color: '#2563eb', bg: '#eff6ff', icon: 'phone' },
+  { id: 'Diagnóstico de Demanda',    label: 'Diagnóstico de Demanda',    color: '#d97706', bg: '#fffbeb', icon: 'search' },
+  { id: 'Propuesta / Convenio',      label: 'Propuesta / Convenio',      color: '#8b5cf6', bg: '#f5f3ff', icon: 'fileText' },
+  { id: 'Contrato Firmado',          label: 'Contrato Firmado',          color: '#10b981', bg: '#ecfdf5', icon: 'checkCircle' },
+];
+
+function setB2BViewMode(mode) {
+  _b2bViewMode = mode;
+  renderDashboard(State.activeRole, State.currentSidebar);
+}
+window.setB2BViewMode = setB2BViewMode;
+
+function onB2BSearchChange(val) {
+  _b2bSearchTerm = (val || '').toLowerCase().trim();
+  _b2bCurrentPage = 1;
+  renderDashboard(State.activeRole, State.currentSidebar);
+}
+window.onB2BSearchChange = onB2BSearchChange;
+
+function onB2BRegionChange(val) {
+  _b2bFilterRegion = val;
+  _b2bCurrentPage = 1;
+  renderDashboard(State.activeRole, State.currentSidebar);
+}
+window.onB2BRegionChange = onB2BRegionChange;
+
+function onB2BEtapaChange(val) {
+  _b2bFilterEtapa = val;
+  _b2bCurrentPage = 1;
+  renderDashboard(State.activeRole, State.currentSidebar);
+}
+window.onB2BEtapaChange = onB2BEtapaChange;
+
 function renderAdminEmpresas() {
+  return renderAsesorEmpresas();
+}
+
+function renderAsesorEmpresas() {
+  ensureB2BModalsInDOM();
+  const allEmpresas = DB.getEmpresas();
+
+  // Filtrado
+  const filtered = allEmpresas.filter(e => {
+    const matchSearch = !_b2bSearchTerm || 
+      (e.nombre_clinica || e.nombre || '').toLowerCase().includes(_b2bSearchTerm) ||
+      (e.ciudad || '').toLowerCase().includes(_b2bSearchTerm) ||
+      (e.contacto_nombre || e.contacto || '').toLowerCase().includes(_b2bSearchTerm) ||
+      (e.correo_contacto || e.correo || '').toLowerCase().includes(_b2bSearchTerm);
+
+    const matchRegion = _b2bFilterRegion === 'todas' || (e.region_alemania || e.region) === _b2bFilterRegion;
+    const matchEtapa = _b2bFilterEtapa === 'todas' || (e.etapa_b2b || 'Lead B2B Nuevo') === _b2bFilterEtapa;
+
+    return matchSearch && matchRegion && matchEtapa;
+  });
+
+  // Métricas
+  const totalClinicas = allEmpresas.length;
+  const leadsNuevos = allEmpresas.filter(e => (e.etapa_b2b || '').includes('Nuevo')).length;
+  const totalVacantes = allEmpresas.reduce((acc, e) => acc + (parseInt(e.plazas_solicitadas || e.plazas || 1, 10) || 0), 0);
+  const contratosActivos = allEmpresas.filter(e => (e.etapa_b2b || '').includes('Contrato') || (e.etapa_b2b || '').includes('Convenio')).length;
+
+  const regiones = Array.from(new Set(allEmpresas.map(e => e.region_alemania || e.region).filter(Boolean)));
+
   return `
-    <div class="page-header">
-      <div><h1 class="page-title">Empresas / Clínicas</h1><p class="page-subtitle">Hospitales clientes en Alemania</p></div>
+    <div class="page-header" style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:16px;">
+      <div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span style="font-size:1.5rem;">🏥</span>
+          <h1 class="page-title" style="margin:0;">Empresas & Clínicas (B2B) – Alemania</h1>
+        </div>
+        <p class="page-subtitle" style="margin-top:4px;">
+          Gestión de hospitales, residencias geriátricas, pipeline de convenios y CRM de llamadas
+        </p>
+      </div>
+
+      <!-- Barra de Acciones Principales -->
+      <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+        <button class="btn btn-outline" onclick="openExcelImportModal('empresas')" style="display:inline-flex; align-items:center; gap:6px; font-weight:700; border-color:var(--gold-600); color:var(--wine-900);">
+          📥 Subir Base de Datos (Excel)
+        </button>
+        <button class="btn btn-outline" onclick="descargarPlantillaExcelActual()" title="Descargar plantilla de Excel modelo" style="display:inline-flex; align-items:center; gap:6px;">
+          📄 Plantilla .xlsx
+        </button>
+        <button class="btn btn-outline" onclick="exportarEmpresasAExcel()" title="Descargar cartera de empresas en Excel" style="display:inline-flex; align-items:center; gap:6px;">
+          📊 Exportar
+        </button>
+        <button class="btn btn-primary" onclick="openNewEmpresaModal()" style="display:inline-flex; align-items:center; gap:6px; font-weight:700;">
+          + Nueva Empresa / Lead
+        </button>
+      </div>
     </div>
-    <div class="grid grid-3">
-      ${DB.get().empresas.map(e => `
-        <div class="card card-hover">
-          <div class="card-body">
-            <div style="font-size:2rem;margin-bottom:12px;">🏥</div>
-            <div style="font-size:1rem;font-weight:700;color:var(--slate-900);margin-bottom:4px;">${e.nombre}</div>
-            <div style="font-size:.8125rem;color:var(--slate-500);margin-bottom:12px;">${e.tipo} · ${e.region}</div>
-            <div style="display:flex;flex-direction:column;gap:6px;font-size:.875rem;color:var(--slate-600);">
-              <div>👤 ${e.contacto}</div>
-              <div>📧 ${e.correo}</div>
-              <div>🛏️ ${e.camas} camas</div>
+
+    <!-- TARJETAS DE KPIS B2B -->
+    <div class="grid grid-4" style="margin-bottom:20px; gap:16px;">
+      <div class="kpi-card" style="border-left:4px solid var(--wine-800);">
+        <div class="kpi-header">
+          <span class="kpi-title">Total Hospitales & Clínicas</span>
+          <span class="kpi-icon" style="background:rgba(114,47,55,0.1); color:var(--wine-800);">${getIcon('briefcase')}</span>
+        </div>
+        <div class="kpi-value">${totalClinicas}</div>
+        <div class="kpi-change up"><span>Instituciones en Cartera</span></div>
+      </div>
+
+      <div class="kpi-card" style="border-left:4px solid #2563eb;">
+        <div class="kpi-header">
+          <span class="kpi-title">Leads B2B Nuevos</span>
+          <span class="kpi-icon" style="background:rgba(37,99,235,0.1); color:#2563eb;">${getIcon('newTag')}</span>
+        </div>
+        <div class="kpi-value" style="color:#2563eb;">${leadsNuevos}</div>
+        <div class="kpi-change"><span>Por contactar / agendar</span></div>
+      </div>
+
+      <div class="kpi-card" style="border-left:4px solid var(--gold-600);">
+        <div class="kpi-header">
+          <span class="kpi-title">Vacantes / Demanda Médica</span>
+          <span class="kpi-icon" style="background:rgba(217,119,6,0.1); color:var(--gold-600);">${getIcon('users')}</span>
+        </div>
+        <div class="kpi-value" style="color:var(--gold-600);">${totalVacantes}</div>
+        <div class="kpi-change up"><span>Plazas de Enfermería & Medicina</span></div>
+      </div>
+
+      <div class="kpi-card" style="border-left:4px solid #10b981;">
+        <div class="kpi-header">
+          <span class="kpi-title">Convenios & Contratos</span>
+          <span class="kpi-icon" style="background:rgba(16,185,129,0.1); color:#10b981;">${getIcon('check')}</span>
+        </div>
+        <div class="kpi-value" style="color:#10b981;">${contratosActivos}</div>
+        <div class="kpi-change up"><span>Alianzas Activas en Alemania</span></div>
+      </div>
+    </div>
+
+    <!-- BARRA DE BÚSQUEDA, FILTROS Y VISTAS -->
+    <div class="card" style="padding:14px 18px; margin-bottom:20px; background:#fff;">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+        <div style="display:flex; gap:10px; align-items:center; flex:1; min-width:280px;">
+          <input class="form-input" style="max-width:320px;" placeholder="🔍 Buscar por clínica, ciudad o contacto..." value="${_b2bSearchTerm}" oninput="onB2BSearchChange(this.value)">
+          <select class="form-select" style="max-width:180px;" onchange="onB2BRegionChange(this.value)">
+            <option value="todas" ${_b2bFilterRegion==='todas'?'selected':''}>Todas las Regiones</option>
+            ${regiones.map(r => `<option value="${r}" ${_b2bFilterRegion===r?'selected':''}>${r}</option>`).join('')}
+          </select>
+          <select class="form-select" style="max-width:190px;" onchange="onB2BEtapaChange(this.value)">
+            <option value="todas" ${_b2bFilterEtapa==='todas'?'selected':''}>Todas las Etapas B2B</option>
+            ${B2B_PIPELINE_STAGES.map(s => `<option value="${s.id}" ${_b2bFilterEtapa===s.id?'selected':''}>${s.label}</option>`).join('')}
+          </select>
+        </div>
+
+        <!-- Toggle Modo de Vista -->
+        <div style="display:flex; background:#f1f5f9; padding:4px; border-radius:8px; gap:4px;">
+          <button class="btn btn-xs ${_b2bViewMode==='kanban'?'btn-primary':'btn-outline'}" onclick="setB2BViewMode('kanban')" style="display:inline-flex; align-items:center; gap:6px;">
+            ${getIcon('layout', { size: 13 })} Tablero Kanban
+          </button>
+          <button class="btn btn-xs ${_b2bViewMode==='tabla'?'btn-primary':'btn-outline'}" onclick="setB2BViewMode('tabla')" style="display:inline-flex; align-items:center; gap:6px;">
+            ${getIcon('fileText', { size: 13 })} Tabla Detallada
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONTENIDO PRINCIPAL: KANBAN O TABLA -->
+    ${_b2bViewMode === 'kanban' ? renderB2BKanbanHTML(filtered) : renderB2BTableHTML(filtered)}
+  `;
+}
+
+function renderB2BKanbanHTML(empresas) {
+  const KANBAN_MAX_PER_STAGE = 30;
+
+  return `
+    <div class="kanban-board" id="b2b-kanban-board" style="display:flex; gap:16px; overflow-x:auto; padding-bottom:20px; align-items:flex-start;">
+      ${B2B_PIPELINE_STAGES.map(stage => {
+        const stageEmpresas = empresas.filter(e => (e.etapa_b2b || 'Lead B2B Nuevo') === stage.id);
+        const stagePlazas = stageEmpresas.reduce((acc, e) => acc + (parseInt(e.plazas_solicitadas || e.plazas || 1, 10) || 0), 0);
+        const visibleEmpresas = stageEmpresas.slice(0, KANBAN_MAX_PER_STAGE);
+        const hasMore = stageEmpresas.length > KANBAN_MAX_PER_STAGE;
+
+        return `
+          <div class="kanban-col" data-b2b-stage="${stage.id}" style="min-width:280px; width:280px; background:#f8fafc; border-top:3px solid ${stage.color}; border-radius:12px; padding:12px; display:flex; flex-direction:column; gap:10px;">
+            <div class="kanban-col-header" style="display:flex; justify-content:space-between; align-items:center; padding-bottom:6px; border-bottom:1px solid #e2e8f0;">
+              <div>
+                <span class="kanban-col-title" style="font-weight:700; color:var(--slate-800); font-size:0.85rem;">${stage.label}</span>
+                <div style="font-size:0.7rem; color:var(--slate-500);">${stagePlazas} plazas demandadas</div>
+              </div>
+              <span class="kanban-col-count" style="background:${stage.color}; color:#fff; font-size:0.75rem; border-radius:10px; padding:2px 8px; width:auto; height:auto;">
+                ${stageEmpresas.length}
+              </span>
             </div>
-            <div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--slate-100);">
-              <span class="badge ${e.activo?'badge-success':'badge-slate'}">${e.activo?'Activa':'Inactiva'}</span>
-              <span class="badge badge-info" style="margin-left:8px;">${DB.getVacantesByEmpresa(e.id).length} vacante(s)</span>
+
+            <!-- Lista de Tarjetas del Stage -->
+            <div class="b2b-cards-container" data-stage="${stage.id}" style="display:flex; flex-direction:column; gap:10px; min-height:120px;">
+              ${stageEmpresas.length === 0 ? `
+                <div style="text-align:center; padding:20px 10px; color:#94a3b8; font-size:0.78rem; border:1px dashed #cbd5e1; border-radius:8px;">
+                  Sin clínicas en esta etapa
+                </div>
+              ` : visibleEmpresas.map(e => renderB2BCardHTML(e)).join('')}
+
+              ${hasMore ? `
+                <div style="text-align:center; padding:10px; background:#fff; border:1px dashed #cbd5e1; border-radius:8px; font-size:0.75rem; color:#64748b;">
+                  Mostrando 30 de ${stageEmpresas.length} en este tablero.
+                  <button class="btn btn-xs btn-outline" onclick="setB2BViewMode('tabla')" style="margin-top:6px; width:100%; justify-content:center;">
+                    Ver todas (${stageEmpresas.length}) en Tabla 📋
+                  </button>
+                </div>
+              ` : ''}
             </div>
           </div>
-        </div>
-      `).join('')}
+        `;
+      }).join('')}
     </div>
   `;
 }
+
+function renderB2BCardHTML(e) {
+  const specs = Array.isArray(e.especialidades_requeridas) ? e.especialidades_requeridas : [e.especialidades_requeridas || 'Salud'];
+  const plazas = parseInt(e.plazas_solicitadas || e.plazas || 1, 10);
+  const nombreLimpio = e.nombre_clinica || e.nombre || 'Clínica';
+  const contactoLimpio = e.contacto_nombre || e.contacto || 'Contacto';
+  const telLimpio = (e.telefono || '').replace(/[^0-9+]/g, '');
+
+  return `
+    <div class="kanban-card b2b-card" draggable="true" data-empresa-id="${e.id}" style="background:#fff; border-radius:10px; padding:12px; border:1px solid #e2e8f0; box-shadow:0 1px 3px rgba(0,0,0,0.06); cursor:pointer;" onclick="openEmpresaDetailModal('${e.id}')">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px;">
+        <span class="badge" style="background:rgba(114,47,55,0.08); color:var(--wine-900); font-size:0.7rem; font-weight:700;">
+          ${e.tipo_centro || e.tipo || 'Klinikum'}
+        </span>
+        <span style="font-size:0.75rem; font-weight:800; color:var(--gold-600); background:#fffbeb; padding:2px 6px; border-radius:4px; border:1px solid #fef3c7;">
+          🩺 ${plazas} vacantes
+        </span>
+      </div>
+
+      <div style="font-weight:700; color:var(--slate-900); font-size:0.9rem; margin-bottom:4px; line-height:1.2;">
+        ${nombreLimpio}
+      </div>
+
+      <div style="font-size:0.75rem; color:var(--slate-500); display:flex; align-items:center; gap:4px; margin-bottom:8px;">
+        <span>📍 ${e.ciudad || 'Alemania'} (${e.region_alemania || e.region || 'DE'})</span>
+      </div>
+
+      <!-- Especialidades Solicitadas -->
+      <div style="display:flex; flex-wrap:wrap; gap:4px; margin-bottom:8px;">
+        ${specs.slice(0, 2).map(s => `
+          <span style="font-size:0.68rem; background:#f1f5f9; color:#334155; padding:2px 6px; border-radius:4px;">
+            ${s}
+          </span>
+        `).join('')}
+        ${specs.length > 2 ? `<span style="font-size:0.68rem; color:#64748b;">+${specs.length - 2}</span>` : ''}
+      </div>
+
+      <!-- Contacto de RRHH -->
+      <div style="font-size:0.75rem; color:var(--slate-700); background:#f8fafc; padding:6px 8px; border-radius:6px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <div style="font-weight:600;">👤 ${contactoLimpio}</div>
+          <div style="font-size:0.7rem; color:var(--slate-500);">${e.contacto_cargo || 'RRHH'}</div>
+        </div>
+        ${e.telefono ? `
+          <a href="tel:${e.telefono}" onclick="event.stopPropagation();" title="Llamar directamente" style="color:#2563eb; background:#eff6ff; padding:4px 6px; border-radius:4px; text-decoration:none; font-weight:700;">
+            📞
+          </a>
+        ` : ''}
+      </div>
+
+      <!-- Acciones de Tarjeta B2B -->
+      <div style="display:flex; justify-content:space-between; align-items:center; padding-top:8px; border-top:1px solid #f1f5f9;" onclick="event.stopPropagation();">
+        <button class="btn btn-xs" style="background:#2563eb; color:#fff; font-weight:700; display:inline-flex; align-items:center; gap:4px; border:none; padding:4px 8px; border-radius:5px;" onclick="openB2BCRMWidget('${e.id}')" title="Abrir CRM y Speech de Llamada Institucional">
+          📞 Llamada CRM
+        </button>
+
+        <div style="display:flex; gap:4px;">
+          <select style="font-size:0.7rem; padding:2px 4px; border-radius:4px; border:1px solid #cbd5e1; background:#fff;" onchange="quickMoveEmpresaEtapa('${e.id}', this.value)">
+            ${B2B_PIPELINE_STAGES.map(s => `
+              <option value="${s.id}" ${(e.etapa_b2b || 'Lead B2B Nuevo') === s.id ? 'selected' : ''}>${s.label}</option>
+            `).join('')}
+          </select>
+          <button class="btn btn-xs btn-outline" onclick="openEditEmpresaModal('${e.id}')" title="Editar ficha">
+            ✏️
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderB2BTableHTML(empresas) {
+  const total = empresas.length;
+  const totalPages = Math.ceil(total / _b2bPageSize) || 1;
+  if (_b2bCurrentPage > totalPages) _b2bCurrentPage = totalPages;
+  if (_b2bCurrentPage < 1) _b2bCurrentPage = 1;
+
+  const startIdx = (_b2bCurrentPage - 1) * _b2bPageSize;
+  const pagedEmpresas = empresas.slice(startIdx, startIdx + _b2bPageSize);
+
+  const paginationControls = `
+    <div style="padding:10px 16px; background:#f8fafc; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+      <div style="font-size:0.825rem; color:#475569;">
+        Mostrando <strong style="color:var(--slate-900);">${total === 0 ? 0 : startIdx + 1} - ${Math.min(startIdx + _b2bPageSize, total)}</strong> de <strong style="color:var(--slate-900);">${total}</strong> instituciones
+      </div>
+      <div style="display:flex; gap:6px; align-items:center;">
+        <button class="btn btn-xs btn-outline" onclick="setB2BPage(1)" ${_b2bCurrentPage <= 1 ? 'disabled style="opacity:0.4;cursor:not-allowed;"' : ''} title="Primera página">
+          ⏮
+        </button>
+        <button class="btn btn-xs btn-outline" onclick="setB2BPage(${_b2bCurrentPage - 1})" ${_b2bCurrentPage <= 1 ? 'disabled style="opacity:0.4;cursor:not-allowed;"' : ''}>
+          ◀ Anterior
+        </button>
+        <span style="font-size:0.8rem; font-weight:700; color:var(--slate-800); padding:0 6px;">
+          Pág. ${_b2bCurrentPage} / ${totalPages}
+        </span>
+        <button class="btn btn-xs btn-outline" onclick="setB2BPage(${_b2bCurrentPage + 1})" ${_b2bCurrentPage >= totalPages ? 'disabled style="opacity:0.4;cursor:not-allowed;"' : ''}>
+          Siguiente ▶
+        </button>
+        <button class="btn btn-xs btn-outline" onclick="setB2BPage(${totalPages})" ${_b2bCurrentPage >= totalPages ? 'disabled style="opacity:0.4;cursor:not-allowed;"' : ''} title="Última página">
+          ⏭
+        </button>
+      </div>
+    </div>
+  `;
+
+  return `
+    <div class="card" style="padding:0; overflow:hidden;">
+      ${paginationControls}
+
+      <div class="data-table-wrapper">
+        <table class="data-table" style="margin:0;">
+          <thead>
+            <tr>
+              <th>Hospital / Clínica</th>
+              <th>Ubicación</th>
+              <th>Contacto Principal</th>
+              <th>Vacantes & Especialidades</th>
+              <th>Nivel Alemán</th>
+              <th>Etapa B2B</th>
+              <th>Último Contacto</th>
+              <th style="text-align:right;">Acciones CRM</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${pagedEmpresas.length === 0 ? `
+              <tr><td colspan="8" style="text-align:center; padding:30px; color:#64748b;">No se encontraron empresas con los filtros aplicados.</td></tr>
+            ` : pagedEmpresas.map(e => {
+              const specs = Array.isArray(e.especialidades_requeridas) ? e.especialidades_requeridas.join(', ') : (e.especialidades_requeridas || 'Salud');
+              const plazas = parseInt(e.plazas_solicitadas || e.plazas || 1, 10);
+              const etapa = e.etapa_b2b || 'Lead B2B Nuevo';
+              const contactCount = Array.isArray(e.contactos) && e.contactos.length > 1 ? ` <span style="background:rgba(37,99,235,0.1); color:#2563eb; font-size:0.7rem; font-weight:700; padding:1px 5px; border-radius:4px;">+${e.contactos.length - 1} contactos</span>` : '';
+
+              return `
+                <tr>
+                  <td>
+                    <div style="font-weight:700; color:var(--slate-900);">${e.nombre_clinica || e.nombre}</div>
+                    <div style="font-size:0.75rem; color:var(--slate-500);">${e.tipo_centro || e.tipo || 'Klinikum'} · ${e.numero_camas || e.camas || 0} camas</div>
+                  </td>
+                  <td>
+                    <div>${e.ciudad || 'Alemania'}</div>
+                    <div style="font-size:0.75rem; color:var(--slate-500);">${e.region_alemania || e.region || 'DE'}</div>
+                  </td>
+                  <td>
+                    <div style="font-weight:600;">${e.contacto_nombre || e.contacto || 'Sin contacto'} ${contactCount}</div>
+                    <div style="font-size:0.75rem; color:var(--slate-500);">${e.contacto_cargo || 'RRHH'} · ${e.correo_contacto || e.correo || ''}</div>
+                  </td>
+                  <td>
+                    <div style="font-weight:700; color:var(--gold-600);">🩺 ${plazas} vacantes</div>
+                    <div style="font-size:0.75rem; color:var(--slate-600); max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${specs}</div>
+                  </td>
+                  <td><span class="badge badge-info">${e.nivel_aleman_solicitado || 'B2'}</span></td>
+                  <td>
+                    <span class="badge" style="background:#eff6ff; color:#1d4ed8; font-weight:700;">
+                      ${etapa}
+                    </span>
+                  </td>
+                  <td style="font-size:0.8rem; color:var(--slate-500);">
+                    ${e.fecha_ultimo_contacto ? new Date(e.fecha_ultimo_contacto).toLocaleDateString() : 'Sin registro'}
+                  </td>
+                  <td style="text-align:right;">
+                    <div style="display:inline-flex; gap:6px;">
+                      <button class="btn btn-xs" style="background:#2563eb; color:#fff; font-weight:700;" onclick="openB2BCRMWidget('${e.id}')">
+                        📞 CRM
+                      </button>
+                      <button class="btn btn-xs btn-outline" onclick="openEmpresaDetailModal('${e.id}')">
+                        👁️
+                      </button>
+                      <button class="btn btn-xs btn-outline" onclick="openEditEmpresaModal('${e.id}')">
+                        ✏️
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+
+      ${total > _b2bPageSize ? paginationControls.replace('border-bottom:1px solid #e2e8f0;', 'border-top:1px solid #e2e8f0;') : ''}
+    </div>
+  `;
+}
+
+function quickMoveEmpresaEtapa(id, nuevaEtapa) {
+  DB.updateEmpresa(id, { etapa_b2b: nuevaEtapa });
+  showToast('Etapa Actualizada', `La clínica se movió a "${nuevaEtapa}".`, 'success');
+  renderDashboard(State.activeRole, State.currentSidebar);
+}
+window.quickMoveEmpresaEtapa = quickMoveEmpresaEtapa;
+
+function initB2BKanban() {
+  const cards = document.querySelectorAll('.b2b-card');
+  const containers = document.querySelectorAll('.b2b-cards-container');
+
+  cards.forEach(card => {
+    card.addEventListener('dragstart', (e) => {
+      e.dataTransfer.setData('text/plain', card.dataset.empresaId);
+      card.classList.add('dragging');
+    });
+    card.addEventListener('dragend', () => {
+      card.classList.remove('dragging');
+    });
+  });
+
+  containers.forEach(container => {
+    container.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      container.style.background = 'rgba(217,119,6,0.08)';
+    });
+    container.addEventListener('dragleave', () => {
+      container.style.background = '';
+    });
+    container.addEventListener('drop', (e) => {
+      e.preventDefault();
+      container.style.background = '';
+      const empresaId = e.dataTransfer.getData('text/plain');
+      const targetStage = container.dataset.stage;
+      if (empresaId && targetStage) {
+        quickMoveEmpresaEtapa(empresaId, targetStage);
+      }
+    });
+  });
+}
+window.initB2BKanban = initB2BKanban;
+
+// ── CRM DE LLAMADAS Y SPEECH PARA HOSPITALES Y CLÍNICAS (B2B) ──────
+function openB2BCRMWidget(empresaId) {
+  _currentB2BCRMEmpresaId = empresaId;
+  ensureB2BModalsInDOM();
+  updateB2BCRMModalView();
+  openModal('modal-b2b-crm');
+}
+window.openB2BCRMWidget = openB2BCRMWidget;
+
+function setB2BSpeechTab(tab) {
+  _currentB2BSpeechTab = tab;
+  updateB2BCRMModalView();
+}
+window.setB2BSpeechTab = setB2BSpeechTab;
+
+function updateB2BCRMModalView() {
+  const emp = DB.getEmpresaById(_currentB2BCRMEmpresaId);
+  if (!emp) return;
+
+  const header = $('b2b-crm-header-info');
+  if (header) {
+    const plazas = parseInt(emp.plazas_solicitadas || emp.plazas || 1, 10);
+    const specs = Array.isArray(emp.especialidades_requeridas) ? emp.especialidades_requeridas.join(', ') : (emp.especialidades_requeridas || 'Salud');
+
+    header.innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px; width:100%;">
+        <div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:1.3rem;">🏥</span>
+            <span style="font-size:1.2rem; font-weight:800; color:var(--wine-900);">${emp.nombre_clinica || emp.nombre}</span>
+            <span class="badge" style="background:#eff6ff; color:#1d4ed8; font-weight:700;">${emp.etapa_b2b || 'Lead B2B Nuevo'}</span>
+          </div>
+          <div style="font-size:0.82rem; color:var(--slate-500); margin-top:2px;">
+            📍 ${emp.ciudad || 'Alemania'} (${emp.region_alemania || emp.region || 'DE'}) · ${emp.tipo_centro || 'Klinikum'} · 🩺 ${plazas} vacantes (${specs})
+          </div>
+        </div>
+
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div style="text-align:right;">
+            <div style="font-weight:700; color:var(--slate-800); font-size:0.875rem;">👤 ${emp.contacto_nombre || emp.contacto || 'RRHH'}</div>
+            <div style="font-size:0.75rem; color:var(--slate-500);">${emp.contacto_cargo || 'Dirección'}</div>
+          </div>
+          ${emp.telefono ? `
+            <a href="tel:${emp.telefono}" class="btn btn-sm" style="background:#2563eb; color:#fff; text-decoration:none; font-weight:700; display:inline-flex; align-items:center; gap:6px;">
+              📞 Llamar ${emp.telefono}
+            </a>
+          ` : ''}
+          ${emp.correo_contacto ? `
+            <a href="mailto:${emp.correo_contacto}" class="btn btn-sm btn-outline" style="text-decoration:none;">
+              📧 Correo
+            </a>
+          ` : ''}
+        </div>
+      </div>
+    `;
+  }
+
+  // Render Speech Script Tabs
+  const speechContainer = $('b2b-speech-content-area');
+  if (speechContainer) {
+    const contacto = emp.contacto_nombre || emp.contacto || 'Sehr geehrte Damen und Herren';
+    const clinica = emp.nombre_clinica || emp.nombre || 'Ihrer Klinik';
+    const specs = Array.isArray(emp.especialidades_requeridas) ? emp.especialidades_requeridas.join(' und ') : (emp.especialidades_requeridas || 'Pflegefachkräfte');
+
+    let scriptHTML = '';
+    if (_currentB2BSpeechTab === 'apertura') {
+      scriptHTML = `
+        <div style="padding:14px; background:#fff; border:1px solid #e2e8f0; border-radius:10px;">
+          <div style="font-weight:700; color:#1e293b; margin-bottom:8px; display:flex; justify-content:space-between;">
+            <span>🇩🇪 Apertura Institucional (Alemán):</span>
+            <button class="btn btn-xs btn-outline" onclick="navigator.clipboard.writeText(this.nextElementSibling?.innerText || '')">Copiar</button>
+          </div>
+          <div style="font-size:0.85rem; color:#334155; line-height:1.5; font-style:italic; background:#f8fafc; padding:10px; border-radius:6px;">
+            "Guten Tag Frau/Herr ${contacto}, mein Name ist Carlos Martínez von der <strong>JN Palabras GmbH</strong> mit Hauptsitz in Heidelberg.<br><br>
+            Wir begleiten hochqualifizierte lateinamerikanische <strong>Pflegefachkräfte und Fachärzte</strong> bei ihrer Anerkennung und nachhaltigen Integration in deutsche Krankenhäuser. Ich melde mich bezüglich Ihres aktuellen Personalbedarfs im Bereich <strong>${specs}</strong> in ${clinica}. Haben Sie zwei Minuten für einen kurzen Austausch?"
+          </div>
+
+          <div style="margin-top:12px; font-size:0.8rem; color:#475569; background:#fffbeb; padding:10px; border-left:4px solid var(--gold-500); border-radius:4px;">
+            💡 <strong>Objetivo del Asesor:</strong> Validar si el contacto sigue gestionando las contrataciones de personal de enfermería o médico, y despertar interés con la homologación B2 garantizada.
+          </div>
+        </div>
+      `;
+    } else if (_currentB2BSpeechTab === 'demanda') {
+      scriptHTML = `
+        <div style="padding:14px; background:#fff; border:1px solid #e2e8f0; border-radius:10px;">
+          <div style="font-weight:700; color:#1e293b; margin-bottom:8px;">
+            📋 Preguntas Guía para Diagnóstico de Vacantes Médicas:
+          </div>
+          <ul style="font-size:0.85rem; color:#334155; line-height:1.6; padding-left:18px; margin:0;">
+            <li><strong>¿Cuántas vacantes críticas tienen actualmente descubiertas?</strong> (Especialmente en UCI, OP o Geriatría).</li>
+            <li><strong>¿En qué fechas necesitarían que se incorporen?</strong> (Inmediata vs cohorte programada).</li>
+            <li><strong>¿Dispone el hospital de Personalwohnheim o alojamiento temporal?</strong> (Crucial para la llegada del candidato durante los primeros 3 a 6 meses).</li>
+            <li><strong>¿Tienen preferencia de Regierungspräsidium para el proceso de Anerkennung?</strong></li>
+          </ul>
+        </div>
+      `;
+    } else if (_currentB2BSpeechTab === 'objeciones') {
+      scriptHTML = `
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <div style="padding:10px 12px; background:#fff; border:1px solid #e2e8f0; border-radius:8px;">
+            <div style="font-weight:700; color:var(--wine-900); font-size:0.85rem;">🛡️ "El proceso de visado y homologación tarda demasiado tiempo..."</div>
+            <div style="font-size:0.8rem; color:#475569; margin-top:4px;">
+              <strong>Respuesta:</strong> En JN Palabras tramitamos el <em>Beschleunigtes Fachkräfteverfahren</em> (§ 81a AufenthG) con expedientes ya traducidos y apostillados. Reducimos el tiempo promedio de llegada a solo 3-4 meses.
+            </div>
+          </div>
+          <div style="padding:10px 12px; background:#fff; border:1px solid #e2e8f0; border-radius:8px;">
+            <div style="font-weight:700; color:var(--wine-900); font-size:0.85rem;">🛡️ "¿Qué nivel de alemán tienen realmente los candidatos?"</div>
+            <div style="font-size:0.8rem; color:#475569; margin-top:4px;">
+              <strong>Respuesta:</strong> Todos los candidatos cuentan con B2 certificado (telc o Goethe) más un módulo específico de terminología clínica y simulación de guardias antes de pisar suelo alemán.
+            </div>
+          </div>
+          <div style="padding:10px 12px; background:#fff; border:1px solid #e2e8f0; border-radius:8px;">
+            <div style="font-weight:700; color:var(--wine-900); font-size:0.85rem;">🛡️ "¿Cuáles son los honorarios del servicio?"</div>
+            <div style="font-size:0.8rem; color:#475569; margin-top:4px;">
+              <strong>Respuesta:</strong> Cobramos exclusivamente a éxito (Erfolgshonorar) en dos hitos (visado y primer día laboral), con garantía de sustitución gratuita durante el periodo de prueba de 6 meses.
+            </div>
+          </div>
+        </div>
+      `;
+    } else if (_currentB2BSpeechTab === 'cierre') {
+      scriptHTML = `
+        <div style="padding:14px; background:#fff; border:1px solid #e2e8f0; border-radius:10px;">
+          <div style="font-weight:700; color:#1e293b; margin-bottom:8px;">
+            🤝 Cierre & Coordinación de Videollamada (20 min):
+          </div>
+          <div style="font-size:0.85rem; color:#334155; line-height:1.5; font-style:italic; background:#f8fafc; padding:10px; border-radius:6px;">
+            "Frau/Herr ${contacto}, para no quitarle más tiempo, le propongo agendar una videollamada de 20 minutos por Teams o Google Meet con nuestro equipo directivo en Heidelberg. Podremos mostrarle los perfiles anónimos de candidatos disponibles que encajan con su demanda.<br><br>
+            ¿Le viene mejor este martes a las 10:30 o el jueves a las 14:00?"
+          </div>
+        </div>
+      `;
+    }
+
+    speechContainer.innerHTML = scriptHTML;
+  }
+
+  // Pre-llenar campos del formulario
+  $('b2b-log-etapa').value = emp.etapa_b2b || '1er Contacto / Llamada';
+
+  // Render Historial
+  const timeline = $('b2b-crm-timeline-list');
+  if (timeline) {
+    const hist = emp.historial_crm || [];
+    if (hist.length === 0) {
+      timeline.innerHTML = `<div style="text-align:center; padding:16px; color:#94a3b8; font-size:0.8rem;">Sin llamadas o interacciones registradas previamente.</div>`;
+    } else {
+      timeline.innerHTML = hist.map(h => `
+        <div style="padding:10px 12px; background:#fff; border:1px solid #e2e8f0; border-radius:8px; margin-bottom:8px;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-weight:700; color:var(--wine-900); font-size:0.8rem;">${h.tipo} · ${h.resultado}</span>
+            <span style="font-size:0.7rem; color:var(--slate-500);">${new Date(h.fecha).toLocaleString()}</span>
+          </div>
+          <div style="font-size:0.8rem; color:#334155; margin-top:4px;">${h.notas}</div>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:6px; font-size:0.7rem; color:#64748b;">
+            <span>Asesor: ${h.asesor}</span>
+            ${h.proxima_cita ? `<span style="font-weight:700; color:#2563eb;">📅 Próxima cita: ${new Date(h.proxima_cita).toLocaleString()}</span>` : ''}
+          </div>
+        </div>
+      `).join('');
+    }
+  }
+}
+
+function saveB2BCRMInteraction() {
+  if (!_currentB2BCRMEmpresaId) return;
+  const tipo = $('b2b-log-tipo')?.value;
+  const resultado = $('b2b-log-resultado')?.value;
+  const nuevaEtapa = $('b2b-log-etapa')?.value;
+  const notas = $('b2b-log-notas')?.value.trim();
+  const proximaCita = $('b2b-log-proxima')?.value;
+
+  if (!notas) {
+    showToast('Notas requeridas', 'Ingresa una breve nota sobre los acuerdos de la llamada.', 'warning');
+    return;
+  }
+
+  DB.addInteraccionEmpresa(_currentB2BCRMEmpresaId, {
+    asesor: State.session?.nombre || 'Asesor B2B',
+    tipo,
+    resultado,
+    nueva_etapa: nuevaEtapa,
+    notas,
+    proxima_cita: proximaCita || null
+  });
+
+  if (proximaCita) {
+    const emp = DB.getEmpresaById(_currentB2BCRMEmpresaId);
+    const tasks = getAdvisorAgendaTasks();
+    tasks.unshift({
+      id: 't-' + Date.now(),
+      tipo: 'reunion',
+      titulo: `Reunión B2B: ${emp?.nombre_clinica || 'Hospital'} (${resultado})`,
+      hora: new Date(proximaCita).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      completada: false
+    });
+    saveAdvisorAgendaTasks(tasks);
+  }
+
+  $('b2b-log-notas').value = '';
+  showToast('Interacción Guardada', 'Se registró la llamada y se actualizó la etapa en el CRM.', 'success');
+  updateB2BCRMModalView();
+  renderDashboard(State.activeRole, State.currentSidebar);
+}
+window.saveB2BCRMInteraction = saveB2BCRMInteraction;
+
+function exportarEmpresasAExcel() {
+  if (typeof XLSX === 'undefined') {
+    showToast('Error', 'SheetJS no disponible.', 'error');
+    return;
+  }
+  const empresas = DB.getEmpresas();
+  const data = empresas.map(e => ({
+    'Nombre Clínica': e.nombre_clinica || e.nombre,
+    'Tipo Centro': e.tipo_centro || e.tipo,
+    'Bundesland / Región': e.region_alemania || e.region,
+    'Ciudad': e.ciudad,
+    'Contacto': e.contacto_nombre || e.contacto,
+    'Cargo': e.contacto_cargo,
+    'Email': e.correo_contacto || e.correo,
+    'Teléfono': e.telefono,
+    'Plazas Solicitadas': e.plazas_solicitadas || e.plazas || 1,
+    'Especialidades': Array.isArray(e.especialidades_requeridas) ? e.especialidades_requeridas.join(', ') : e.especialidades_requeridas,
+    'Nivel Alemán': e.nivel_aleman_solicitado,
+    'Etapa B2B': e.etapa_b2b,
+    'Último Contacto': e.fecha_ultimo_contacto,
+    'Asesor Asignado': e.asesor_asignado,
+    'Notas': e.notas
+  }));
+
+  const ws = XLSX.utils.json_to_sheet(data);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Cartera_Hospitales_B2B');
+  XLSX.writeFile(wb, `Cartera_Empresas_JN_Palabras_${new Date().toISOString().split('T')[0]}.xlsx`);
+  showToast('Exportación Exitosa', 'Se descargó el archivo Excel de empresas.', 'success');
+}
+window.exportarEmpresasAExcel = exportarEmpresasAExcel;
+
+// ── MODALES DINÁMICOS PARA DETALLE Y EDICIÓN B2B ────────────────────
+function ensureB2BModalsInDOM() {
+  if (!$('modal-b2b-crm')) {
+    const crmModal = document.createElement('div');
+    crmModal.className = 'modal-overlay';
+    crmModal.id = 'modal-b2b-crm';
+    crmModal.setAttribute('role', 'dialog');
+    crmModal.setAttribute('aria-modal', 'true');
+    crmModal.innerHTML = `
+      <div class="modal" style="max-width:960px; padding:0; overflow:hidden; border-radius:16px;">
+        <!-- Header -->
+        <div style="background:linear-gradient(135deg, var(--wine-900) 0%, var(--wine-800) 100%); color:#fff; padding:18px 24px; border-bottom:3px solid var(--gold-500); display:flex; justify-content:space-between; align-items:center;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:1.4rem;">🎧</span>
+            <div>
+              <h3 style="font-size:1.2rem; font-weight:800; margin:0; color:#fff;">CRM B2B & Speech de Llamada para Clínicas</h3>
+              <p style="font-size:0.75rem; color:var(--gold-300); margin:0;">Herramienta guiada para prospección y seguimiento de hospitales alemanes</p>
+            </div>
+          </div>
+          <button class="modal-close" onclick="closeModal('modal-b2b-crm')" style="color:#fff; background:rgba(255,255,255,0.15); border-radius:50%; width:30px; height:30px; border:none; cursor:pointer;">✕</button>
+        </div>
+
+        <!-- Ficha Rápida Superior -->
+        <div id="b2b-crm-header-info" style="padding:14px 24px; background:#f8fafc; border-bottom:1px solid #e2e8f0;"></div>
+
+        <!-- Contenido Dividido en 2 Columnas -->
+        <div style="display:grid; grid-template-columns:1.15fr 0.85fr; max-height:65vh; overflow-y:auto;">
+          <!-- Columna Izquierda: Speech Guiado -->
+          <div style="padding:20px; border-right:1px solid #e2e8f0; background:#fdfdfd;">
+            <div style="font-weight:700; color:var(--slate-800); margin-bottom:10px; font-size:0.95rem;">
+              🗣️ Script y Argumentario Guiado (Telefonleitfaden)
+            </div>
+
+            <!-- Pestañas del Speech -->
+            <div style="display:flex; gap:6px; margin-bottom:14px; flex-wrap:wrap;">
+              <button class="btn btn-xs ${_currentB2BSpeechTab==='apertura'?'btn-primary':'btn-outline'}" onclick="setB2BSpeechTab('apertura')">
+                1. Saludo & Apertura
+              </button>
+              <button class="btn btn-xs ${_currentB2BSpeechTab==='demanda'?'btn-primary':'btn-outline'}" onclick="setB2BSpeechTab('demanda')">
+                2. Diagnóstico Vacantes
+              </button>
+              <button class="btn btn-xs ${_currentB2BSpeechTab==='objeciones'?'btn-primary':'btn-outline'}" onclick="setB2BSpeechTab('objeciones')">
+                3. Manejo Objeciones
+              </button>
+              <button class="btn btn-xs ${_currentB2BSpeechTab==='cierre'?'btn-primary':'btn-outline'}" onclick="setB2BSpeechTab('cierre')">
+                4. Cierre & Reunión
+              </button>
+            </div>
+
+            <!-- Área Dinámica del Script -->
+            <div id="b2b-speech-content-area"></div>
+          </div>
+
+          <!-- Columna Derecha: Formulario CRM + Historial -->
+          <div style="padding:20px; display:flex; flex-direction:column; gap:14px; background:#fff;">
+            <div style="font-weight:700; color:var(--slate-800); font-size:0.95rem;">
+              📝 Registrar Resultado de la Llamada
+            </div>
+
+            <div class="grid grid-2" style="gap:10px;">
+              <div class="form-group">
+                <label class="form-label" style="font-size:0.75rem;">Canal / Tipo</label>
+                <select class="form-select" id="b2b-log-tipo" style="font-size:0.8rem;">
+                  <option value="Llamada Telefónica" selected>📞 Llamada Telefónica</option>
+                  <option value="Videollamada Teams / Meet">💻 Videollamada Teams / Meet</option>
+                  <option value="Correo Institucional">📧 Correo Institucional</option>
+                  <option value="Reunión Presencial">🤝 Reunión Presencial</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label" style="font-size:0.75rem;">Resultado</label>
+                <select class="form-select" id="b2b-log-resultado" style="font-size:0.8rem;">
+                  <option value="Reunión de Diagnóstico Agendada" selected>Reunión Agendada</option>
+                  <option value="Interesado - Enviar Propuesta">Interesado (Enviar Propuesta)</option>
+                  <option value="Dejó Mensaje con Asistente">Dejó Mensaje / Volver a llamar</option>
+                  <option value="No responde actualmente">No responde</option>
+                  <option value="Sin vacantes por el momento">Sin vacantes</option>
+                  <option value="Contrato / Convenio Solicitado">Contrato Solicitado</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="grid grid-2" style="gap:10px;">
+              <div class="form-group">
+                <label class="form-label" style="font-size:0.75rem;">Avanzar Etapa Pipeline</label>
+                <select class="form-select" id="b2b-log-etapa" style="font-size:0.8rem;">
+                  ${B2B_PIPELINE_STAGES.map(s => `<option value="${s.id}">${s.label}</option>`).join('')}
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label" style="font-size:0.75rem;">Próxima Cita / Seguimiento</label>
+                <input class="form-input" type="datetime-local" id="b2b-log-proxima" style="font-size:0.8rem;">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" style="font-size:0.75rem;">Notas y Acuerdos de la Conversación *</label>
+              <textarea class="form-textarea" id="b2b-log-notas" placeholder="Ej. El Dr. Müller confirmó necesidad de 4 enfermeros para UCI en diciembre..." style="min-height:75px; font-size:0.8rem;"></textarea>
+            </div>
+
+            <button class="btn btn-primary" onclick="saveB2BCRMInteraction()" style="width:100%; font-weight:700;">
+              💾 Guardar Registro CRM
+            </button>
+
+            <!-- Historial Previo -->
+            <div style="margin-top:10px;">
+              <div style="font-weight:700; color:var(--slate-700); font-size:0.8rem; margin-bottom:6px;">
+                📜 Historial de Interacciones Previas:
+              </div>
+              <div id="b2b-crm-timeline-list" style="max-height:160px; overflow-y:auto;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(crmModal);
+  }
+
+  // Modal Detalle Empresa
+  if (!$('modal-empresa-detail')) {
+    const detailModal = document.createElement('div');
+    detailModal.className = 'modal-overlay';
+    detailModal.id = 'modal-empresa-detail';
+    detailModal.setAttribute('role', 'dialog');
+    detailModal.setAttribute('aria-modal', 'true');
+    detailModal.innerHTML = `
+      <div class="modal" style="max-width:650px; padding:0; overflow:hidden; border-radius:16px;">
+        <div style="background:var(--wine-900); color:#fff; padding:18px 24px; display:flex; justify-content:space-between; align-items:center;">
+          <h3 id="med-title" style="margin:0; font-size:1.2rem; color:#fff;">Ficha Completa de la Clínica</h3>
+          <button class="modal-close" onclick="closeModal('modal-empresa-detail')" style="color:#fff; border:none; background:none; cursor:pointer;">✕</button>
+        </div>
+        <div class="modal-body" id="med-body" style="padding:22px 26px; max-height:70vh; overflow-y:auto;"></div>
+        <div class="modal-footer" id="med-footer" style="padding:14px 24px; background:#f8fafc; border-top:1px solid #e2e8f0; display:flex; justify-content:space-between;"></div>
+      </div>
+    `;
+    document.body.appendChild(detailModal);
+  }
+
+  // Modal Nueva / Editar Empresa
+  if (!$('modal-empresa-form')) {
+    const formModal = document.createElement('div');
+    formModal.className = 'modal-overlay';
+    formModal.id = 'modal-empresa-form';
+    formModal.setAttribute('role', 'dialog');
+    formModal.setAttribute('aria-modal', 'true');
+    formModal.innerHTML = `
+      <div class="modal" style="max-width:620px; padding:0; overflow:hidden; border-radius:16px;">
+        <div style="background:var(--wine-900); color:#fff; padding:18px 24px; display:flex; justify-content:space-between; align-items:center;">
+          <h3 id="mef-title" style="margin:0; font-size:1.2rem; color:#fff;">Registrar Clínica / Empresa B2B</h3>
+          <button class="modal-close" onclick="closeModal('modal-empresa-form')" style="color:#fff; border:none; background:none; cursor:pointer;">✕</button>
+        </div>
+        <div class="modal-body" style="padding:22px 26px; max-height:70vh; overflow-y:auto;">
+          <form id="empresa-form-el" onsubmit="event.preventDefault(); saveEmpresaForm();" style="display:flex; flex-direction:column; gap:14px;">
+            <input type="hidden" id="mef-id">
+            
+            <div class="form-group">
+              <label class="form-label">Nombre de la Institución / Clínica *</label>
+              <input class="form-input" id="mef-nombre" placeholder="Ej. Klinikum Heidelberg" required>
+            </div>
+
+            <div class="grid grid-2" style="gap:12px;">
+              <div class="form-group">
+                <label class="form-label">Tipo de Centro *</label>
+                <select class="form-select" id="mef-tipo">
+                  <option value="Hospital Universitario">Hospital Universitario</option>
+                  <option value="Klinikum Regional" selected>Hospital General / Klinikum</option>
+                  <option value="Seniorenresidenz / Geriatría">Seniorenresidenz / Geriatría</option>
+                  <option value="Reha-Klinik">Reha-Klinik / Rehabilitación</option>
+                  <option value="MVZ / Policlínica">MVZ</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Estado Federado (Bundesland) *</label>
+                <select class="form-select" id="mef-region">
+                  <option value="Baden-Württemberg" selected>Baden-Württemberg</option>
+                  <option value="Bayern">Bayern</option>
+                  <option value="Nordrhein-Westfalen">Nordrhein-Westfalen</option>
+                  <option value="Hessen">Hessen</option>
+                  <option value="Berlin">Berlin</option>
+                  <option value="Hamburg">Hamburg</option>
+                  <option value="Niedersachsen">Niedersachsen</option>
+                  <option value="Sachsen">Sachsen</option>
+                  <option value="Otro Estado">Otro Estado</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="grid grid-2" style="gap:12px;">
+              <div class="form-group">
+                <label class="form-label">Ciudad *</label>
+                <input class="form-input" id="mef-ciudad" placeholder="Heidelberg" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Capacidad de Camas</label>
+                <input class="form-input" type="number" id="mef-camas" placeholder="Ej. 600">
+              </div>
+            </div>
+
+            <div class="grid grid-2" style="gap:12px;">
+              <div class="form-group">
+                <label class="form-label">Contacto (Nombre y Apellidos) *</label>
+                <input class="form-input" id="mef-contacto" placeholder="Dr. Hans Müller" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Cargo *</label>
+                <input class="form-input" id="mef-cargo" placeholder="Pflegedirektor/in / HR Leitung" value="Dirección de Recursos Humanos">
+              </div>
+            </div>
+
+            <div class="grid grid-2" style="gap:12px;">
+              <div class="form-group">
+                <label class="form-label">Correo Institucional *</label>
+                <input class="form-input" type="email" id="mef-correo" placeholder="rrhh@klinikum.de" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Teléfono Directo *</label>
+                <input class="form-input" id="mef-telefono" placeholder="+49 711 ...">
+              </div>
+            </div>
+
+            <div class="grid grid-2" style="gap:12px;">
+              <div class="form-group">
+                <label class="form-label">Plazas / Vacantes Solicitadas</label>
+                <input class="form-input" type="number" id="mef-plazas" value="5" min="1">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Etapa B2B Inicial</label>
+                <select class="form-select" id="mef-etapa">
+                  ${B2B_PIPELINE_STAGES.map(s => `<option value="${s.id}">${s.label}</option>`).join('')}
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Especialidades Requeridas (separadas por coma)</label>
+              <input class="form-input" id="mef-specs" placeholder="Enfermería UCI, Quirófano, Geriatría" value="Enfermería UCI, Medicina Interna">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Alojamiento para Personal (Wohnheim)</label>
+              <input class="form-input" id="mef-alojamiento" placeholder="Dispone de residencia propia / Ayuda de alquiler" value="Dispone de residencia para personal">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Notas Adicionales</label>
+              <textarea class="form-textarea" id="mef-notas" placeholder="Requerimientos específicos de la clínica..."></textarea>
+            </div>
+            
+            <button type="submit" id="mef-submit-btn" class="btn btn-primary" style="margin-top:10px; font-weight:700;">
+              Guardar Empresa
+            </button>
+          </form>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(formModal);
+  }
+}
+
+function openEmpresaDetailModal(id) {
+  ensureB2BModalsInDOM();
+  const emp = DB.getEmpresaById(id);
+  if (!emp) return;
+
+  $('med-title').innerHTML = `🏥 ${emp.nombre_clinica || emp.nombre}`;
+  const specs = Array.isArray(emp.especialidades_requeridas) ? emp.especialidades_requeridas.join(', ') : (emp.especialidades_requeridas || 'Salud');
+  const plazas = parseInt(emp.plazas_solicitadas || emp.plazas || 1, 10);
+
+  $('med-body').innerHTML = `
+    <div style="display:flex; flex-direction:column; gap:16px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; background:#f8fafc; padding:12px 16px; border-radius:10px;">
+        <div>
+          <div style="font-weight:700; color:var(--slate-800); font-size:1.05rem;">${emp.nombre_clinica || emp.nombre}</div>
+          <div style="font-size:0.8rem; color:var(--slate-500);">${emp.tipo_centro || 'Klinikum'} · ${emp.region_alemania || emp.region} (${emp.ciudad})</div>
+        </div>
+        <span class="badge" style="background:#eff6ff; color:#1d4ed8; font-weight:700; font-size:0.85rem; padding:4px 10px;">
+          ${emp.etapa_b2b || 'Lead B2B Nuevo'}
+        </span>
+      </div>
+
+      <div class="grid grid-2" style="gap:14px;">
+        <div style="background:#fff; border:1px solid #e2e8f0; padding:12px; border-radius:8px;">
+          <div style="font-size:0.75rem; color:#64748b; font-weight:700; text-transform:uppercase;">Persona de Contacto</div>
+          <div style="font-weight:700; color:var(--slate-900); font-size:0.95rem; margin-top:4px;">👤 ${emp.contacto_nombre || emp.contacto || 'Sin contacto'}</div>
+          <div style="font-size:0.8rem; color:var(--slate-600);">${emp.contacto_cargo || 'RRHH'}</div>
+          <div style="font-size:0.8rem; color:#2563eb; margin-top:4px;">📧 ${emp.correo_contacto || emp.correo || 'Sin correo'}</div>
+          <div style="font-size:0.8rem; color:#16a34a; font-weight:600;">📞 ${emp.telefono || 'Sin teléfono'}</div>
+        </div>
+
+        <div style="background:#fff; border:1px solid #e2e8f0; padding:12px; border-radius:8px;">
+          <div style="font-size:0.75rem; color:#64748b; font-weight:700; text-transform:uppercase;">Demanda Sanitaria</div>
+          <div style="font-weight:800; color:var(--gold-600); font-size:1.1rem; margin-top:4px;">🩺 ${plazas} Plazas Requeridas</div>
+          <div style="font-size:0.8rem; color:var(--slate-700); margin-top:2px;"><strong>Especialidades:</strong> ${specs}</div>
+          <div style="font-size:0.8rem; color:var(--slate-600); margin-top:2px;"><strong>Nivel Alemán:</strong> ${emp.nivel_aleman_solicitado || 'B2'}</div>
+          <div style="font-size:0.8rem; color:var(--slate-600); margin-top:2px;"><strong>Alojamiento:</strong> ${emp.alojamiento || 'En gestión'}</div>
+        </div>
+      </div>
+
+      ${Array.isArray(emp.contactos) && emp.contactos.length > 1 ? `
+        <div style="background:#fff; border:1px solid #e2e8f0; padding:12px; border-radius:8px;">
+          <div style="font-size:0.75rem; color:#64748b; font-weight:700; text-transform:uppercase; margin-bottom:8px;">
+            👥 Otros Contactos Directos en la Institución (${emp.contactos.length})
+          </div>
+          <div style="display:flex; flex-direction:column; gap:6px;">
+            ${emp.contactos.slice(1).map(c => `
+              <div style="display:flex; justify-content:space-between; align-items:center; padding:6px 10px; background:#f8fafc; border-radius:6px; font-size:0.8rem;">
+                <div>
+                  <strong>${c.nombre}</strong> <span style="color:#64748b;">· ${c.cargo}</span>
+                  ${c.email ? `<div style="color:#2563eb; font-size:0.75rem;">📧 ${c.email}</div>` : ''}
+                </div>
+                ${c.telefono ? `<div style="color:#16a34a; font-weight:600; font-size:0.8rem;">📞 ${c.telefono}</div>` : ''}
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      ` : ''}
+
+      ${emp.notas ? `
+        <div style="background:#f1f5f9; padding:12px 14px; border-radius:8px; font-size:0.85rem; color:#334155;">
+          <strong>Notas del Asesor:</strong> ${emp.notas}
+        </div>
+      ` : ''}
+
+      <div>
+        <div style="font-weight:700; color:var(--slate-800); font-size:0.9rem; margin-bottom:8px;">
+          📜 Historial de CRM & Llamadas (${(emp.historial_crm || []).length}):
+        </div>
+        ${(emp.historial_crm || []).length === 0 ? `
+          <div style="padding:14px; background:#fafafa; text-align:center; color:#94a3b8; font-size:0.8rem; border-radius:8px;">Sin registros de llamadas previos.</div>
+        ` : (emp.historial_crm || []).map(h => `
+          <div style="padding:10px 12px; background:#fff; border:1px solid #e2e8f0; border-radius:8px; margin-bottom:6px; font-size:0.8rem;">
+            <div style="display:flex; justify-content:space-between; font-weight:700;">
+              <span>${h.tipo} · ${h.resultado}</span>
+              <span style="color:#64748b; font-size:0.75rem;">${new Date(h.fecha).toLocaleString()}</span>
+            </div>
+            <div style="color:#334155; margin-top:4px;">${h.notas}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+
+  $('med-footer').innerHTML = `
+    <button class="btn btn-outline" onclick="deleteEmpresaConfirm('${emp.id}')" style="color:var(--danger); border-color:#fca5a5;">
+      🗑️ Eliminar Ficha
+    </button>
+    <div style="display:flex; gap:10px;">
+      <button class="btn btn-outline" onclick="openEditEmpresaModal('${emp.id}')">
+        ✏️ Editar Ficha
+      </button>
+      <button class="btn btn-primary" onclick="closeModal('modal-empresa-detail'); openB2BCRMWidget('${emp.id}');" style="background:#2563eb; border-color:#2563eb;">
+        📞 Abrir CRM & Llamar
+      </button>
+    </div>
+  `;
+
+  openModal('modal-empresa-detail');
+}
+window.openEmpresaDetailModal = openEmpresaDetailModal;
+
+function openNewEmpresaModal() {
+  ensureB2BModalsInDOM();
+  $('mef-title').innerHTML = '+ Registrar Nueva Empresa / Lead Hospitalario';
+  $('mef-id').value = '';
+  $('mef-nombre').value = '';
+  $('mef-tipo').value = 'Klinikum Regional';
+  $('mef-region').value = 'Baden-Württemberg';
+  $('mef-ciudad').value = '';
+  $('mef-camas').value = '';
+  $('mef-contacto').value = '';
+  $('mef-cargo').value = 'Dirección de Recursos Humanos';
+  $('mef-correo').value = '';
+  $('mef-telefono').value = '';
+  $('mef-plazas').value = '5';
+  $('mef-etapa').value = 'Lead B2B Nuevo';
+  $('mef-specs').value = 'Enfermería UCI, Quirófano';
+  $('mef-alojamiento').value = 'Dispone de residencia para personal';
+  $('mef-notas').value = '';
+  $('mef-submit-btn').innerHTML = 'Crear Empresa Lead';
+
+  openModal('modal-empresa-form');
+}
+window.openNewEmpresaModal = openNewEmpresaModal;
+
+function openEditEmpresaModal(id) {
+  ensureB2BModalsInDOM();
+  const emp = DB.getEmpresaById(id);
+  if (!emp) return;
+
+  $('mef-title').innerHTML = '✏️ Editar Ficha de Empresa';
+  $('mef-id').value = emp.id;
+  $('mef-nombre').value = emp.nombre_clinica || emp.nombre || '';
+  $('mef-tipo').value = emp.tipo_centro || emp.tipo || 'Klinikum Regional';
+  $('mef-region').value = emp.region_alemania || emp.region || 'Baden-Württemberg';
+  $('mef-ciudad').value = emp.ciudad || '';
+  $('mef-camas').value = emp.numero_camas || emp.camas || '';
+  $('mef-contacto').value = emp.contacto_nombre || emp.contacto || '';
+  $('mef-cargo').value = emp.contacto_cargo || 'Dirección de Recursos Humanos';
+  $('mef-correo').value = emp.correo_contacto || emp.correo || '';
+  $('mef-telefono').value = emp.telefono || '';
+  $('mef-plazas').value = emp.plazas_solicitadas || emp.plazas || 5;
+  $('mef-etapa').value = emp.etapa_b2b || 'Lead B2B Nuevo';
+  $('mef-specs').value = Array.isArray(emp.especialidades_requeridas) ? emp.especialidades_requeridas.join(', ') : (emp.especialidades_requeridas || '');
+  $('mef-alojamiento').value = emp.alojamiento || '';
+  $('mef-notas').value = emp.notas || '';
+  $('mef-submit-btn').innerHTML = 'Guardar Cambios';
+
+  closeModal('modal-empresa-detail');
+  openModal('modal-empresa-form');
+}
+window.openEditEmpresaModal = openEditEmpresaModal;
+
+function saveEmpresaForm() {
+  const id = $('mef-id').value;
+  const nombre = $('mef-nombre').value.trim();
+  if (!nombre) return;
+
+  const data = {
+    nombre_clinica: nombre,
+    tipo_centro: $('mef-tipo').value,
+    region_alemania: $('mef-region').value,
+    ciudad: $('mef-ciudad').value.trim(),
+    numero_camas: $('mef-camas').value,
+    contacto_nombre: $('mef-contacto').value.trim(),
+    contacto_cargo: $('mef-cargo').value.trim(),
+    correo_contacto: $('mef-correo').value.trim(),
+    telefono: $('mef-telefono').value.trim(),
+    plazas_solicitadas: $('mef-plazas').value,
+    etapa_b2b: $('mef-etapa').value,
+    especialidades_requeridas: $('mef-specs').value.split(',').map(s => s.trim()).filter(Boolean),
+    alojamiento: $('mef-alojamiento').value.trim(),
+    notas: $('mef-notas').value.trim()
+  };
+
+  if (id) {
+    DB.updateEmpresa(id, data);
+    showToast('Ficha Actualizada', `Se guardaron los cambios de ${nombre}.`, 'success');
+  } else {
+    DB.createEmpresa(data);
+    showToast('Empresa Registrada', `Se añadió ${nombre} al pipeline B2B.`, 'success');
+  }
+
+  closeModal('modal-empresa-form');
+  renderDashboard(State.activeRole, State.currentSidebar);
+}
+window.saveEmpresaForm = saveEmpresaForm;
+
+function deleteEmpresaConfirm(id) {
+  const emp = DB.getEmpresaById(id);
+  if (!emp) return;
+  if (confirm(`¿Estás seguro de eliminar "${emp.nombre_clinica || emp.nombre}" de la cartera?`)) {
+    DB.deleteEmpresa(id);
+    closeModal('modal-empresa-detail');
+    showToast('Empresa Eliminada', 'El registro ha sido removido.', 'success');
+    renderDashboard(State.activeRole, State.currentSidebar);
+  }
+}
+window.deleteEmpresaConfirm = deleteEmpresaConfirm;
+
+// ──────────────────────────────────────────────────────────────────
 
 // ──────────────────────────────────────────────────────────────────
 // ──────────────────────────────────────────────────────────────────
@@ -1607,41 +2751,102 @@ function updateSpeechDrawerView() {
 
   const quickHeader = $('speech-quick-candidate-info');
   if (quickHeader) {
+    const isPending = c.estado_solicitud === 'Pendiente' || (normalizeCandidatePhase(c.estado_proceso) === 'Lead Nuevo' && !c.aprobado_por);
+    const resp = c.respuestas_elegibilidad || {};
+    const det = c.detalles_aplicacion;
+    const score = c.puntaje_elegibilidad !== undefined ? c.puntaje_elegibilidad : (det?.puntaje || 24);
+    const telefonoLimpio = (c.telefono || '').replace(/[^0-9+]/g, '');
+    const waLink = telefonoLimpio ? `https://wa.me/${telefonoLimpio.replace('+', '')}` : '';
+
     quickHeader.innerHTML = `
-      <div style="display:flex; align-items:center; justify-content:space-between; width:100%;">
-        <div style="display:flex; align-items:center; gap:10px;">
-          <div class="avatar" style="background:${getAvatarColor(c.nombre)}; width:40px; height:40px; font-size:0.9rem;">
-            ${getInitials(c.nombre)}
+      <div style="display:flex; flex-direction:column; gap:10px; width:100%;">
+        <div style="display:flex; align-items:center; justify-content:space-between; width:100%;">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <div class="avatar" style="background:${getAvatarColor(c.nombre)}; width:40px; height:40px; font-size:0.9rem;">
+              ${getInitials(c.nombre)}
+            </div>
+            <div>
+              <div style="font-weight:700; color:var(--slate-900); font-size:0.95rem;">${c.nombre}</div>
+              <div style="font-size:0.75rem; color:var(--slate-500); display:flex; align-items:center; gap:4px; margin-top:2px;">
+                <span style="display:inline-flex; align-items:center;">${getIcon('mapPin', { size: 11, color: 'var(--slate-400)' })}</span>
+                <span>${c.pais || 'N/A'} · ${c.especialidad && !c.especialidad.includes('Ver Test') ? c.especialidad : (resp.profession || 'Salud')}</span>
+              </div>
+            </div>
           </div>
-          <div>
-            <div style="font-weight:700; color:var(--slate-900); font-size:0.95rem;">${c.nombre}</div>
-            <div style="font-size:0.75rem; color:var(--slate-500); display:flex; align-items:center; gap:4px; margin-top:2px;">
-              <span style="display:inline-flex; align-items:center;">${getIcon('mapPin', { size: 11, color: 'var(--slate-400)' })}</span>
-              <span>${c.pais || 'N/A'} · ${c.especialidad || 'Salud'}</span>
+          <div style="text-align:right;">
+            <span class="badge-language ${(c.nivel_aleman||'a1').toLowerCase()}"><span style="display:inline-flex; align-items:center; margin-right:3px;">${getIcon('globe', { size: 11 })}</span> ${c.nivel_aleman && !c.nivel_aleman.includes('Ver Test') ? c.nivel_aleman : (resp.german || 'A1')}</span>
+            <div style="font-size:0.72rem; margin-top:3px;">
+              ${isPending ? `<span style="background:#fef3c7; color:#92400e; padding:2px 6px; border-radius:4px; font-weight:700;">🟡 Solicitud Web</span>` : `<span style="background:#ecfdf5; color:#065f46; padding:2px 6px; border-radius:4px; font-weight:700;">✅ Integrado</span>`}
             </div>
           </div>
         </div>
-        <div style="text-align:right;">
-          <span class="badge-language ${(c.nivel_aleman||'a1').toLowerCase()}"><span style="display:inline-flex; align-items:center; margin-right:3px;">${getIcon('globe', { size: 11 })}</span> ${c.nivel_aleman||'A1'}</span>
-          <div style="font-size:0.75rem; color:var(--slate-600); margin-top:2px;">
-            ${c.telefono ? `<a href="tel:${c.telefono}" style="color:var(--wine-800); text-decoration:none; font-weight:700; display:inline-flex; align-items:center; gap:4px;"><span style="display:inline-flex; align-items:center;">${getIcon('phone', { size: 11 })}</span> ${c.telefono}</a>` : 'Sin teléfono'}
+
+        <!-- Acciones Directas de Llamada & WhatsApp -->
+        <div style="display:flex; align-items:center; gap:8px; background:#ffffff; border:1px solid #e2e8f0; border-radius:10px; padding:8px 12px; justify-content:space-between;">
+          <div style="font-size:0.8rem; font-weight:700; color:var(--slate-800);">
+            📞 ${c.telefono || 'Sin teléfono'}
+          </div>
+          <div style="display:flex; gap:6px;">
+            ${c.telefono ? `
+              <a href="tel:${c.telefono}" class="btn btn-xs" style="background:#2563eb; color:#fff; text-decoration:none; padding:4px 10px; font-weight:700; border-radius:6px; font-size:0.75rem;">
+                📞 Llamar
+              </a>
+              ${waLink ? `
+                <a href="${waLink}" target="_blank" rel="noopener noreferrer" class="btn btn-xs" style="background:#16a34a; color:#fff; text-decoration:none; padding:4px 10px; font-weight:700; border-radius:6px; font-size:0.75rem;">
+                  💬 WhatsApp
+                </a>
+              ` : ''}
+            ` : ''}
           </div>
         </div>
+
+        <!-- Resumen Rápido del Test de la Aplicación -->
+        <div class="speech-app-preview-card" style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:10px; font-size:0.8rem;">
+          <div style="font-weight:700; color:var(--wine-800); font-size:0.75rem; text-transform:uppercase; margin-bottom:6px; display:flex; justify-content:space-between;">
+            <span>📋 Respuestas de la Aplicación</span>
+            <span style="color:#059669; font-weight:800;">Score: ${score} pts</span>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:4px 10px; font-size:0.78rem;">
+            <div><span style="color:var(--slate-500);">Título:</span> <strong>${resp.degree_check || 'Sí, titulado'}</strong></div>
+            <div><span style="color:var(--slate-500);">Alemán:</span> <strong>${resp.german || c.nivel_aleman || 'A1'}</strong></div>
+            <div><span style="color:var(--slate-500);">Exp.:</span> <strong>${resp.experience || (c.anos_exp ? c.anos_exp + ' años' : '1 - 2 Años')}</strong></div>
+            <div><span style="color:var(--slate-500);">Edad:</span> <strong>${c.edad ? c.edad + ' años' : (resp.age || 'N/D')}</strong></div>
+          </div>
+          ${c.notas_internas ? `
+            <div style="margin-top:6px; font-size:0.75rem; color:#b45309; font-style:italic; border-top:1px dashed #e2e8f0; padding-top:4px;">
+              "${c.notas_internas}"
+            </div>
+          ` : ''}
+        </div>
+
+        ${isPending ? `
+          <button type="button" class="btn btn-sm btn-accept-application" style="width:100%; justify-content:center; padding:9px; border-radius:10px; font-size:0.85rem;" onclick="openAcceptApplicationModal('${c.id}')">
+            ✅ Aceptar Solicitud & Crear Perfil de Candidato
+          </button>
+        ` : ''}
+
       </div>
     `;
   }
 
   const nombreSimple = c.nombre.split(' ')[0];
-  const spec = c.especialidad;
-  const pais = c.pais;
+  const resp = c.respuestas_elegibilidad || {};
+  const spec = (c.especialidad && !c.especialidad.includes('Ver Test')) ? c.especialidad : (resp.profession || 'Salud');
+  const pais = c.pais || 'tu país';
+  const score = c.puntaje_elegibilidad || 24;
+  const isPending = c.estado_solicitud === 'Pendiente' || (normalizeCandidatePhase(c.estado_proceso) === 'Lead Nuevo' && !c.aprobado_por);
 
   const script1 = $('script-tab-saludo');
   if (script1) {
     script1.innerHTML = `
-      <p style="margin-bottom:8px;"><strong>Apertura institucional:</strong></p>
+      <p style="margin-bottom:8px;"><strong>Apertura institucional (Llamada 1er Contacto):</strong></p>
       <p style="margin-bottom:8px;">"Hola <strong>${nombreSimple}</strong>, muy buenos días/tardes. Te saluda <strong>${State.currentUser ? State.currentUser.nombre.split(' ')[0] : 'tu asesor'}</strong> de <strong>JN Palabras</strong> desde Heidelberg, Alemania."</p>
-      <p style="margin-bottom:8px;">"Nos comunicamos respecto a tu postulación como profesional de <strong>${spec}</strong> desde <strong>${pais}</strong>. Revisamos tu perfil y queremos conversar brevemente sobre los requisitos de homologación y empleo directo en clínicas alemanas."</p>
-      <p style="color:var(--slate-500); font-size:0.8rem; font-style:italic;">💡 Objetivo: Generar confianza inmediata y validar si tiene 5 minutos para hablar.</p>
+      ${isPending ? `
+        <p style="margin-bottom:8px;">"Nos comunicamos respecto a tu <strong>solicitud de aplicación</strong> que completaste en nuestra web para <strong>${spec}</strong> desde <strong>${pais}</strong>, donde obtuviste <strong>${score} puntos de elegibilidad</strong>. Queremos darte la bienvenida, conversar brevemente sobre los requisitos de homologación y definir si avanzamos a la admisión formal en el programa."</p>
+      ` : `
+        <p style="margin-bottom:8px;">"Nos comunicamos respecto a tu proceso de postulación como profesional de <strong>${spec}</strong> desde <strong>${pais}</strong>. Revisamos tu expediente y queremos conversar brevemente sobre tus avances."</p>
+      `}
+      <p style="color:var(--slate-500); font-size:0.8rem; font-style:italic;">💡 Objetivo: Generar confianza inmediata, validar si tiene 5 minutos para hablar y confirmar su título profesional.</p>
     `;
   }
 
@@ -1675,7 +2880,7 @@ function updateSpeechDrawerView() {
   }
 
   const fNivel = $('speech-form-nivel');
-  if (fNivel && c.nivel_aleman) fNivel.value = c.nivel_aleman;
+  if (fNivel && c.nivel_aleman && !c.nivel_aleman.includes('Ver Test')) fNivel.value = c.nivel_aleman;
   const fFase = $('speech-form-fase');
   if (fFase) fFase.value = normalizeCandidatePhase(c.estado_proceso);
 }
@@ -1696,11 +2901,19 @@ async function saveCandidateDataFromSpeech() {
     estado_proceso: fase
   };
 
+  // Si el resultado es que acepta y estaba pendiente, formalizar solicitud
+  if (resultado.includes('Acepta') && (c.estado_solicitud === 'Pendiente' || normalizeCandidatePhase(c.estado_proceso) === 'Lead Nuevo')) {
+    updatePayload.estado_solicitud = 'Aprobada';
+    updatePayload.fecha_aprobacion = new Date().toISOString();
+    updatePayload.aprobado_por = State.currentUser ? State.currentUser.nombre : 'Asesor JN Palabras';
+  }
+
   if (notaTexto || resultado) {
-    const contenidoNota = `[Llamada / Speech: ${resultado}] ${notaTexto ? notaTexto : 'Actualización de contacto y avance de fase.'}`;
+    const contenidoNota = `[Llamada CRM / 1er Contacto: ${resultado}] ${notaTexto ? notaTexto : 'Actualización de contacto y avance de fase.'}`;
     DB.addNota({
       id_candidato: c.id,
       autor: State.currentUser ? State.currentUser.nombre : 'Asesor',
+      tipo: 'Llamada CRM',
       contenido: contenidoNota
     });
   }
@@ -1721,7 +2934,7 @@ async function saveCandidateDataFromSpeech() {
   }
 
   await DB.updateCandidato(c.id, updatePayload);
-  showToast('Ficha guardada', `Datos de ${c.nombre.split(' ')[0]} actualizados correctamente.`, 'success');
+  showToast('Ficha guardada', `Datos de ${c.nombre.split(' ')[0]} actualizados correctamente en el CRM.`, 'success');
   
   if ($('speech-form-nota')) $('speech-form-nota').value = '';
   
@@ -2377,8 +3590,14 @@ function renderAsesorKanban() {
                     </div>
 
                     <div class="kanban-card-pills">
-                      ${getLanguageBadgeHtml(c.nivel_aleman)}
+                      ${getLanguageBadgeHtml(c.nivel_aleman && !c.nivel_aleman.includes('Ver Test') ? c.nivel_aleman : (c.respuestas_elegibilidad?.german || 'A1'))}
                       
+                      ${(c.estado_solicitud === 'Pendiente' || (col.id === 'Lead Nuevo' && !c.aprobado_por)) ? `
+                        <span class="badge" style="background:#fef3c7; color:#92400e; font-size:0.65rem; font-weight:800; border:1px solid #fde68a;" title="Solicitud web pendiente de aceptar">
+                          ⏳ Solicitud Web
+                        </span>
+                      ` : ''}
+
                       <div class="badge-advisor-small" title="Asesor asignado">
                         <span style="display:inline-flex; align-items:center; margin-right:3px;">${getIcon('user', { size: 11, color: 'var(--wine-800)' })}</span>
                         <span>${c.nombre_asesor ? c.nombre_asesor.split(' ')[0] : 'Sin asignar'}</span>
@@ -2387,15 +3606,21 @@ function renderAsesorKanban() {
 
                     <!-- Menú de Acciones Rápidas en Tarjeta -->
                     <div class="kanban-card-hover-actions">
-                      <button class="card-quick-btn" onclick="event.stopPropagation(); openCandidateDetail('${c.id}');" title="Ver Expediente Completo">
-                        <span style="display:inline-flex; align-items:center; margin-right:3px;">${getIcon('eye', { size: 12 })}</span> Expediente
+                      <button class="card-quick-btn" onclick="event.stopPropagation(); openCandidateDetail('${c.id}');" title="Ver Expediente / Solicitud Completa">
+                        <span style="display:inline-flex; align-items:center; margin-right:3px;">${getIcon('eye', { size: 12 })}</span> Solicitud
                       </button>
-                      <button class="card-quick-btn speech-btn" onclick="event.stopPropagation(); openSpeechWidgetForCandidate('${c.id}');" title="Llamar con Speech Guiado">
-                        <span style="display:inline-flex; align-items:center; margin-right:3px;">${getIcon('headphones', { size: 12 })}</span> Speech
+                      <button class="card-quick-btn speech-btn" onclick="event.stopPropagation(); openSpeechWidgetForCandidate('${c.id}');" title="Llamada 1er Contacto CRM con Speech">
+                        <span style="display:inline-flex; align-items:center; margin-right:3px;">${getIcon('phone', { size: 12 })}</span> Llamar
                       </button>
-                      <button class="card-quick-btn" onclick="event.stopPropagation(); openQuickNoteModal('${c.id}');" title="Añadir Nota Rápida">
-                        <span style="display:inline-flex; align-items:center; margin-right:3px;">${getIcon('edit', { size: 12 })}</span> Nota
-                      </button>
+                      ${(c.estado_solicitud === 'Pendiente' || (col.id === 'Lead Nuevo' && !c.aprobado_por)) ? `
+                        <button class="card-quick-btn" style="color:#059669; border-color:#86efac; background:#f0fdf4; font-weight:700;" onclick="event.stopPropagation(); openAcceptApplicationModal('${c.id}');" title="Aceptar Solicitud & Crear Perfil">
+                          ✅ Aceptar
+                        </button>
+                      ` : `
+                        <button class="card-quick-btn" onclick="event.stopPropagation(); openQuickNoteModal('${c.id}');" title="Añadir Nota Rápida">
+                          <span style="display:inline-flex; align-items:center; margin-right:3px;">${getIcon('edit', { size: 12 })}</span> Nota
+                        </button>
+                      `}
                     </div>
 
                   </div>
@@ -2752,21 +3977,236 @@ function getCandidateProcessSteps(estadoRaw) {
   return { activeIndex, steps };
 }
 
+function renderApplicationDetailsCardHTML(c) {
+  const det = c.detalles_aplicacion;
+  const resp = c.respuestas_elegibilidad || {};
+  
+  // Extraer valores normalizados
+  const tieneTitulo = det?.preguntas_test?.find(p => p.clave === 'degree_check')?.respuesta || resp.degree_check || 'Sí, cuenta con título universitario';
+  const sector = det?.preguntas_test?.find(p => p.clave === 'sector')?.respuesta || resp.sector || 'Salud / Medicina';
+  let profesion = det?.preguntas_test?.find(p => p.clave === 'profession')?.respuesta || (c.especialidad && !c.especialidad.includes('Ver Test') ? c.especialidad : resp.profession || 'Enfermero/a Profesional');
+  if (profesion.includes('Ver Test')) profesion = resp.profession || 'Enfermero/a Profesional';
+  
+  const rangoEdad = det?.preguntas_test?.find(p => p.clave === 'age')?.respuesta || (c.edad ? `${c.edad} años` : (resp.age || '18 - 30 Años'));
+  const nivelEdu = det?.preguntas_test?.find(p => p.clave === 'education_level')?.respuesta || resp.education_level || 'Licenciatura';
+  const experiencia = det?.preguntas_test?.find(p => p.clave === 'experience')?.respuesta || (c.anos_exp ? `${c.anos_exp} Años` : (resp.experience || '2 - 4 Años'));
+  
+  let nivelAleman = det?.preguntas_test?.find(p => p.clave === 'german')?.respuesta || (c.nivel_aleman && !c.nivel_aleman.includes('Ver Test') ? `Alemán ${c.nivel_aleman}` : (resp.german || 'A1'));
+  if (nivelAleman.includes('Ver Test')) nivelAleman = 'A1 (Básico)';
+  
+  const residencia = det?.preguntas_test?.find(p => p.clave === 'location')?.respuesta || resp.location || c.pais || 'Latinoamérica';
+  const estadoCivil = det?.preguntas_test?.find(p => p.clave === 'marital')?.respuesta || resp.marital || 'Soltero/a';
+  
+  const score = c.puntaje_elegibilidad !== undefined ? c.puntaje_elegibilidad : (det?.puntaje || 24);
+  const comentarios = c.notas_internas || det?.datos_personales?.comentarios || 'Sin comentarios adicionales.';
+  const telefonoLimpio = (c.telefono || '').replace(/[^0-9+]/g, '');
+  const waLink = telefonoLimpio ? `https://wa.me/${telefonoLimpio.replace('+', '')}` : '#';
+
+  return `
+    <div class="candidate-standard-card candidate-app-details-card" style="margin-bottom: 24px; border-left: 4px solid var(--wine-800);">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px; margin-bottom:18px;">
+        <div>
+          <div class="candidate-card-header-wine" style="margin-bottom:4px; display:flex; align-items:center; gap:8px;">
+            <span style="font-size:1.15rem;">📋</span> INFORMACIÓN COMPLETA DE LA APLICACIÓN (TEST DE ELEGIBILIDAD)
+          </div>
+          <p style="font-size:0.8125rem; color:var(--slate-500); margin:0;">
+            Datos e información compartida por el candidato al momento de completar la postulación en la web
+          </p>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span class="badge ${score >= 20 ? 'badge-success' : 'badge-warning'}" style="font-size:0.8rem; font-weight:800; padding:6px 14px; border-radius:999px;">
+            ⭐ Score: ${score} pts (${score >= 20 ? 'ELEGIBLE' : 'POR VALIDAR'})
+          </span>
+        </div>
+      </div>
+
+      <!-- Barra de Contacto Directo para el Asesor (CRM) -->
+      <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:14px; padding:14px 18px; margin-bottom:20px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:14px;">
+        <div style="display:flex; align-items:center; gap:20px; flex-wrap:wrap;">
+          <div>
+            <div style="font-size:0.72rem; color:var(--slate-500); font-weight:700; text-transform:uppercase;">Teléfono / WhatsApp</div>
+            <div style="font-weight:700; color:var(--slate-900); font-size:0.95rem; display:flex; align-items:center; gap:8px; margin-top:2px;">
+              <span>${c.telefono || 'No registrado'}</span>
+              ${c.telefono ? `
+                <a href="tel:${c.telefono}" class="btn-xs btn-outline" style="text-decoration:none; display:inline-flex; align-items:center; gap:4px; font-size:0.75rem; padding:3px 8px; border-radius:6px; color:#2563eb; border-color:#93c5fd; background:#ffffff;" title="Llamar teléfono">
+                  📞 Llamar
+                </a>
+                <a href="${waLink}" target="_blank" rel="noopener noreferrer" class="btn-xs btn-outline" style="text-decoration:none; display:inline-flex; align-items:center; gap:4px; font-size:0.75rem; padding:3px 8px; border-radius:6px; color:#16a34a; border-color:#86efac; background:#ffffff;" title="Abrir chat de WhatsApp">
+                  💬 WhatsApp
+                </a>
+              ` : ''}
+            </div>
+          </div>
+
+          <div>
+            <div style="font-size:0.72rem; color:var(--slate-500); font-weight:700; text-transform:uppercase;">Correo Electrónico</div>
+            <div style="font-weight:600; color:var(--slate-900); font-size:0.9rem; margin-top:2px;">
+              ${c.correo ? `<a href="mailto:${c.correo}" style="color:var(--wine-800); text-decoration:none;">${c.correo}</a>` : 'No registrado'}
+            </div>
+          </div>
+
+          <div>
+            <div style="font-size:0.72rem; color:var(--slate-500); font-weight:700; text-transform:uppercase;">País & Edad</div>
+            <div style="font-weight:600; color:var(--slate-900); font-size:0.9rem; margin-top:2px;">
+              ${c.pais || 'No indicado'} · ${c.edad ? c.edad + ' años' : 'Edad n/d'}
+            </div>
+          </div>
+        </div>
+
+        <button class="btn btn-sm btn-crm-call" onclick="openSpeechWidgetForCandidate('${c.id}')" title="Abrir Panel CRM con Speech Guiado y Registro de Llamada">
+          <span style="display:inline-flex; align-items:center;">${getIcon('phone', { size: 14, color: '#ffffff' })}</span>
+          Llamada 1er Contacto (CRM)
+        </button>
+      </div>
+
+      <!-- Rejilla de Respuestas del Test de Elegibilidad -->
+      <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(240px, 1fr)); gap:12px; margin-bottom:18px;">
+        
+        <!-- Pregunta 1 -->
+        <div style="background:#ffffff; border:1px solid #f1f5f9; border-radius:12px; padding:12px 14px; box-shadow:0 1px 3px rgba(0,0,0,0.02);">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:5px;">
+            <span style="font-size:1.1rem;">🎓</span>
+            <span style="font-size:0.72rem; font-weight:700; color:var(--slate-500); text-transform:uppercase;">Título Universitario (3+ años)</span>
+          </div>
+          <div style="font-size:0.925rem; font-weight:700; color:var(--slate-900);">
+            ${tieneTitulo}
+          </div>
+        </div>
+
+        <!-- Pregunta 2 -->
+        <div style="background:#ffffff; border:1px solid #f1f5f9; border-radius:12px; padding:12px 14px; box-shadow:0 1px 3px rgba(0,0,0,0.02);">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:5px;">
+            <span style="font-size:1.1rem;">💼</span>
+            <span style="font-size:0.72rem; font-weight:700; color:var(--slate-500); text-transform:uppercase;">Sector Profesional</span>
+          </div>
+          <div style="font-size:0.925rem; font-weight:700; color:var(--slate-900);">
+            ${sector}
+          </div>
+        </div>
+
+        <!-- Pregunta 3 -->
+        <div style="background:#ffffff; border:1px solid #f1f5f9; border-radius:12px; padding:12px 14px; box-shadow:0 1px 3px rgba(0,0,0,0.02);">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:5px;">
+            <span style="font-size:1.1rem;">🩺</span>
+            <span style="font-size:0.72rem; font-weight:700; color:var(--slate-500); text-transform:uppercase;">Profesión / Especialidad</span>
+          </div>
+          <div style="font-size:0.925rem; font-weight:700; color:#801020;">
+            ${profesion}
+          </div>
+        </div>
+
+        <!-- Pregunta 4 -->
+        <div style="background:#ffffff; border:1px solid #f1f5f9; border-radius:12px; padding:12px 14px; box-shadow:0 1px 3px rgba(0,0,0,0.02);">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:5px;">
+            <span style="font-size:1.1rem;">📅</span>
+            <span style="font-size:0.72rem; font-weight:700; color:var(--slate-500); text-transform:uppercase;">Rango de Edad</span>
+          </div>
+          <div style="font-size:0.925rem; font-weight:700; color:var(--slate-900);">
+            ${rangoEdad}
+          </div>
+        </div>
+
+        <!-- Pregunta 5 -->
+        <div style="background:#ffffff; border:1px solid #f1f5f9; border-radius:12px; padding:12px 14px; box-shadow:0 1px 3px rgba(0,0,0,0.02);">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:5px;">
+            <span style="font-size:1.1rem;">📜</span>
+            <span style="font-size:0.72rem; font-weight:700; color:var(--slate-500); text-transform:uppercase;">Nivel Educativo Máximo</span>
+          </div>
+          <div style="font-size:0.925rem; font-weight:700; color:var(--slate-900);">
+            ${nivelEdu}
+          </div>
+        </div>
+
+        <!-- Pregunta 6 -->
+        <div style="background:#ffffff; border:1px solid #f1f5f9; border-radius:12px; padding:12px 14px; box-shadow:0 1px 3px rgba(0,0,0,0.02);">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:5px;">
+            <span style="font-size:1.1rem;">⭐</span>
+            <span style="font-size:0.72rem; font-weight:700; color:var(--slate-500); text-transform:uppercase;">Experiencia Laboral</span>
+          </div>
+          <div style="font-size:0.925rem; font-weight:700; color:var(--slate-900);">
+            ${experiencia}
+          </div>
+        </div>
+
+        <!-- Pregunta 7 -->
+        <div style="background:#ffffff; border:1px solid #f1f5f9; border-radius:12px; padding:12px 14px; box-shadow:0 1px 3px rgba(0,0,0,0.02);">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:5px;">
+            <span style="font-size:1.1rem;">🇩🇪</span>
+            <span style="font-size:0.72rem; font-weight:700; color:var(--slate-500); text-transform:uppercase;">Nivel de Alemán Declarado</span>
+          </div>
+          <div style="font-size:0.925rem; font-weight:700; color:var(--slate-900);">
+            ${nivelAleman}
+          </div>
+        </div>
+
+        <!-- Pregunta 8 -->
+        <div style="background:#ffffff; border:1px solid #f1f5f9; border-radius:12px; padding:12px 14px; box-shadow:0 1px 3px rgba(0,0,0,0.02);">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:5px;">
+            <span style="font-size:1.1rem;">📍</span>
+            <span style="font-size:0.72rem; font-weight:700; color:var(--slate-500); text-transform:uppercase;">Lugar de Residencia</span>
+          </div>
+          <div style="font-size:0.925rem; font-weight:700; color:var(--slate-900);">
+            ${residencia}
+          </div>
+        </div>
+
+        <!-- Pregunta 9 -->
+        <div style="background:#ffffff; border:1px solid #f1f5f9; border-radius:12px; padding:12px 14px; box-shadow:0 1px 3px rgba(0,0,0,0.02);">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:5px;">
+            <span style="font-size:1.1rem;">💍</span>
+            <span style="font-size:0.72rem; font-weight:700; color:var(--slate-500); text-transform:uppercase;">Estado Civil</span>
+          </div>
+          <div style="font-size:0.925rem; font-weight:700; color:var(--slate-900);">
+            ${estadoCivil}
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Comentarios adicionales -->
+      <div style="background:#fff7ed; border:1px solid #ffedd5; border-radius:12px; padding:12px 16px;">
+        <div style="font-size:0.72rem; font-weight:800; color:#c2410c; text-transform:uppercase; margin-bottom:4px; display:flex; align-items:center; gap:6px;">
+          <span>💬</span> Comentarios Adicionales del Postulante
+        </div>
+        <p style="margin:0; font-size:0.875rem; color:#7c2d12; font-style:italic; line-height:1.45;">
+          "${comentarios}"
+        </p>
+      </div>
+    </div>
+  `;
+}
+
 function renderCandidateProfileHTML(c) {
   const { activeIndex, steps } = getCandidateProcessSteps(c.estado_proceso);
   const progressPercent = activeIndex === 0 ? 12 : (activeIndex === 1 ? 42 : (activeIndex === 2 ? 72 : 100));
 
-  // Formato de nombre y metadatos
+  // Respuestas del test y metadatos
+  const resp = c.respuestas_elegibilidad || {};
+  const isPendingApplication = c.estado_solicitud === 'Pendiente' || (normalizeCandidatePhase(c.estado_proceso) === 'Lead Nuevo' && !c.aprobado_por);
+
+  // Formato de nombre y especialidad real (sin "Ver Test")
   const nombre = c.nombre || 'Mateo Valencia';
   const displayName = nombre.replace(/\s+/, '<br>');
   const lastName = nombre.split(' ').slice(1).join('_') || 'Valencia';
-  const especialidad = c.especialidad || 'Enfermero Profesional';
-  const roleBadge = (especialidad.toLowerCase().includes('enferm') ? 'ENFERMERO<br>PROFESIONAL' : especialidad.toUpperCase());
-  const subespecialidad = c.subespecialidad || 'Cuidados Intensivos';
-  const idioma = c.nivel_aleman && !c.nivel_aleman.includes('Ver Test') ? `Alemán ${c.nivel_aleman} (En curso)` : 'Alemán B2 (En curso)';
+
+  let especialidad = (c.especialidad && !c.especialidad.includes('Ver Test')) ? c.especialidad : (resp.profession || 'Enfermero/a Profesional');
+  if (especialidad.includes('Ver Test')) especialidad = resp.profession || 'Enfermero/a Profesional';
+
+  const subespecialidad = (c.subespecialidad && !c.subespecialidad.includes('Ver Test')) ? c.subespecialidad : (resp.profession || 'Cuidados Intensivos');
+
+  let cleanNivel = (c.nivel_aleman && !c.nivel_aleman.includes('Ver Test')) ? c.nivel_aleman : (resp.german || 'B1');
+  if (cleanNivel.includes('Ver Test')) cleanNivel = 'B1';
+  const idioma = `Alemán ${cleanNivel} (En curso)`;
+
+  const roleBadge = (especialidad.toLowerCase().includes('enferm') 
+    ? 'ENFERMERO<br>PROFESIONAL' 
+    : (especialidad.toLowerCase().includes('médic') || especialidad.toLowerCase().includes('medic')) 
+      ? 'MÉDICO<br>ESPECIALISTA' 
+      : especialidad.toUpperCase());
+
   const ciudad = c.ciudad || 'Medellín';
   const pais = c.pais || 'Colombia';
-  let fechaMiembro = 'Miembro desde Oct 2023';
+  let fechaMiembro = 'Miembro desde Oct 2026';
   if (c.fecha_alta) {
     try {
       const d = new Date(c.fecha_alta);
@@ -2807,6 +4247,39 @@ function renderCandidateProfileHTML(c) {
         </div>
       </div>
 
+      <!-- BANNER DE ALERTA: SOLICITUD PENDIENTE DE ACEPTACIÓN POR EL ASESOR -->
+      ${isPendingApplication ? `
+        <div class="candidate-application-alert-banner">
+          <div style="display:flex; align-items:center; gap:14px; max-width:680px;">
+            <div style="width:48px; height:48px; border-radius:14px; background:#f59e0b; color:#ffffff; display:flex; align-items:center; justify-content:center; font-size:1.5rem; flex-shrink:0;">
+              📋
+            </div>
+            <div>
+              <div style="font-size:1.05rem; font-weight:800; color:#92400e; margin-bottom:3px; display:flex; align-items:center; gap:8px;">
+                Solicitud de Aplicación Recibida — Pendiente de Aceptación
+                <span style="font-size:0.75rem; background:#fbbf24; color:#78350f; padding:2px 8px; border-radius:999px; font-weight:700;">${c.puntaje_elegibilidad !== undefined ? c.puntaje_elegibilidad + ' pts' : 'Nuevo Lead'}</span>
+              </div>
+              <p style="font-size:0.835rem; color:#78350f; margin:0; line-height:1.45;">
+                Antes de formalizar e integrar el perfil del candidato al programa, revisa la información de su aplicación, realiza la <strong>llamada de primer contacto</strong> y acepta su solicitud.
+              </p>
+            </div>
+          </div>
+          <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+            <button class="btn-crm-call" onclick="openSpeechWidgetForCandidate('${c.id}')" title="Hacer llamada de primer contacto vinculada al CRM con script guiado">
+              <span style="display:inline-flex; align-items:center;">${getIcon('phone', { size: 15, color: '#ffffff' })}</span>
+              Llamada 1er Contacto (CRM)
+            </button>
+            <button class="btn-accept-application" onclick="openAcceptApplicationModal('${c.id}')" title="Aceptar solicitud y formalizar el perfil de candidato">
+              <span style="display:inline-flex; align-items:center;">${getIcon('check', { size: 15, color: '#ffffff' })}</span>
+              Aceptar Solicitud
+            </button>
+            <button class="btn btn-sm btn-outline" style="border-color:#ef4444; color:#dc2626; font-weight:700; padding:9px 14px; border-radius:12px; background:#ffffff;" onclick="openRejectApplicationModal('${c.id}')" title="Descartar solicitud">
+              ✕ Descartar
+            </button>
+          </div>
+        </div>
+      ` : ''}
+
       <!-- 2. Rejilla Principal de 2 Columnas -->
       <div class="candidate-profile-grid">
         <!-- Columna Izquierda (Principal) -->
@@ -2827,10 +4300,17 @@ function renderCandidateProfileHTML(c) {
               </div>
               
               <div style="margin-bottom: 10px;">
-                <span class="candidate-integrated-tag">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
-                  Candidato Integrado al Programa
-                </span>
+                ${isPendingApplication ? `
+                  <span class="candidate-integrated-tag pending">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                    SOLICITUD PENDIENTE DE ACEPTACIÓN POR EL ASESOR
+                  </span>
+                ` : `
+                  <span class="candidate-integrated-tag">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                    CANDIDATO INTEGRADO AL PROGRAMA
+                  </span>
+                `}
               </div>
               
               <div class="candidate-hero-meta-row">
@@ -2856,6 +4336,9 @@ function renderCandidateProfileHTML(c) {
               </div>
             </div>
           </div>
+
+          <!-- FICHA COMPLETA DE LA APLICACIÓN (TEST DE ELEGIBILIDAD) -->
+          ${renderApplicationDetailsCardHTML(c)}
 
           <!-- Tarjeta de Estado del Proceso (Stepper Horizontal) -->
           <div class="candidate-standard-card">
@@ -2936,7 +4419,7 @@ function renderCandidateProfileHTML(c) {
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><polyline points="9 12 11 14 15 10"></polyline></svg>
                   </div>
                   <div>
-                    <div class="candidate-doc-title">Certificado_Alemán_${c.nivel_aleman && !c.nivel_aleman.includes('Ver Test') ? c.nivel_aleman : 'A2'}.pdf</div>
+                    <div class="candidate-doc-title">Certificado_Alemán_${cleanNivel}.pdf</div>
                     <div class="candidate-doc-sub">ESPERANDO VALIDACIÓN</div>
                   </div>
                 </div>
@@ -2967,6 +4450,23 @@ function renderCandidateProfileHTML(c) {
           <!-- Acciones Rápidas (Caja Vino Tinto Oscuro) -->
           <div class="candidate-actions-box">
             <div class="candidate-actions-title">ACCIONES RÁPIDAS</div>
+
+            ${isPendingApplication ? `
+              <button class="candidate-action-btn-item" style="background:rgba(37,99,235,0.3); border:1px solid rgba(147,197,253,0.5);" onclick="openSpeechWidgetForCandidate('${c.id}')" title="Llamada de primer contacto con speech y CRM">
+                <span style="display:inline-flex; align-items:center;">${getIcon('phone', { size: 18, color: '#93c5fd' })}</span>
+                <span style="color:#ffffff; font-weight:700;">Llamada 1er Contacto (CRM)</span>
+              </button>
+              <button class="candidate-action-btn-item" style="background:rgba(22,163,74,0.3); border:1px solid rgba(134,239,172,0.5);" onclick="openAcceptApplicationModal('${c.id}')" title="Aceptar solicitud y formalizar el perfil de candidato">
+                <span style="display:inline-flex; align-items:center;">${getIcon('check', { size: 18, color: '#86efac' })}</span>
+                <span style="color:#ffffff; font-weight:700;">Aceptar Solicitud & Crear Perfil</span>
+              </button>
+            ` : `
+              <button class="candidate-action-btn-item" onclick="openSpeechWidgetForCandidate('${c.id}')" title="Llamar con speech guiado y registro en CRM">
+                <span style="display:inline-flex; align-items:center;">${getIcon('phone', { size: 18, color: '#ffffff' })}</span>
+                <span>Llamada CRM / Speech</span>
+              </button>
+            `}
+
             <button class="candidate-action-btn-item" onclick="openCandidateChatModal('${c.id}')">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
               <span>Enviar Mensaje</span>
@@ -2985,21 +4485,25 @@ function renderCandidateProfileHTML(c) {
           <div class="candidate-standard-card">
             <div class="candidate-card-header-wine">HISTORIAL</div>
             <div class="candidate-history-timeline">
-              <div class="candidate-history-event">
-                <div class="candidate-history-dot active"></div>
-                <div class="candidate-history-time">HACE 2 HORAS</div>
-                <div class="candidate-history-desc">Documentos de Visa aprobados</div>
-                <div class="candidate-history-author">Por: Elena Martínez (Admin)</div>
-              </div>
+              ${c.fecha_aprobacion ? `
+                <div class="candidate-history-event">
+                  <div class="candidate-history-dot active"></div>
+                  <div class="candidate-history-time">APROBADO</div>
+                  <div class="candidate-history-desc">Solicitud de aplicación aceptada</div>
+                  <div class="candidate-history-author">Por: ${c.aprobado_por || 'Asesor'}</div>
+                </div>
+              ` : `
+                <div class="candidate-history-event">
+                  <div class="candidate-history-dot active" style="background:#f59e0b;"></div>
+                  <div class="candidate-history-time">RECIENTE</div>
+                  <div class="candidate-history-desc">Solicitud web recibida (${c.puntaje_elegibilidad || 0} pts)</div>
+                  <div class="candidate-history-author">Pendiente llamada de 1er contacto</div>
+                </div>
+              `}
               <div class="candidate-history-event">
                 <div class="candidate-history-dot"></div>
-                <div class="candidate-history-time">AYER, 14:30</div>
-                <div class="candidate-history-desc">Subió Certificado Alemán A2</div>
-              </div>
-              <div class="candidate-history-event">
-                <div class="candidate-history-dot"></div>
-                <div class="candidate-history-time">24 ENE, 2024</div>
-                <div class="candidate-history-desc">Entrevista inicial aprobada</div>
+                <div class="candidate-history-time">${fechaMiembro.toUpperCase()}</div>
+                <div class="candidate-history-desc">Completó Test de Elegibilidad</div>
               </div>
             </div>
           </div>
@@ -3316,6 +4820,234 @@ function saveCandidateProfileEdit(id) {
     showToast('Error', 'No se pudo guardar la información', 'error');
   });
 }
+
+// ──────────────────────────────────────────────────────────────────
+// MODALES DE ACEPTACIÓN Y RECHAZO DE SOLICITUD DE APLICACIÓN (CRM)
+// ──────────────────────────────────────────────────────────────────
+function openAcceptApplicationModal(id) {
+  const c = DB.getCandidatoById(id);
+  if (!c) return;
+
+  const resp = c.respuestas_elegibilidad || {};
+  let currentEspecialidad = (c.especialidad && !c.especialidad.includes('Ver Test')) ? c.especialidad : (resp.profession || 'Enfermero/a Profesional');
+  if (currentEspecialidad.includes('Ver Test')) currentEspecialidad = resp.profession || 'Enfermero/a Profesional';
+  
+  let currentAleman = (c.nivel_aleman && !c.nivel_aleman.includes('Ver Test')) ? c.nivel_aleman : (resp.german || 'B1');
+  if (currentAleman.includes('Ver Test')) currentAleman = 'B1';
+
+  const asesores = DB.getUsuarios().filter(u => (u.roles || []).includes('Asesor') || (u.roles || []).includes('Super Asesor'));
+
+  const modalHtml = `
+    <div class="modal-overlay visible open" id="modal-accept-application" role="dialog" aria-modal="true" style="z-index:9999;" onclick="if(event.target===this) closeModal('modal-accept-application')">
+      <div class="modal modal-card" style="max-width:620px; width:95%; border-radius:24px; padding:28px; background:#ffffff; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);">
+        
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:18px; border-bottom:1px solid #f1f5f9; padding-bottom:16px;">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <div style="width:48px; height:48px; border-radius:14px; background:#ecfdf5; color:#059669; display:flex; align-items:center; justify-content:center; font-size:1.5rem;">
+              ✅
+            </div>
+            <div>
+              <h3 style="margin:0; font-family:var(--font-heading); color:#064e3b; font-size:1.3rem;">Aceptar Solicitud & Crear Perfil de Candidato</h3>
+              <p style="margin:3px 0 0 0; font-size:0.85rem; color:#64748b;">Postulante: <strong style="color:#0f172a;">${c.nombre}</strong> (${c.pais})</p>
+            </div>
+          </div>
+          <button class="modal-close" onclick="closeModal('modal-accept-application')" style="background:none; border:none; font-size:1.4rem; cursor:pointer; color:#94a3b8;">✕</button>
+        </div>
+
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:14px; padding:16px; margin-bottom:20px;">
+          <div style="font-size:0.75rem; text-transform:uppercase; letter-spacing:0.5px; font-weight:800; color:#475569; margin-bottom:10px;">
+            Resumen de la Solicitud Web
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; font-size:0.85rem;">
+            <div><span style="color:#64748b;">Especialidad:</span> <strong style="color:#0f172a;">${currentEspecialidad}</strong></div>
+            <div><span style="color:#64748b;">Nivel Alemán:</span> <strong style="color:#0f172a;">${currentAleman}</strong></div>
+            <div><span style="color:#64748b;">Score del Test:</span> <span class="badge badge-success" style="font-size:0.75rem;">${c.puntaje_elegibilidad || 0} pts</span></div>
+            <div><span style="color:#64748b;">Teléfono:</span> <strong style="color:#0f172a;">${c.telefono || 'Sin registrar'}</strong></div>
+          </div>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:14px; margin-bottom:20px;">
+          <div>
+            <label class="form-label" style="font-size:0.8rem; font-weight:700;">Confirmar Especialidad Oficial para el Programa</label>
+            <input class="form-input" id="accept-app-especialidad" value="${currentEspecialidad}">
+          </div>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+            <div>
+              <label class="form-label" style="font-size:0.8rem; font-weight:700;">Nivel Alemán Validado</label>
+              <select class="form-select" id="accept-app-nivel">
+                <option value="A1" ${currentAleman==='A1'?'selected':''}>A1 (Inicial)</option>
+                <option value="A2" ${currentAleman==='A2'?'selected':''}>A2 (Básico)</option>
+                <option value="B1" ${currentAleman==='B1'?'selected':''}>B1 (Intermedio)</option>
+                <option value="B2" ${currentAleman==='B2'?'selected':''}>B2 (Médico Homologable)</option>
+                <option value="C1" ${currentAleman==='C1'?'selected':''}>C1 (Avanzado)</option>
+              </select>
+            </div>
+            <div>
+              <label class="form-label" style="font-size:0.8rem; font-weight:700;">Asignar Asesor Responsable</label>
+              <select class="form-select" id="accept-app-asesor">
+                ${asesores.map(a => `
+                  <option value="${a.id}" ${c.id_asesor === a.id || (State.currentUser && State.currentUser.id === a.id) ? 'selected' : ''}>
+                    ${a.nombre}
+                  </option>
+                `).join('')}
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label class="form-label" style="font-size:0.8rem; font-weight:700;">Nota Inicial del Asesor (Opcional)</label>
+            <textarea class="form-input" id="accept-app-nota" rows="2" placeholder="Ej: Solicitud revisada y aprobada tras validación inicial. Perfil apto para programa hacia Alemania..."></textarea>
+          </div>
+        </div>
+
+        <div style="padding:12px 14px; background:#f0fdf4; border-radius:10px; border-left:4px solid #16a34a; margin-bottom:20px; font-size:0.8rem; color:#166534; line-height:1.4;">
+          💡 <strong>Acción del Sistema:</strong> Al aceptar la solicitud, se formalizará el <strong>Perfil de Candidato Integrado al Programa</strong>, habilitando su expediente completo, la carga de documentación y su avance hacia la homologación en Alemania.
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; gap:10px;">
+          <button class="btn btn-outline" onclick="closeModal('modal-accept-application')">Cancelar</button>
+          <button class="btn btn-primary" onclick="confirmAcceptApplication('${c.id}')" style="background:#059669; border-color:#059669; font-weight:700; padding:10px 22px; border-radius:12px;">
+            ✅ Confirmar y Crear Perfil
+          </button>
+        </div>
+
+      </div>
+    </div>
+  `;
+
+  let existing = $('modal-accept-application');
+  if (existing) existing.remove();
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
+
+async function confirmAcceptApplication(id) {
+  const c = DB.getCandidatoById(id);
+  if (!c) return;
+
+  const especialidad = $('accept-app-especialidad')?.value.trim() || c.especialidad || 'Enfermero/a Profesional';
+  const nivelAleman = $('accept-app-nivel')?.value || c.nivel_aleman || 'A1';
+  const idAsesor = $('accept-app-asesor')?.value || c.id_asesor || (State.currentUser?.id);
+  const asesorObj = DB.getUsuarios().find(u => u.id === idAsesor);
+  const nota = $('accept-app-nota')?.value.trim();
+
+  const updatePayload = {
+    especialidad: especialidad,
+    subespecialidad: especialidad,
+    nivel_aleman: nivelAleman,
+    estado_solicitud: 'Aprobada',
+    estado_proceso: '1er contacto, reclutamiento',
+    id_asesor: idAsesor,
+    nombre_asesor: asesorObj ? asesorObj.nombre : (c.nombre_asesor || 'Asesor Asignado'),
+    fecha_aprobacion: new Date().toISOString(),
+    aprobado_por: State.currentUser ? State.currentUser.nombre : 'Asesor JN Palabras'
+  };
+
+  await DB.updateCandidato(c.id, updatePayload);
+
+  // Registrar en bitácora de notas
+  const autor = State.currentUser ? State.currentUser.nombre : 'Asesor';
+  DB.addNota({
+    id_candidato: c.id,
+    autor: autor,
+    tipo: 'Aprobación de Solicitud',
+    contenido: `[Solicitud Aprobada] La solicitud de aplicación web ha sido aceptada por ${autor}. Perfil de candidato formalmente creado e integrado al programa. ${nota ? 'Nota adicional: ' + nota : ''}`
+  });
+
+  // Notificar al candidato y al asesor
+  DB.addNotificacion({
+    id_usuario_dest: c.id_usuario || c.id,
+    tipo: 'General',
+    titulo: '🎉 ¡Solicitud Aprobada!',
+    mensaje: `Tu solicitud ha sido aprobada por tu asesor ${updatePayload.nombre_asesor}. Tu perfil ya está formalmente integrado al programa.`
+  });
+
+  closeModal('modal-accept-application');
+  showToast('🎉 ¡Solicitud Aprobada!', `El perfil de ${c.nombre} ha sido creado e integrado al programa con éxito.`, 'success', 6000);
+
+  // Re-render
+  if (State.currentSidebar === 'candidato-perfil') {
+    renderDashboard(State.activeRole, 'candidato-perfil');
+  } else {
+    renderDashboard(State.activeRole, State.currentSidebar);
+  }
+}
+
+function openRejectApplicationModal(id) {
+  const c = DB.getCandidatoById(id);
+  if (!c) return;
+
+  const modalHtml = `
+    <div class="modal-overlay visible open" id="modal-reject-application" role="dialog" aria-modal="true" style="z-index:9999;" onclick="if(event.target===this) closeModal('modal-reject-application')">
+      <div class="modal modal-card" style="max-width:540px; width:95%; border-radius:24px; padding:28px; background:#ffffff; box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; border-bottom:1px solid #fee2e2; padding-bottom:14px;">
+          <h3 style="margin:0; font-family:var(--font-heading); color:#991b1b; font-size:1.25rem;">Descartar Solicitud de Aplicación</h3>
+          <button class="modal-close" onclick="closeModal('modal-reject-application')" style="background:none; border:none; font-size:1.3rem; cursor:pointer; color:#94a3b8;">✕</button>
+        </div>
+        <p style="font-size:0.875rem; color:#475569; margin-bottom:16px;">
+          ¿Deseas marcar como descartada la postulación de <strong>${c.nombre}</strong>?
+        </p>
+        <div style="margin-bottom:18px;">
+          <label class="form-label" style="font-size:0.8rem; font-weight:700;">Motivo de Descarte</label>
+          <select class="form-select" id="reject-app-motivo" style="margin-bottom:10px;">
+            <option value="No cuenta con título universitario homologable">No cuenta con título universitario homologable</option>
+            <option value="No tiene interés actual en viajar a Alemania">No tiene interés actual en viajar a Alemania</option>
+            <option value="No responde a intentos de llamada de 1er contacto">No responde a intentos de llamada de 1er contacto</option>
+            <option value="Datos de contacto erróneos / prueba">Datos de contacto erróneos / prueba</option>
+            <option value="Otro motivo">Otro motivo</option>
+          </select>
+          <textarea class="form-input" id="reject-app-comentario" rows="2" placeholder="Observaciones adicionales sobre el descarte..."></textarea>
+        </div>
+        <div style="display:flex; justify-content:flex-end; gap:10px;">
+          <button class="btn btn-outline" onclick="closeModal('modal-reject-application')">Cancelar</button>
+          <button class="btn btn-primary" onclick="confirmRejectApplication('${c.id}')" style="background:#dc2626; border-color:#dc2626; font-weight:700; border-radius:12px;">
+            ✕ Confirmar Descarte
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  let existing = $('modal-reject-application');
+  if (existing) existing.remove();
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
+
+async function confirmRejectApplication(id) {
+  const c = DB.getCandidatoById(id);
+  if (!c) return;
+
+  const motivo = $('reject-app-motivo')?.value || 'Descartado';
+  const comentario = $('reject-app-comentario')?.value.trim() || '';
+
+  await DB.updateCandidato(c.id, {
+    estado_solicitud: 'Descartada',
+    estado_proceso: 'Inactivo',
+    motivo_descarte: `${motivo}. ${comentario}`
+  });
+
+  DB.addNota({
+    id_candidato: c.id,
+    autor: State.currentUser ? State.currentUser.nombre : 'Asesor',
+    tipo: 'Solicitud Descartada',
+    contenido: `[Solicitud Descartada] Motivo: ${motivo}. ${comentario}`
+  });
+
+  closeModal('modal-reject-application');
+  showToast('Solicitud descartada', `La postulación de ${c.nombre} ha sido marcada como descartada.`, 'info');
+
+  if (State.currentSidebar === 'candidato-perfil') {
+    renderDashboard(State.activeRole, 'candidato-perfil');
+  } else {
+    renderDashboard(State.activeRole, State.currentSidebar);
+  }
+}
+
+// Make accessible to window
+window.openAcceptApplicationModal = openAcceptApplicationModal;
+window.confirmAcceptApplication = confirmAcceptApplication;
+window.openRejectApplicationModal = openRejectApplicationModal;
+window.confirmRejectApplication = confirmRejectApplication;
 
 /* ── MODAL CUADRO PARA AÑADIR NOTA INTERNA ── */
 function openAddCandidateNoteModal(id) {
@@ -4933,10 +6665,13 @@ function renderSuperLeads() {
                     <span style="font-size:0.85rem; font-weight:500;">${c.pais}</span>
                   </td>
                   <td>
-                    <span style="font-size:0.875rem; font-weight:600; color:var(--slate-800);">${c.especialidad}</span>
+                    <span style="font-size:0.875rem; font-weight:600; color:var(--slate-800);">${(c.especialidad && !c.especialidad.includes('Ver Test')) ? c.especialidad : (c.respuestas_elegibilidad?.profession || 'Salud')}</span>
+                    ${(c.estado_solicitud === 'Pendiente' || !c.aprobado_por) ? `
+                      <span class="badge" style="background:#fef3c7; color:#92400e; font-size:0.65rem; margin-left:4px; font-weight:700;">Pendiente Aceptar</span>
+                    ` : ''}
                   </td>
                   <td>
-                    <span class="badge badge-info" style="font-size:0.7rem;">${c.nivel_aleman}</span>
+                    <span class="badge badge-info" style="font-size:0.7rem;">${(c.nivel_aleman && !c.nivel_aleman.includes('Ver Test')) ? c.nivel_aleman : (c.respuestas_elegibilidad?.german || 'A1')}</span>
                   </td>
                   <td>
                     ${c.puntaje_elegibilidad !== undefined 
@@ -4959,8 +6694,8 @@ function renderSuperLeads() {
                   </td>
                   <td style="text-align:right;">
                     <div style="display:inline-flex; align-items:center; gap:6px;">
-                      <select class="form-select form-select-sm" id="lead-sel-${c.id}" style="font-size:0.8rem; padding:4px 8px; width:170px;">
-                        <option value="">-- Designar Asesor --</option>
+                      <select class="form-select form-select-sm" id="lead-sel-${c.id}" style="font-size:0.8rem; padding:4px 8px; width:150px;">
+                        <option value="">-- Designar --</option>
                         ${asesores.map(a => {
                           const carga = candidatos.filter(x => x.id_asesor === a.id).length;
                           return `
@@ -4973,7 +6708,15 @@ function renderSuperLeads() {
                       <button class="btn btn-primary btn-sm" onclick="ejecutarDesignacion('${c.id}')" title="Confirmar designación de asesor">
                         ✓
                       </button>
-                      <button class="btn btn-outline btn-sm" onclick="openCandidateDetail('${c.id}')" title="Ver detalles y test">
+                      <button class="btn btn-outline btn-sm" onclick="openSpeechWidgetForCandidate('${c.id}')" title="Llamada 1er Contacto (CRM)">
+                        📞
+                      </button>
+                      ${(c.estado_solicitud === 'Pendiente' || !c.aprobado_por) ? `
+                        <button class="btn btn-sm" style="background:#059669; color:#fff; border:none; padding:4px 8px; font-weight:700;" onclick="openAcceptApplicationModal('${c.id}')" title="Aceptar Solicitud & Crear Perfil">
+                          ✅
+                        </button>
+                      ` : ''}
+                      <button class="btn btn-outline btn-sm" onclick="openCandidateDetail('${c.id}')" title="Ver solicitud completa y test">
                         👁️
                       </button>
                     </div>
@@ -6455,7 +8198,32 @@ function renderApplicationStep() {
 }
 
 function selectAppOption(questionId, value, el) {
-  State.appAnswers[questionId] = value; State.appAnswersLabels = State.appAnswersLabels || {}; if (el) State.appAnswersLabels[questionId] = el.innerText.trim();
+  State.appAnswers = State.appAnswers || {};
+  State.appAnswersLabels = State.appAnswersLabels || {};
+  State.appAnswersDetailed = State.appAnswersDetailed || {};
+
+  State.appAnswers[questionId] = value;
+
+  // Obtener etiqueta limpia desde la definición de pasos
+  let cleanLabel = '';
+  const currentStep = OFF_CANVAS_STEPS.find(s => s.id === questionId);
+  if (currentStep && currentStep.options) {
+    const opt = currentStep.options.find(o => String(o.value) === String(value));
+    if (opt) cleanLabel = opt.label;
+  }
+  if (!cleanLabel && el) {
+    const labelSpan = el.querySelector('span:last-child');
+    cleanLabel = labelSpan ? labelSpan.innerText.trim() : el.innerText.trim();
+  }
+
+  State.appAnswersLabels[questionId] = cleanLabel;
+  State.appAnswersDetailed[questionId] = {
+    question: currentStep?.question || questionId,
+    label: currentStep?.label || '',
+    value: value,
+    answerText: cleanLabel
+  };
+
   $$('#application-offcanvas-content .test-option').forEach(o => o.classList.remove('selected'));
   if (el) el.classList.add('selected');
 
@@ -6498,7 +8266,15 @@ function submitOtrosOption(questionId, value) {
     }
     return;
   }
+  State.appAnswers = State.appAnswers || {};
+  State.appAnswersLabels = State.appAnswersLabels || {};
+  State.appAnswersDetailed = State.appAnswersDetailed || {};
+
   State.appAnswers[questionId + '_especificacion'] = inputVal;
+  State.appAnswersLabels[questionId] = inputVal;
+  if (State.appAnswersDetailed[questionId]) {
+    State.appAnswersDetailed[questionId].answerText = inputVal;
+  }
   nextApplicationStep();
 }
 
@@ -6661,52 +8437,126 @@ async function submitRegistration(e) {
   const pais   = ($('reg-pais')?.value || '').trim();
   const correo = ($('reg-correo')?.value || '').trim();
   const comentarios = ($('reg-comentarios')?.value || '').trim();
+  const telefono = ($('reg-telefono')?.value || '').trim();
+  const edad = ($('reg-edad')?.value || '').trim();
   
   if (!nombre || !correo || !pais) { showToast('Error','Por favor completa todos los campos requeridos.','error'); return; }
   
   // Calcular puntaje
   let totalScore = 0;
-  Object.keys(State.appAnswers).forEach(key => {
+  Object.keys(State.appAnswers || {}).forEach(key => {
     const num = parseInt(State.appAnswers[key], 10);
     if (!isNaN(num) && key !== 'sector' && key !== 'degree_check') {
       totalScore += num;
     }
   });
 
+  // Extraer especialidad y profesión real del candidato
+  let professionText = State.appAnswersLabels?.profession || State.appAnswers?.profession_especificacion;
+  if (!professionText || professionText.includes('Ver Test')) {
+    professionText = (State.appAnswers?.sector === 'salud') ? 'Enfermero/a Profesional' : 'Profesional Cualificado';
+  }
+
+  // Extraer y normalizar nivel de alemán
+  let germanLabel = State.appAnswersLabels?.german || 'A1';
+  let cleanGerman = 'A1';
+  if (germanLabel.includes('B2')) cleanGerman = 'B2';
+  else if (germanLabel.includes('B1')) cleanGerman = 'B1';
+  else if (germanLabel.includes('A2')) cleanGerman = 'A2';
+  else if (germanLabel.includes('A1')) cleanGerman = 'A1';
+  else if (germanLabel.includes('C1')) cleanGerman = 'C1';
+  else if (germanLabel.includes('C2') || germanLabel.includes('Materna')) cleanGerman = 'C2';
+
+  // Años de experiencia
+  const expLabel = State.appAnswersLabels?.experience || '1 - 2 Años';
+  let anosExp = 1;
+  if (expLabel.includes('4 Años') || expLabel.includes('más')) anosExp = 4;
+  else if (expLabel.includes('2 - 4')) anosExp = 3;
+  else if (expLabel.includes('Sin')) anosExp = 0;
+
+  const tieneTitulo = State.appAnswersLabels?.degree_check || (State.appAnswers?.degree_check === 'yes' ? 'Sí, tengo título o carrera de 3+ años' : 'No');
+  const sectorText = State.appAnswersLabels?.sector || 'Salud / Medicina';
+  const eduLevel = State.appAnswersLabels?.education_level || 'Licenciatura';
+  const locText = State.appAnswersLabels?.location || pais;
+  const maritalText = State.appAnswersLabels?.marital || 'No especificado';
+
+  // Ficha detallada de la aplicación
+  const detallesAplicacion = {
+    fecha_aplicacion: new Date().toISOString(),
+    puntaje: totalScore,
+    es_elegible: totalScore >= 20,
+    datos_personales: {
+      nombre,
+      correo,
+      telefono: telefono || 'No proporcionado',
+      pais,
+      ciudad: pais,
+      edad: edad || State.appAnswersLabels?.age || '28',
+      comentarios: comentarios || 'Sin comentarios adicionales'
+    },
+    preguntas_test: [
+      { clave: 'degree_check', pregunta: '¿Tienes un título universitario o carrera de por lo menos 3 años?', respuesta: tieneTitulo, icono: 'academic' },
+      { clave: 'sector', pregunta: 'Sector profesional', respuesta: sectorText, icono: 'briefcase' },
+      { clave: 'profession', pregunta: 'Profesión o especialidad específica', respuesta: professionText, icono: 'stethoscope' },
+      { clave: 'age', pregunta: 'Rango de edad', respuesta: State.appAnswersLabels?.age || (edad ? `${edad} años` : '18 - 30 Años'), icono: 'calendar' },
+      { clave: 'education_level', pregunta: 'Nivel educativo / Título máximo', respuesta: eduLevel, icono: 'fileText' },
+      { clave: 'experience', pregunta: 'Años de experiencia laboral', respuesta: expLabel, icono: 'star' },
+      { clave: 'german', pregunta: 'Conocimientos de Alemán', respuesta: `${cleanGerman} (${germanLabel})`, icono: 'globe' },
+      { clave: 'location', pregunta: 'Lugar de residencia actual', respuesta: locText, icono: 'mapPin' },
+      { clave: 'marital', pregunta: 'Estado civil', respuesta: maritalText, icono: 'info' }
+    ]
+  };
+
   await DB.createCandidato({ 
     nombre, 
     pais, 
-    especialidad: 'Ver Test', 
-    nivel_aleman: 'Ver Test', 
+    ciudad: pais,
+    especialidad: professionText, 
+    subespecialidad: professionText,
+    nivel_aleman: cleanGerman, 
+    estado_solicitud: 'Pendiente', // Solicitud pendiente de aceptación por el asesor
     estado_proceso: 'Lead Nuevo', 
     estado_homologacion: 'Pendiente', 
     foto: getInitials(nombre), 
-    anos_exp: 0,
+    anos_exp: anosExp,
     correo,
-    notas_internas: comentarios,
-    telefono: ($('reg-telefono')?.value || '').trim(),
-    edad: ($('reg-edad')?.value || '').trim(),
+    notas_internas: comentarios ? `[Aplicación Web] Comentarios del candidato: ${comentarios}` : '[Aplicación Web] Solicitud completada. Pendiente llamada de 1er contacto.',
+    telefono,
+    edad: edad || (State.appAnswersLabels?.age ? parseInt(State.appAnswersLabels.age, 10) : 28),
     puntaje_elegibilidad: totalScore,
-    respuestas_elegibilidad: { ...(State.appAnswersLabels || State.appAnswers) }
+    respuestas_elegibilidad: { 
+      ...(State.appAnswersLabels || State.appAnswers),
+      degree_check: tieneTitulo,
+      sector: sectorText,
+      profession: professionText,
+      german: cleanGerman,
+      experience: expLabel,
+      education_level: eduLevel,
+      location: locText,
+      marital: maritalText
+    },
+    detalles_aplicacion: detallesAplicacion
   });
 
-  // Notificar a los Super Asesores del nuevo lead recibido
-  const superAsesores = DB.getUsuarios().filter(u => (u.roles || []).includes('Super Asesor'));
-  superAsesores.forEach(sa => {
+  // Notificar a los Asesores y Super Asesores del nuevo lead recibido
+  const asesores = DB.getUsuarios().filter(u => (u.roles || []).includes('Super Asesor') || (u.roles || []).includes('Asesor'));
+  asesores.forEach(sa => {
     DB.addNotificacion({
       id_usuario_dest: sa.id,
       tipo: 'Nuevo_Candidato',
-      titulo: '📥 Nuevo Lead para Designar',
-      mensaje: `${nombre} (${pais}) completó el test (${totalScore} pts). Pendiente de designar asesor.`
+      titulo: '📥 Nueva Solicitud de Aplicación Recibida',
+      mensaje: `${nombre} (${pais}, ${professionText}) completó la aplicación con ${totalScore} pts. Pendiente llamada de 1er contacto y aceptación de solicitud.`
     });
   });
   
   // Limpiar respuestas para futuras aplicaciones
   State.appAnswers = {};
+  State.appAnswersLabels = {};
+  State.appAnswersDetailed = {};
   State.appStep = 0;
   
   closeModal('modal-registro-candidato');
-  showToast('🎉 ¡Registro exitoso!', `Bienvenido/a ${nombre.split(' ')[0]}! Tu asesor te contactará en 24h.`, 'success', 7000);
+  showToast('🎉 ¡Solicitud recibida con éxito!', `Gracias ${nombre.split(' ')[0]}. Tu postulación ha sido enviada a nuestros asesores para coordinar tu llamada de primer contacto.`, 'success', 7000);
 }
 
 // ──────────────────────────────────────────────────────────────────
@@ -7016,4 +8866,22 @@ window.quickScheduleInterview = quickScheduleInterview;
 window.closeCandidateProfile = closeCandidateProfile;
 window.exportCandidateProfilePDF = exportCandidateProfilePDF;
 window.openCandidateDetail = openCandidateDetail;
+
+// B2B & CRM Window Exports
+window.renderAsesorEmpresas = renderAsesorEmpresas;
+window.openB2BCRMWidget = openB2BCRMWidget;
+window.setB2BSpeechTab = setB2BSpeechTab;
+window.saveB2BCRMInteraction = saveB2BCRMInteraction;
+window.openEmpresaDetailModal = openEmpresaDetailModal;
+window.openNewEmpresaModal = openNewEmpresaModal;
+window.openEditEmpresaModal = openEditEmpresaModal;
+window.saveEmpresaForm = saveEmpresaForm;
+window.deleteEmpresaConfirm = deleteEmpresaConfirm;
+window.quickMoveEmpresaEtapa = quickMoveEmpresaEtapa;
+window.exportarEmpresasAExcel = exportarEmpresasAExcel;
+window.setB2BViewMode = setB2BViewMode;
+window.onB2BSearchChange = onB2BSearchChange;
+window.onB2BRegionChange = onB2BRegionChange;
+window.onB2BEtapaChange = onB2BEtapaChange;
+
 
