@@ -93,6 +93,22 @@
           <input class="form-input" type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password" required>
         </div>
         <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;" data-i18n="login_btn">Iniciar Sesión</button>
+        <div style="margin-top:16px; padding-top:14px; border-top:1px dashed #cbd5e1; text-align:center;">
+          <div style="font-size:0.75rem; color:var(--slate-500); font-weight:700; text-transform:uppercase; letter-spacing:0.04em; margin-bottom:8px;">
+            ⚡ Acceso Rápido Directo
+          </div>
+          <div style="display:flex; gap:6px; justify-content:center; flex-wrap:wrap;">
+            <button type="button" class="btn btn-xs btn-outline" onclick="quickLogin('jonathan')" style="font-size:0.75rem; font-weight:700; border-color:var(--wine-800); color:var(--wine-800); background:rgba(114,47,55,0.04);" title="Ingresar como Jonathan Urbano (Super Asesor)">
+              ⭐ Jonathan Urbano
+            </button>
+            <button type="button" class="btn btn-xs btn-outline" onclick="quickLogin('admin')" style="font-size:0.75rem; font-weight:700;" title="Ingresar como Administrador">
+              🛡️ Admin
+            </button>
+            <button type="button" class="btn btn-xs btn-outline" onclick="quickLogin('asesor')" style="font-size:0.75rem;" title="Ingresar como Asesor">
+              👨‍💼 Asesor
+            </button>
+          </div>
+        </div>
         <div style="text-align:center;font-size:.8125rem;color:var(--slate-500);margin-top:16px;">
           <span data-i18n="login_new_cand">¿Eres candidato nuevo?</span> 
           <button type="button" onclick="showPublic();setTimeout(()=>scrollToSection('eligibilidad'),300);" style="color:var(--gold-600);font-weight:600;background:none;border:none;cursor:pointer;" data-i18n="login_test_link">Realiza el test de elegibilidad</button>
@@ -840,11 +856,11 @@
 <!-- ══════════════════════════════════════════════════════════
      SCRIPTS
      ══════════════════════════════════════════════════════════ -->
-  <script src="/js/i18n.js?v=v2"></script>
-  <script src="/js/db.js?v=v15"></script>
-  <script src="/js/icons.js?v=v15"></script>
-  <script src="/js/mockData.js?v=v15"></script>
-  <script src="/js/main.js?v=v15"></script>
+  <script src="/js/i18n.js?v=v3"></script>
+  <script src="/js/db.js?v=v16"></script>
+  <script src="/js/icons.js?v=v16"></script>
+  <script src="/js/mockData.js?v=v16"></script>
+  <script src="/js/main.js?v=v16"></script>
 
   <!-- OFFCANVAS INTERACTIVO -->
   <div class="offcanvas-overlay" id="application-overlay" onclick="closeApplicationOffcanvas()"></div>

@@ -276,6 +276,28 @@ async function handleLogin(e) {
   }
 }
 
+function quickLogin(target) {
+  const emailInput = $('login-email');
+  const passInput = $('login-pass');
+  if (!emailInput || !passInput) return;
+
+  if (target === 'jonathan') {
+    emailInput.value = 'jonathanpk97@gmail.com';
+    passInput.value = 'JNPalabrasSuper2026!';
+  } else if (target === 'admin') {
+    emailInput.value = 'admin@jnpalabras.com';
+    passInput.value = 'JNPalabrasAdmin2026!';
+  } else if (target === 'asesor') {
+    emailInput.value = 'asesor@jnpalabras.com';
+    passInput.value = 'JNPalabrasAsesor2026!';
+  } else if (target === 'candidato') {
+    emailInput.value = 'candidato@jnpalabras.com';
+    passInput.value = 'JNPalabrasCandidato2026!';
+  }
+  handleLogin(new Event('submit'));
+}
+window.quickLogin = quickLogin;
+
 function handleLogout() {
   State.currentUser = null;
   State.activeRole = null;

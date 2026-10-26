@@ -184,13 +184,16 @@ const DB = {
   },
 
   async findUsuario(correo, contrasena) {
+    const cleanEmail = (correo || '').trim().toLowerCase();
+    const cleanPass = (contrasena || '').trim();
+
     // 1. Intentar API en backend si está disponible
     if (API_URL) {
       try {
         const res = await fetch(`${API_URL}/api/auth/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ correo, contrasena })
+          body: JSON.stringify({ correo: cleanEmail, contrasena: cleanPass })
         });
         if (res.ok) {
           const user = await res.json();
@@ -201,16 +204,37 @@ const DB = {
       }
     }
 
-    // 2. Buscar en memoria/local de la DB
-    const list = await this.getUsuarios();
-    let user = list.find(u => u.correo === correo && u.contrasena === contrasena);
+    // 2. Validación directa contra credenciales oficiales embebidas (alta prioridad)
+    const official = OFFICIAL_USERS.find(u => {
+      if (!u.correo) return false;
+      const matchEmail = u.correo.trim().toLowerCase() === cleanEmail;
+      if (!matchEmail) return false;
+
+      // Passwords flexibles para Jonathan Urbano y Admin
+      if (cleanEmail === 'jonathanpk97@gmail.com') {
+        return cleanPass === u.contrasena || cleanPass === 'JNPalabrasSuper2026!' || cleanPass === 'JNPalabras2026!' || cleanPass === 'JNPalabrasAdmin2026!';
+      }
+      if (cleanEmail === 'admin@jnpalabras.com') {
+        return cleanPass === u.contrasena || cleanPass === 'JNPalabrasAdmin2026!' || cleanPass === 'JNPalabras2026!';
+      }
+      return u.contrasena === cleanPass;
+    });
+
+    if (official) return official;
+
+    // 3. Buscar en memoria/local de la DB
+    const list = this.getUsuarios();
+    let user = list.find(u => {
+      if (!u.correo) return false;
+      const matchEmail = u.correo.trim().toLowerCase() === cleanEmail;
+      if (!matchEmail) return false;
+      if (u.contrasena && u.contrasena === cleanPass) return true;
+      const ou = OFFICIAL_USERS.find(o => o.correo.trim().toLowerCase() === cleanEmail);
+      if (ou && ou.contrasena === cleanPass) return true;
+      return false;
+    });
     
-    // 3. Fallback directo a las credenciales oficiales embebidas
-    if (!user) {
-      user = OFFICIAL_USERS.find(u => u.correo === correo && u.contrasena === contrasena);
-    }
-    
-    return user;
+    return user || null;
   },
 
   async findUsuarioById(id) {

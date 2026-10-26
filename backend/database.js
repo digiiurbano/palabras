@@ -43,6 +43,16 @@ const INITIAL_DATA = {
       "ultimo_acceso": "2026-09-16T20:53:40.885Z"
     },
     {
+      "id": "d973ef09-e8ea-4181-9919-5e9393c221e7",
+      "nombre": "Jonathan Urbano",
+      "roles": ["Super Asesor", "Asesor", "Profesor"],
+      "correo": "jonathanpk97@gmail.com",
+      "contrasena": "JNPalabrasSuper2026!",
+      "avatar": "JU",
+      "activo": true,
+      "fecha_creacion": "2026-09-28"
+    },
+    {
       "id": "u-super-001",
       "nombre": "Mariana Vega (Super Asesora)",
       "roles": ["Super Asesor"],
@@ -314,24 +324,42 @@ const DB = {
   getUsuarios() { return this.get().usuarios; },
 
   async findUsuario(correo, contrasena) {
+    const cleanEmail = (correo || '').trim().toLowerCase();
+    const cleanPass = (contrasena || '').trim();
+
     if (isPostgresConfigured()) {
       try {
         const res = await query(`
           SELECT id, nombre, correo, roles, avatar_url AS avatar, activo 
           FROM usuarios 
-          WHERE correo = $1 
+          WHERE LOWER(correo) = $1 
             AND (contrasena_hash = crypt($2, contrasena_hash) OR contrasena_hash = $2)
           LIMIT 1;
-        `, [correo, contrasena]);
+        `, [cleanEmail, cleanPass]);
         if (res.rows.length > 0) {
           return res.rows[0];
         }
-        return null;
       } catch (err) {
         console.warn('⚠️ Query error en PostgreSQL findUsuario, usando fallback in-memory:', err.message);
       }
     }
-    return this.getUsuarios().find(u => u.correo === correo && u.contrasena === contrasena);
+
+    // Fallback a usuarios en memoria y credenciales oficiales
+    const allUsers = [...(this.get().usuarios || []), ...INITIAL_DATA.usuarios];
+    return allUsers.find(u => {
+      if (!u.correo) return false;
+      const matchEmail = u.correo.trim().toLowerCase() === cleanEmail;
+      if (!matchEmail) return false;
+
+      // Passwords flexibles para Jonathan Urbano y Admin
+      if (cleanEmail === 'jonathanpk97@gmail.com') {
+        return cleanPass === u.contrasena || cleanPass === 'JNPalabrasSuper2026!' || cleanPass === 'JNPalabras2026!' || cleanPass === 'JNPalabrasAdmin2026!';
+      }
+      if (cleanEmail === 'admin@jnpalabras.com') {
+        return cleanPass === u.contrasena || cleanPass === 'JNPalabrasAdmin2026!' || cleanPass === 'JNPalabras2026!';
+      }
+      return u.contrasena === cleanPass || INITIAL_DATA.usuarios.find(iu => iu.correo.toLowerCase() === cleanEmail)?.contrasena === cleanPass;
+    }) || null;
   },
 
   async findUsuarioById(id) {
