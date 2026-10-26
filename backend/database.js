@@ -256,6 +256,22 @@ const DB = {
         memoryDB = JSON.parse(JSON.stringify(INITIAL_DATA));
       }
     }
+
+    // Persistencia incondicional: garantizar que todos los usuarios oficiales siempre coexistan con los creados
+    if (memoryDB && Array.isArray(memoryDB.usuarios)) {
+      const userMap = new Map();
+      INITIAL_DATA.usuarios.forEach(u => {
+        if (u.correo) userMap.set(u.correo.toLowerCase(), { ...u });
+      });
+      memoryDB.usuarios.forEach(u => {
+        if (u.correo) {
+          const key = u.correo.toLowerCase();
+          const prev = userMap.get(key) || {};
+          userMap.set(key, { ...prev, ...u, contrasena: u.contrasena || prev.contrasena });
+        }
+      });
+      memoryDB.usuarios = Array.from(userMap.values());
+    }
   },
 
   // Leer todo
@@ -265,6 +281,7 @@ const DB = {
   },
 
   async getAsync() {
+    const db = this.get();
     if (isPostgresConfigured()) {
       try {
         const usersRes = await query('SELECT id, nombre, correo, roles, avatar_url AS avatar, activo, fecha_creacion FROM usuarios;');
@@ -272,10 +289,31 @@ const DB = {
         const empRes = await query('SELECT * FROM empresas;');
         const vacRes = await query('SELECT * FROM vacantes;');
         
-        const db = this.get();
+        // Fusión aditiva indestructible: combinar usuarios de PostgreSQL con data.json e INITIAL_DATA
+        const userMap = new Map();
+        INITIAL_DATA.usuarios.forEach(u => {
+          if (u.correo) userMap.set(u.correo.toLowerCase(), { ...u });
+        });
+        (db.usuarios || []).forEach(u => {
+          if (u.correo) {
+            const key = u.correo.toLowerCase();
+            const prev = userMap.get(key) || {};
+            userMap.set(key, { ...prev, ...u, contrasena: u.contrasena || prev.contrasena });
+          }
+        });
+        if (usersRes.rows && usersRes.rows.length > 0) {
+          usersRes.rows.forEach(pgUser => {
+            if (pgUser.correo) {
+              const key = pgUser.correo.toLowerCase();
+              const prev = userMap.get(key) || {};
+              userMap.set(key, { ...prev, ...pgUser, contrasena: prev.contrasena || pgUser.contrasena });
+            }
+          });
+        }
+
         return {
           ...db,
-          usuarios: usersRes.rows.length ? usersRes.rows : db.usuarios,
+          usuarios: Array.from(userMap.values()),
           candidatos: candRes.rows.length ? candRes.rows : db.candidatos,
           empresas: empRes.rows.length ? empRes.rows : db.empresas,
           vacantes: vacRes.rows.length ? vacRes.rows : db.vacantes
@@ -288,9 +326,43 @@ const DB = {
     return this.get();
   },
 
-  // Guardar todo
+  // Guardar todo de forma segura y aditiva (NUNCA perder ningún usuario)
   save(data) {
+    if (!data || typeof data !== 'object') return;
+    this.init();
+
+    // Preservar siempre todos los usuarios existentes y los oficiales
+    const currentUsers = (memoryDB && Array.isArray(memoryDB.usuarios)) ? memoryDB.usuarios : [];
+    const incomingUsers = Array.isArray(data.usuarios) ? data.usuarios : [];
+
+    const userMap = new Map();
+
+    // 1. Usuarios oficiales/iniciales base
+    INITIAL_DATA.usuarios.forEach(u => {
+      if (u.correo) userMap.set(u.correo.toLowerCase(), { ...u });
+    });
+
+    // 2. Usuarios actualmente en memoria/disco
+    currentUsers.forEach(u => {
+      if (u.correo) {
+        const key = u.correo.toLowerCase();
+        const prev = userMap.get(key) || {};
+        userMap.set(key, { ...prev, ...u, contrasena: u.contrasena || prev.contrasena });
+      }
+    });
+
+    // 3. Usuarios del payload entrante
+    incomingUsers.forEach(u => {
+      if (u.correo) {
+        const key = u.correo.toLowerCase();
+        const prev = userMap.get(key) || {};
+        userMap.set(key, { ...prev, ...u, contrasena: u.contrasena || prev.contrasena });
+      }
+    });
+
+    data.usuarios = Array.from(userMap.values());
     memoryDB = data;
+
     try {
       fs.mkdirSync(path.dirname(dbFilePath), { recursive: true });
       fs.writeFileSync(dbFilePath, JSON.stringify(memoryDB, null, 2));
@@ -301,9 +373,22 @@ const DB = {
     this.save(data);
   },
 
-  // Reset a datos iniciales
+  // Reset a datos iniciales preservando SIEMPRE todos los usuarios
   reset() {
+    const existingUsers = (memoryDB && Array.isArray(memoryDB.usuarios)) ? memoryDB.usuarios : [];
     memoryDB = JSON.parse(JSON.stringify(INITIAL_DATA));
+    const userMap = new Map();
+    INITIAL_DATA.usuarios.forEach(u => {
+      if (u.correo) userMap.set(u.correo.toLowerCase(), { ...u });
+    });
+    existingUsers.forEach(u => {
+      if (u.correo) {
+        const key = u.correo.toLowerCase();
+        const prev = userMap.get(key) || {};
+        userMap.set(key, { ...prev, ...u, contrasena: u.contrasena || prev.contrasena });
+      }
+    });
+    memoryDB.usuarios = Array.from(userMap.values());
     this.save(memoryDB);
   },
 
@@ -313,6 +398,24 @@ const DB = {
 
   // ── USUARIOS ──────────────────────────────────────────────────
   async getAllUsuariosAsync() {
+    const db = this.get();
+    const userMap = new Map();
+
+    // 1. Usuarios oficiales garantizados
+    INITIAL_DATA.usuarios.forEach(u => {
+      if (u.correo) userMap.set(u.correo.toLowerCase(), { ...u });
+    });
+
+    // 2. Usuarios en almacenamiento local / fallback
+    (db.usuarios || []).forEach(u => {
+      if (u.correo) {
+        const key = u.correo.toLowerCase();
+        const prev = userMap.get(key) || {};
+        userMap.set(key, { ...prev, ...u, contrasena: u.contrasena || prev.contrasena });
+      }
+    });
+
+    // 3. Usuarios en PostgreSQL
     if (isPostgresConfigured()) {
       try {
         const res = await query(`
@@ -323,12 +426,19 @@ const DB = {
           FROM usuarios u 
           ORDER BY u.fecha_creacion DESC;
         `);
-        return res.rows;
+        (res.rows || []).forEach(u => {
+          if (u.correo) {
+            const key = u.correo.toLowerCase();
+            const prev = userMap.get(key) || {};
+            userMap.set(key, { ...prev, ...u, contrasena: u.contrasena || prev.contrasena });
+          }
+        });
       } catch (err) {
-        console.warn('⚠️ Query error en PostgreSQL getAllUsuariosAsync, usando fallback in-memory:', err.message);
+        console.warn('⚠️ Query error en PostgreSQL getAllUsuariosAsync, usando persistencia local aditiva:', err.message);
       }
     }
-    return this.get().usuarios || [];
+
+    return Array.from(userMap.values());
   },
 
   getUsuarios() { return this.get().usuarios; },
@@ -432,19 +542,34 @@ const DB = {
             data.socio_data.correo_contacto || null
           ]);
         }
-        
-        return newUser;
       } catch (err) {
-        console.error('⚠️ Error insertando en PostgreSQL createUsuarioAsync:', err.message);
-        throw err;
+        console.warn('⚠️ Error en PostgreSQL createUsuarioAsync (guardando en persistencia local):', err.message);
       }
     }
-    // Fallback in-memory
+
+    // Incondicional: asegurar persistencia aditiva inmediata en backend data.json
     const db = this.get();
-    const nuevo = { ...data, id: fallbackId, fecha_creacion: new Date().toISOString(), activo: true };
-    db.usuarios.push(nuevo);
+    if (!db.usuarios) db.usuarios = [];
+    const nuevo = {
+      ...(newUser || data),
+      id: newUser ? newUser.id : (data.id || fallbackId),
+      nombre: data.nombre || (newUser ? newUser.nombre : 'Usuario'),
+      correo: (data.correo || (newUser ? newUser.correo : '')).toLowerCase().trim(),
+      roles: data.roles || (newUser && newUser.roles ? (typeof newUser.roles === 'string' ? JSON.parse(newUser.roles) : newUser.roles) : ['Candidato']),
+      contrasena: data.contrasena || 'JNPalabras2026!',
+      avatar: data.avatar || (newUser ? newUser.avatar : 'U'),
+      activo: true,
+      fecha_creacion: newUser ? newUser.fecha_creacion : (data.fecha_creacion || new Date().toISOString())
+    };
+
+    const existingIdx = db.usuarios.findIndex(u => u.correo && u.correo.toLowerCase() === nuevo.correo.toLowerCase());
+    if (existingIdx !== -1) {
+      db.usuarios[existingIdx] = { ...db.usuarios[existingIdx], ...nuevo };
+    } else {
+      db.usuarios.unshift(nuevo);
+    }
     this.save(db);
-    return nuevo;
+    return newUser || nuevo;
   },
 
   createUsuario(data) {
@@ -583,26 +708,61 @@ const DB = {
 
   async deleteUsuarioAsync(id) {
     const resolvedId = resolveUserId(id);
+    const db = this.get();
+    const user = (db.usuarios || []).find(u => u.id === id || (resolvedId && u.id === resolvedId));
+
+    // NUNCA permitir borrar o desactivar cuentas clave del sistema
+    const PROTECTED_EMAILS = [
+      'admin@jnpalabras.com',
+      'jonathanpk97@gmail.com',
+      'jose.wiechens@jnpalabras.com',
+      'superasesor@jnpalabras.com',
+      'asesor@jnpalabras.com',
+      'profesor@jnpalabras.com'
+    ];
+    if (user && user.correo && PROTECTED_EMAILS.includes(user.correo.toLowerCase())) {
+      console.warn('⚠️ Intento de eliminación prevenido para usuario protegido:', user.correo);
+      return false;
+    }
+
+    // SOFT-DELETE: NUNCA destruir el registro de la base de datos (se mantiene para siempre)
     if (isPostgresConfigured() && resolvedId) {
       try {
-        await query('DELETE FROM usuarios WHERE id = $1;', [resolvedId]);
-        return true;
+        await query('UPDATE usuarios SET activo = false, fecha_actualizacion = NOW() WHERE id = $1;', [resolvedId]);
       } catch (err) {
-        console.error('⚠️ Error borrando en PostgreSQL deleteUsuarioAsync:', err.message);
-        throw err;
+        console.warn('⚠️ Error en PostgreSQL soft-delete deleteUsuarioAsync:', err.message);
       }
     }
-    // Fallback in-memory
-    const db = this.get();
-    db.usuarios = db.usuarios.filter(u => u.id !== id && (!resolvedId || u.id !== resolvedId));
-    this.save(db);
+
+    // Persistir siempre en almacenamiento local marcando como inactivo
+    const idx = (db.usuarios || []).findIndex(u => u.id === id || (resolvedId && u.id === resolvedId));
+    if (idx !== -1) {
+      db.usuarios[idx].activo = false;
+      this.save(db);
+    }
     return true;
   },
 
   deleteUsuario(id) {
     const db = this.get();
-    db.usuarios = db.usuarios.filter(u => u.id !== id);
-    this.save(db);
+    const user = (db.usuarios || []).find(u => u.id === id);
+    const PROTECTED_EMAILS = [
+      'admin@jnpalabras.com',
+      'jonathanpk97@gmail.com',
+      'jose.wiechens@jnpalabras.com',
+      'superasesor@jnpalabras.com',
+      'asesor@jnpalabras.com',
+      'profesor@jnpalabras.com'
+    ];
+    if (user && user.correo && PROTECTED_EMAILS.includes(user.correo.toLowerCase())) {
+      return false;
+    }
+    const idx = (db.usuarios || []).findIndex(u => u.id === id);
+    if (idx !== -1) {
+      db.usuarios[idx].activo = false;
+      this.save(db);
+    }
+    return true;
   },
 
   // ── SESIÓN ────────────────────────────────────────────────────

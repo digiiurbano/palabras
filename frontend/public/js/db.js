@@ -167,7 +167,31 @@ const DB = {
   },
 
   save(data) {
+    if (!data) return;
+    
+    // Garantizar que la lista de usuarios nunca pierda ningún usuario (fusión aditiva inquebrantable)
+    if (!data.usuarios) data.usuarios = [];
+    const currentUsers = (this.data && Array.isArray(this.data.usuarios)) ? this.data.usuarios : [];
+    
+    const userMap = new Map();
+    OFFICIAL_USERS.forEach(u => {
+      if (u.correo) userMap.set(u.correo.toLowerCase(), { ...u });
+    });
+    currentUsers.forEach(u => {
+      if (u.correo) {
+        const key = u.correo.toLowerCase();
+        userMap.set(key, { ...(userMap.get(key) || {}), ...u });
+      }
+    });
+    data.usuarios.forEach(u => {
+      if (u.correo) {
+        const key = u.correo.toLowerCase();
+        userMap.set(key, { ...(userMap.get(key) || {}), ...u });
+      }
+    });
+    data.usuarios = Array.from(userMap.values());
     this.data = data;
+
     // Persistencia incondicional en localStorage para evitar pérdida de datos al recargar
     try {
       localStorage.setItem(DB_STORAGE_KEY, JSON.stringify(data));
@@ -275,45 +299,51 @@ const DB = {
   },
 
   async createUsuario(data) {
-    let nuevo = null;
+    const db = this.get();
+    if (!db.usuarios) db.usuarios = [...OFFICIAL_USERS];
+
+    const localUser = { 
+      ...data, 
+      id: data.id || ('u-' + Date.now()), 
+      fecha_creacion: data.fecha_creacion || new Date().toISOString(), 
+      activo: true,
+      avatar: data.avatar || (data.nombre ? data.nombre.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase() : 'U')
+    };
+
+    // 1. Persistencia local inmediata incondicional (NUNCA perder el usuario)
+    const existingIdx = db.usuarios.findIndex(u => u.correo && u.correo.toLowerCase() === localUser.correo.toLowerCase());
+    if (existingIdx !== -1) {
+      db.usuarios[existingIdx] = { ...db.usuarios[existingIdx], ...localUser };
+    } else {
+      db.usuarios.unshift(localUser);
+    }
+    this.save(db);
+
+    // 2. Sincronización con el servidor online
     if (API_URL) {
       try {
         const res = await fetch(`${API_URL}/api/users`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data)
+          body: JSON.stringify(localUser)
         });
         if (res.ok) {
-          nuevo = await res.json();
-          await this.init(true); // Resincronizar BD online inmediatamente
-          return nuevo;
-        } else {
-          console.error("❌ Backend rechazó la creación de usuario");
+          const remoteUser = await res.json();
+          if (remoteUser && remoteUser.id) {
+            const idx = db.usuarios.findIndex(u => u.correo && u.correo.toLowerCase() === localUser.correo.toLowerCase());
+            if (idx !== -1) {
+              db.usuarios[idx] = { ...db.usuarios[idx], ...remoteUser };
+              this.save(db);
+            }
+            return remoteUser;
+          }
         }
       } catch (e) {
-        console.error("❌ Error de red al crear usuario online:", e);
+        console.warn("Aviso de red: usuario guardado en almacenamiento persistente local:", e);
       }
     }
     
-    const db = this.get();
-    if (!nuevo) {
-      nuevo = { 
-        ...data, 
-        id: 'u-' + Date.now(), 
-        fecha_creacion: new Date().toISOString(), 
-        activo: true,
-        avatar: data.avatar || (data.nombre ? data.nombre.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase() : 'U')
-      };
-    }
-    if (!db.usuarios) db.usuarios = [...OFFICIAL_USERS];
-    const existingIdx = db.usuarios.findIndex(u => u.id === nuevo.id || (nuevo.correo && u.correo && u.correo.toLowerCase() === nuevo.correo.toLowerCase()));
-    if (existingIdx !== -1) {
-      db.usuarios[existingIdx] = { ...db.usuarios[existingIdx], ...nuevo };
-    } else {
-      db.usuarios.unshift(nuevo);
-    }
-    this.save(db);
-    return nuevo;
+    return localUser;
   },
 
   async updateUsuario(id, data) {
@@ -348,20 +378,38 @@ const DB = {
   },
 
   async deleteUsuario(id) {
+    const db = this.get();
+    if (!db.usuarios) db.usuarios = [...OFFICIAL_USERS];
+    const user = db.usuarios.find(u => u.id === id);
+
+    const PROTECTED_EMAILS = [
+      'admin@jnpalabras.com',
+      'jonathanpk97@gmail.com',
+      'jose.wiechens@jnpalabras.com',
+      'superasesor@jnpalabras.com',
+      'asesor@jnpalabras.com',
+      'profesor@jnpalabras.com'
+    ];
+    if (user && user.correo && PROTECTED_EMAILS.includes(user.correo.toLowerCase())) {
+      console.warn("Usuario protegido del sistema, no puede ser eliminado");
+      return false;
+    }
+
+    // SOFT-DELETE LOCAL: NUNCA borrar físicamente de la base de datos (se mantiene para siempre)
+    if (user) {
+      user.activo = false;
+      this.save(db);
+    }
+
     if (API_URL) {
       try {
         await fetch(`${API_URL}/api/users/${id}`, {
           method: 'DELETE'
         });
-        await this.init(true);
       } catch (e) {
-        console.warn("Fallo al eliminar usuario en backend online");
+        console.warn("Fallo al sincronizar soft-delete en backend online:", e);
       }
     }
-    const db = this.get();
-    if (!db.usuarios) db.usuarios = [...OFFICIAL_USERS];
-    db.usuarios = db.usuarios.filter(u => u.id !== id);
-    this.save(db);
     return true;
   },
 

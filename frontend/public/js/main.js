@@ -1220,9 +1220,23 @@ async function createUser() {
 
 async function deleteUser(id) {
   if (State.activeRole !== 'Admin') { showToast('Error', 'No tienes permisos para esta acción.', 'error'); return; }
-  if (!confirm('¿Eliminar este usuario? Esta acción no se puede deshacer.')) return;
+  const usuarios = DB.getUsuarios();
+  const user = usuarios.find(u => u.id === id);
+  const PROTECTED_EMAILS = [
+    'admin@jnpalabras.com',
+    'jonathanpk97@gmail.com',
+    'jose.wiechens@jnpalabras.com',
+    'superasesor@jnpalabras.com',
+    'asesor@jnpalabras.com',
+    'profesor@jnpalabras.com'
+  ];
+  if (user && user.correo && PROTECTED_EMAILS.includes(user.correo.toLowerCase())) {
+    showToast('Usuario Protegido', 'Este usuario oficial del sistema está blindado y nunca puede ser eliminado.', 'info');
+    return;
+  }
+  if (!confirm(`¿Desactivar al usuario ${user ? user.nombre : ''}? El usuario se mantendrá guardado en la base de datos de forma permanente.`)) return;
   await DB.deleteUsuario(id);
-  showToast('Usuario eliminado', 'El usuario fue eliminado del sistema.', 'warning');
+  showToast('Usuario desactivado', 'El usuario fue archivado y permanece seguro en la base de datos.', 'warning');
   navigateTo('admin-users');
 }
 
