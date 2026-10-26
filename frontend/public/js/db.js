@@ -74,6 +74,25 @@ const DB = {
   data: null,
 
   async init(forceRefresh = false) {
+    // Si ya tenemos datos en memoria y no es forzado, retorno inmediato en 0ms
+    if (this.data && !forceRefresh) {
+      return this.data;
+    }
+
+    // Carga síncrona desde respaldo local para disponibilidad inmediata
+    if (!this.data) {
+      try {
+        const stored = localStorage.getItem(DB_STORAGE_KEY);
+        if (stored) {
+          this.data = JSON.parse(stored);
+        }
+      } catch (e) {}
+    }
+
+    if (!this.data) {
+      this.data = JSON.parse(JSON.stringify(INITIAL_DATA));
+    }
+
     if (API_URL) {
       try {
         const res = await fetch(`${API_URL}/api/db?t=${Date.now()}`);
@@ -110,18 +129,6 @@ const DB = {
       }
     }
 
-    if (!this.data || forceRefresh) {
-      try {
-        const stored = localStorage.getItem(DB_STORAGE_KEY);
-        if (stored) {
-          this.data = JSON.parse(stored);
-        }
-      } catch (e) {}
-    }
-
-    if (!this.data) {
-      this.data = JSON.parse(JSON.stringify(INITIAL_DATA));
-    }
     return this.data;
   },
 
@@ -834,7 +841,10 @@ const DB = {
             db.empresas = remoteList;
             if (!db.kpis) db.kpis = {};
             db.kpis.empresas_clientes = remoteList.length;
-            this.save(db);
+            this.data = db;
+            try {
+              localStorage.setItem(DB_STORAGE_KEY, JSON.stringify(db));
+            } catch (e) {}
             return remoteList;
           }
         }

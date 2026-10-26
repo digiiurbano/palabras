@@ -634,15 +634,35 @@ function renderSidebar(rol) {
   `;
 }
 
+function updateSidebarActive(id) {
+  const links = document.querySelectorAll('.sidebar-link');
+  if (!links || links.length === 0) {
+    renderSidebar(State.activeRole);
+    return;
+  }
+  links.forEach(link => {
+    const onclickAttr = link.getAttribute('onclick') || '';
+    if (onclickAttr.includes(`'${id}'`) || onclickAttr.includes(`"${id}"`)) {
+      link.classList.add('active');
+    } else {
+      link.classList.remove('active');
+    }
+  });
+}
+
 function navigateTo(id) {
   if (!id) return;
   State.currentSidebar = id;
   const roleForId = getRoleForView(id);
+  let roleChanged = false;
   if (roleForId && State.currentUser) {
     const userRoles = State.currentUser.roles || [];
     if (userRoles.includes(roleForId) || userRoles.includes('Admin')) {
-      State.activeRole = roleForId;
-      try { localStorage.setItem('jnp_active_role', roleForId); } catch(e) {}
+      if (State.activeRole !== roleForId) {
+        State.activeRole = roleForId;
+        roleChanged = true;
+        try { localStorage.setItem('jnp_active_role', roleForId); } catch(e) {}
+      }
     }
   }
   try {
@@ -652,7 +672,12 @@ function navigateTo(id) {
       window.history.replaceState(null, '', '#' + id);
     }
   } catch(e) {}
-  renderSidebar(State.activeRole);
+
+  if (roleChanged) {
+    renderSidebar(State.activeRole);
+  } else {
+    updateSidebarActive(id);
+  }
   renderDashboard(State.activeRole, id);
 }
 
@@ -732,22 +757,50 @@ async function renderDashboard(rol, view = null) {
     'socio-toolkit':    renderSocioToolkit,
   };
 
+let _lastBackgroundSyncTime = 0;
+let _isBackgroundSyncing = false;
+
+function triggerBackgroundSync(currentViewId) {
+  const now = Date.now();
+  // Evitar saturación: máximo una comprobación en segundo plano cada 45 segundos
+  if (_isBackgroundSyncing || (now - _lastBackgroundSyncTime < 45000)) {
+    return;
+  }
+  _isBackgroundSyncing = true;
+
+  setTimeout(async () => {
+    try {
+      if (currentViewId === 'asesor-empresas' || currentViewId === 'admin-empresas') {
+        await DB.syncEmpresas();
+      } else {
+        await DB.init(false);
+      }
+      _lastBackgroundSyncTime = Date.now();
+    } catch (err) {
+      console.warn('Sync en segundo plano:', err);
+    } finally {
+      _isBackgroundSyncing = false;
+    }
+  }, 120);
+}
+
   const fn = renders[id];
   if (fn) {
     try {
-      if (['admin-users', 'admin-candidatos', 'admin-empresas', 'admin-comisiones', 'super-leads', 'super-candidatos', 'asesor-dashboard', 'emp-candidatos', 'socio-referidos', 'asesor-empresas'].includes(id)) {
-        await DB.init(true);
-      }
-      if (id === 'asesor-empresas' || id === 'admin-empresas') {
-        await DB.syncEmpresas();
-      }
+      // 1. Renderizado INSTANTÁNEO desde memoria (0ms lag)
       const html = await fn();
       container.innerHTML = '<div class="animate-fadeInUp">' + html + '</div>';
-      // Post-render hooks
+
+      // 2. Post-render hooks
       if (id === 'asesor-dashboard' || id === 'asesor-kanban' || id === 'super-kanban') initKanban();
       if (id === 'asesor-empresas' || id === 'admin-empresas') initB2BKanban();
       if (id === 'emp-vacantes')  initVacanteForm();
       if (id === 'admin-users')   initUserForm();
+
+      // 3. Sincronización transparente en segundo plano (Non-blocking Stale-While-Revalidate)
+      if (['admin-users', 'admin-candidatos', 'admin-empresas', 'admin-comisiones', 'super-leads', 'super-candidatos', 'asesor-dashboard', 'emp-candidatos', 'socio-referidos', 'asesor-empresas'].includes(id)) {
+        triggerBackgroundSync(id);
+      }
     } catch (e) {
       console.error("Error renderizando vista:", e);
       container.innerHTML = `<div class="p-8 text-center text-[var(--danger)]">Error al cargar la vista.</div>`;
