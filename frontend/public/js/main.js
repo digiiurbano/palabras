@@ -1247,21 +1247,15 @@ async function deleteUser(id) {
   if (State.activeRole !== 'Admin') { showToast('Error', 'No tienes permisos para esta acción.', 'error'); return; }
   const usuarios = DB.getUsuarios();
   const user = usuarios.find(u => u.id === id);
-  const PROTECTED_EMAILS = [
-    'admin@jnpalabras.com',
-    'jonathanpk97@gmail.com',
-    'jose.wiechens@jnpalabras.com',
-    'superasesor@jnpalabras.com',
-    'asesor@jnpalabras.com',
-    'profesor@jnpalabras.com'
-  ];
-  if (user && user.correo && PROTECTED_EMAILS.includes(user.correo.toLowerCase())) {
-    showToast('Usuario Protegido', 'Este usuario oficial del sistema está blindado y nunca puede ser eliminado.', 'info');
+
+  if (user && State.currentUser && (user.id === State.currentUser.id || (user.correo && user.correo.toLowerCase() === State.currentUser.correo?.toLowerCase()))) {
+    showToast('Acción no permitida', 'No puedes eliminar la cuenta con la que tienes tu sesión activa.', 'warning');
     return;
   }
-  if (!confirm(`¿Desactivar al usuario ${user ? user.nombre : ''}? El usuario se mantendrá guardado en la base de datos de forma permanente.`)) return;
+
+  if (!confirm(`¿Eliminar al usuario ${user ? user.nombre : ''}?`)) return;
   await DB.deleteUsuario(id);
-  showToast('Usuario desactivado', 'El usuario fue archivado y permanece seguro en la base de datos.', 'warning');
+  showToast('Usuario eliminado', 'El usuario fue eliminado correctamente del sistema.', 'success');
   navigateTo('admin-users');
 }
 

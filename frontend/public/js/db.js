@@ -111,30 +111,22 @@ const DB = {
               avatar: u.avatar || (u.nombre ? u.nombre.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase() : 'U')
             }));
 
-            // Garantizar todos los usuarios oficiales (Admin, Jonathan Urbano, Jose Wiechens, etc.)
-            OFFICIAL_USERS.forEach(offUser => {
-              const exists = sanitizedUsers.find(u => u.correo && u.correo.toLowerCase() === offUser.correo.toLowerCase());
-              if (!exists) {
-                sanitizedUsers.push({ ...offUser });
-              } else {
-                if (!exists.roles || exists.roles.length === 0) exists.roles = offUser.roles;
-                if (!exists.contrasena) exists.contrasena = offUser.contrasena;
+            // Actualizar roles/contraseñas de los usuarios existentes si corresponden
+            sanitizedUsers.forEach(u => {
+              const offUser = OFFICIAL_USERS.find(o => o.correo && o.correo.toLowerCase() === u.correo?.toLowerCase());
+              if (offUser) {
+                if (!u.roles || u.roles.length === 0) u.roles = offUser.roles;
+                if (!u.contrasena) u.contrasena = offUser.contrasena;
               }
             });
 
-            // Preservar usuarios locales creados en este navegador que aún no estén en backend
-            if (this.data && Array.isArray(this.data.usuarios)) {
-              this.data.usuarios.forEach(localUser => {
-                if (localUser.correo && !sanitizedUsers.some(su => su.correo && su.correo.toLowerCase() === localUser.correo.toLowerCase())) {
-                  sanitizedUsers.push(localUser);
-                }
-              });
-            }
+            // Si no hay usuarios remotos, usar la base oficial inicial
+            const finalUsers = sanitizedUsers.length > 0 ? sanitizedUsers : [...OFFICIAL_USERS];
 
             this.data = {
               ...INITIAL_DATA,
               ...remote,
-              usuarios: sanitizedUsers
+              usuarios: finalUsers
             };
 
             try {
@@ -168,31 +160,7 @@ const DB = {
 
   save(data) {
     if (!data) return;
-    
-    // Garantizar que la lista de usuarios nunca pierda ningún usuario (fusión aditiva inquebrantable)
-    if (!data.usuarios) data.usuarios = [];
-    const currentUsers = (this.data && Array.isArray(this.data.usuarios)) ? this.data.usuarios : [];
-    
-    const userMap = new Map();
-    OFFICIAL_USERS.forEach(u => {
-      if (u.correo) userMap.set(u.correo.toLowerCase(), { ...u });
-    });
-    currentUsers.forEach(u => {
-      if (u.correo) {
-        const key = u.correo.toLowerCase();
-        userMap.set(key, { ...(userMap.get(key) || {}), ...u });
-      }
-    });
-    data.usuarios.forEach(u => {
-      if (u.correo) {
-        const key = u.correo.toLowerCase();
-        userMap.set(key, { ...(userMap.get(key) || {}), ...u });
-      }
-    });
-    data.usuarios = Array.from(userMap.values());
     this.data = data;
-
-    // Persistencia incondicional en localStorage para evitar pérdida de datos al recargar
     try {
       localStorage.setItem(DB_STORAGE_KEY, JSON.stringify(data));
     } catch (e) {}
@@ -401,27 +369,9 @@ const DB = {
 
   async deleteUsuario(id) {
     const db = this.get();
-    if (!db.usuarios) db.usuarios = [...OFFICIAL_USERS];
-    const user = db.usuarios.find(u => u.id === id);
-
-    const PROTECTED_EMAILS = [
-      'admin@jnpalabras.com',
-      'jonathanpk97@gmail.com',
-      'jose.wiechens@jnpalabras.com',
-      'superasesor@jnpalabras.com',
-      'asesor@jnpalabras.com',
-      'profesor@jnpalabras.com'
-    ];
-    if (user && user.correo && PROTECTED_EMAILS.includes(user.correo.toLowerCase())) {
-      console.warn("Usuario protegido del sistema, no puede ser eliminado");
-      return false;
-    }
-
-    // SOFT-DELETE LOCAL: NUNCA borrar físicamente de la base de datos (se mantiene para siempre)
-    if (user) {
-      user.activo = false;
-      this.save(db);
-    }
+    if (!db.usuarios) db.usuarios = [];
+    db.usuarios = db.usuarios.filter(u => u.id !== id);
+    this.save(db);
 
     if (API_URL) {
       try {
@@ -429,7 +379,7 @@ const DB = {
           method: 'DELETE'
         });
       } catch (e) {
-        console.warn("Fallo al sincronizar soft-delete en backend online:", e);
+        console.warn("Fallo al eliminar usuario en backend:", e);
       }
     }
     return true;
