@@ -422,9 +422,9 @@ const DB = {
         aleman = c.respuestas_elegibilidad?.german || 'A1';
       }
 
-      // Solicitud pendiente si está en Lead Nuevo y no ha sido formalmente aprobado
-      const estadoProcesoNorm = (c.estado_proceso || 'Lead Nuevo');
-      const isLead = estadoProcesoNorm.toLowerCase().includes('lead') || estadoProcesoNorm.toLowerCase().includes('nuevo');
+      // Solicitud pendiente si está en Cold Lead y no ha sido formalmente aprobado
+      const estadoProcesoNorm = (c.estado_proceso || 'Primer contacto / Cualificado (Cold Lead)');
+      const isLead = estadoProcesoNorm.toLowerCase().includes('lead') || estadoProcesoNorm.toLowerCase().includes('nuevo') || estadoProcesoNorm.toLowerCase().includes('cold') || estadoProcesoNorm.toLowerCase().includes('primer contacto');
       const estadoSolicitud = c.estado_solicitud || (isLead && !c.aprobado_por ? 'Pendiente' : 'Aprobada');
 
       return {
@@ -723,32 +723,125 @@ const DB = {
     return nuevo;
   },
 
-  // ── VACANTES ──────────────────────────────────────────────────
-  getVacantes() { return this.get().vacantes || []; },
+  // ── VACANTES & STELLENPORTAL ──────────────────────────────────
+  getVacantes() {
+    const db = this.get();
+    if (!db.vacantes || !Array.isArray(db.vacantes) || db.vacantes.length === 0) {
+      const template = (typeof OFFICIAL_STELLENPORTAL_VACANTES !== 'undefined')
+        ? OFFICIAL_STELLENPORTAL_VACANTES
+        : (typeof INITIAL_DATA !== 'undefined' && INITIAL_DATA.vacantes ? INITIAL_DATA.vacantes : []);
+      db.vacantes = JSON.parse(JSON.stringify(template));
+      if (!db.kpis) db.kpis = {};
+      db.kpis.vacantes_activas = db.vacantes.filter(v => v.estado === 'Abierta').length;
+      this.save(db);
+    } else if (typeof OFFICIAL_STELLENPORTAL_VACANTES !== 'undefined') {
+      // Migración: completar vacantes oficiales antiguas con los campos de la plantilla Cartera JN
+      // (lugar, salario_objetivo, cualificacion, ofrecemos_es, tareas_es, ...) sin pisar ediciones.
+      let changed = false;
+      db.vacantes = db.vacantes.map(v => {
+        const official = OFFICIAL_STELLENPORTAL_VACANTES.find(o => o.id === v.id);
+        if (!official || v.cualificacion) return v;
+        changed = true;
+        const merged = { ...official, ...v };
+        ['lugar', 'salario_objetivo', 'cualificacion', 'ofrecemos_es', 'ofrecemos_nota', 'tareas_es',
+         'requisitos_es', 'competencias_sociales', 'pdf_de', 'pdf_es', 'titulo_es', 'url_original']
+          .forEach(k => { merged[k] = official[k]; });
+        return merged;
+      });
+      if (changed) this.save(db);
+    }
+    return db.vacantes || [];
+  },
 
-  getVacantesByEmpresa(id_empresa) { return this.getVacantes().filter(v => v.id_empresa === id_empresa); },
+  getVacanteById(id) {
+    if (!id) return null;
+    return this.getVacantes().find(v => v.id === id || v.slug === id) || null;
+  },
+
+  getVacantesByEmpresa(id_empresa) {
+    return this.getVacantes().filter(v => v.id_empresa === id_empresa);
+  },
 
   createVacante(data) {
     const db = this.get();
-    const nueva = { ...data, id: 'v-' + Date.now(), fecha: new Date().toISOString().split('T')[0] };
-    db.vacantes.push(nueva);
-    db.kpis.vacantes_activas++;
+    if (!db.vacantes) db.vacantes = [];
+    const nueva = {
+      ...data,
+      id: data.id || ('v-' + Date.now()),
+      fecha: data.fecha || new Date().toISOString().split('T')[0],
+      fecha_publicacion: data.fecha_publicacion || new Date().toISOString().split('T')[0],
+      estado: data.estado || 'Abierta',
+      vacantes: parseInt(data.vacantes || 1, 10),
+      lugar: data.lugar || data.ubicacion || 'Alemania',
+      salario_objetivo: data.salario_objetivo || data.sueldo_texto || 'A convenir según convenio',
+      cualificacion: data.cualificacion || data.especialidad || 'Profesional Sanitario Homologable',
+      tareas: Array.isArray(data.tareas) ? data.tareas : (data.tareas ? data.tareas.split('\n').filter(Boolean) : []),
+      tareas_es: Array.isArray(data.tareas_es) ? data.tareas_es : (data.tareas_es ? data.tareas_es.split('\n').filter(Boolean) : []),
+      requisitos: Array.isArray(data.requisitos) ? data.requisitos : (data.requisitos ? data.requisitos.split('\n').filter(Boolean) : []),
+      requisitos_es: Array.isArray(data.requisitos_es) ? data.requisitos_es : (data.requisitos_es ? data.requisitos_es.split('\n').filter(Boolean) : []),
+      beneficios: Array.isArray(data.beneficios) ? data.beneficios : (data.beneficios ? data.beneficios.split('\n').filter(Boolean) : []),
+      ofrecemos_es: Array.isArray(data.ofrecemos_es) ? data.ofrecemos_es : (data.ofrecemos_es ? data.ofrecemos_es.split('\n').filter(Boolean) : []),
+      competencias_sociales: Array.isArray(data.competencias_sociales) ? data.competencias_sociales : (data.competencias_sociales ? data.competencias_sociales.split('\n').filter(Boolean) : []),
+      ofrecemos_nota: data.ofrecemos_nota || '',
+      pdf_de: data.pdf_de || '',
+      pdf_es: data.pdf_es || ''
+    };
+    db.vacantes.unshift(nueva);
+    if (!db.kpis) db.kpis = {};
+    db.kpis.vacantes_activas = db.vacantes.filter(v => v.estado === 'Abierta').length;
     this.save(db);
     return nueva;
   },
 
   updateVacante(id, data) {
     const db = this.get();
-    const idx = db.vacantes.findIndex(v => v.id === id);
-    if (idx !== -1) db.vacantes[idx] = { ...db.vacantes[idx], ...data };
-    this.save(db);
+    if (!db.vacantes) db.vacantes = [];
+    const idx = db.vacantes.findIndex(v => v.id === id || v.slug === id);
+    if (idx !== -1) {
+      const sanitized = { ...data };
+      if (sanitized.tareas && !Array.isArray(sanitized.tareas)) sanitized.tareas = sanitized.tareas.split('\n').filter(Boolean);
+      if (sanitized.tareas_es && !Array.isArray(sanitized.tareas_es)) sanitized.tareas_es = sanitized.tareas_es.split('\n').filter(Boolean);
+      if (sanitized.requisitos && !Array.isArray(sanitized.requisitos)) sanitized.requisitos = sanitized.requisitos.split('\n').filter(Boolean);
+      if (sanitized.requisitos_es && !Array.isArray(sanitized.requisitos_es)) sanitized.requisitos_es = sanitized.requisitos_es.split('\n').filter(Boolean);
+      if (sanitized.beneficios && !Array.isArray(sanitized.beneficios)) sanitized.beneficios = sanitized.beneficios.split('\n').filter(Boolean);
+      if (sanitized.ofrecemos_es && !Array.isArray(sanitized.ofrecemos_es)) sanitized.ofrecemos_es = sanitized.ofrecemos_es.split('\n').filter(Boolean);
+      if (sanitized.competencias_sociales && !Array.isArray(sanitized.competencias_sociales)) sanitized.competencias_sociales = sanitized.competencias_sociales.split('\n').filter(Boolean);
+
+      db.vacantes[idx] = { ...db.vacantes[idx], ...sanitized };
+      if (!db.kpis) db.kpis = {};
+      db.kpis.vacantes_activas = db.vacantes.filter(v => v.estado === 'Abierta').length;
+      this.save(db);
+      return db.vacantes[idx];
+    }
+    return null;
+  },
+
+  toggleVacanteEstado(id) {
+    const vac = this.getVacanteById(id);
+    if (!vac) return null;
+    const nuevo = vac.estado === 'Abierta' ? 'Pausada' : 'Abierta';
+    return this.updateVacante(id, { estado: nuevo });
   },
 
   deleteVacante(id) {
     const db = this.get();
-    db.vacantes = db.vacantes.filter(v => v.id !== id);
-    db.kpis.vacantes_activas = Math.max(0, db.kpis.vacantes_activas - 1);
+    if (!db.vacantes) return;
+    db.vacantes = db.vacantes.filter(v => v.id !== id && v.slug !== id);
+    if (!db.kpis) db.kpis = {};
+    db.kpis.vacantes_activas = db.vacantes.filter(v => v.estado === 'Abierta').length;
     this.save(db);
+  },
+
+  resetVacantesToOfficial() {
+    const db = this.get();
+    const template = (typeof OFFICIAL_STELLENPORTAL_VACANTES !== 'undefined')
+      ? OFFICIAL_STELLENPORTAL_VACANTES
+      : (typeof INITIAL_DATA !== 'undefined' && INITIAL_DATA.vacantes ? INITIAL_DATA.vacantes : []);
+    db.vacantes = JSON.parse(JSON.stringify(template));
+    if (!db.kpis) db.kpis = {};
+    db.kpis.vacantes_activas = db.vacantes.filter(v => v.estado === 'Abierta').length;
+    this.save(db);
+    return db.vacantes;
   },
 
   // ── EMPRESAS Y HOSPITALES (B2B) ───────────────────────────────
@@ -1097,7 +1190,7 @@ const DB = {
         especialidad: raw.especialidad || raw.profesion || raw['Especialidad'] || 'Enfermería General',
         nivel_aleman: raw.nivel_aleman || raw['Nivel Alemán'] || raw['Nivel Aleman'] || 'A1',
         experiencia_anos: parseInt(raw.experiencia_anos || raw['Años de Experiencia'] || raw['Experiencia'] || 2, 10),
-        estado_proceso: raw.estado_proceso || raw['Estado'] || 'Lead Nuevo',
+        estado_proceso: raw.estado_proceso || raw['Estado'] || 'Primer contacto / Cualificado (Cold Lead)',
         estado_solicitud: 'Aprobada',
         origen: 'Importación Excel',
         fecha_registro: new Date().toISOString(),

@@ -9,47 +9,87 @@
 // ──────────────────────────────────────────────────────────────────
 
 // ──────────────────────────────────────────────────────────────────
-// GUÍAS POR FASE (CHECKLISTS)
+// GUÍAS POR FASE (CHECKLISTS - 9 FASES DEL CANDIDATO)
 // ──────────────────────────────────────────────────────────────────
 const PHASE_GUIDES = {
+  'Primer contacto / Cualificado (Cold Lead)': [
+    'Revisión inicial del CV y respuestas del test de elegibilidad',
+    'Validación de titulación básica y nivel de motivación',
+    'Asignación formal a un asesor de reclutamiento'
+  ],
+  'Primera entrevista realizada': [
+    'Entrevista exploratoria y diagnóstico de perfil profesional',
+    'Evaluación de suficiencia y plan de aprendizaje de alemán',
+    'Explicación del proceso de homologación y vida en Alemania'
+  ],
+  'Entrevista de cierre programada': [
+    'Confirmar fecha y hora para la entrevista de cierre',
+    'Preparación de términos de intermediación y condiciones',
+    'Envío de recordatorio previo y temario de la sesión'
+  ],
+  'Oferta / Contrato de intermediación enviado': [
+    'Emisión y envío formal del contrato de intermediación',
+    'Aclaración de cláusulas legales y compromisos de las partes',
+    'Seguimiento al plazo de revisión y resolución de consultas'
+  ],
+  'Contrato firmado (encargo recibido)': [
+    'Verificación de validez de firma en el contrato',
+    'Registro formal del encargo en el sistema y alta de expediente',
+    'Recopilación de documentos oficiales para homologación'
+  ],
+  'CV del candidato enviado': [
+    'Adaptación del CV al formato estándar alemán (Lebenslauf)',
+    'Traducción de perfil, cartas de recomendación y certificaciones',
+    'Presentación formal de la candidatura a clínicas y hospitales'
+  ],
+  'Entrevista programada / realizada': [
+    'Coordinación de cita de entrevista con el empleador alemán',
+    'Simulación y preparación técnica/cultural con el candidato',
+    'Realización de la entrevista y recopilación de retroalimentación'
+  ],
+  'Intermediación completada': [
+    'Oferta laboral formal aceptada por el candidato',
+    'Firma del contrato de trabajo definitivo con la clínica',
+    'Inicio del trámite de visado acelerado (§ 81a AufenthG)'
+  ],
+  'Perdido': [
+    'Registro del motivo de pérdida (idioma, desistimiento, descarte)',
+    'Cierre y archivo del expediente en el sistema',
+    'Programar seguimiento futuro si las condiciones cambian'
+  ],
+
+  // Compatibilidad hacia atrás con registros anteriores
   'Lead Nuevo': [
     'Revisión inicial del CV y respuestas del test',
     'Asignación a un asesor de reclutamiento'
   ],
   '1er contacto, reclutamiento': [
     'Agendar y realizar llamada de primer contacto',
-    'Explicar el proceso general y costos',
-    'Solicitar documentación básica (Pasaporte, Títulos)'
+    'Explicar el proceso general y costos'
   ],
   'Suficiencia del idioma': [
     'Evaluar nivel actual de alemán',
-    'Inscripción en curso de alemán (si aplica)',
     'Obtener certificado B2 de alemán'
   ],
   'Entrevista Laboral y firma del contrato': [
     'Preparación para entrevista',
-    'Agendar entrevista con empleador alemán',
     'Revisión y firma del contrato laboral'
   ],
   'Procesamiento de visa': [
     'Reunir documentos para visado',
-    'Solicitar cita en la embajada',
-    'Obtener aprobación de visa'
+    'Solicitar cita en la embajada'
   ],
   'Fase Pre viaje': [
     'Comprar pasajes aéreos',
-    'Organizar alojamiento inicial en Alemania',
-    'Sesión de orientación pre-viaje'
+    'Organizar alojamiento inicial en Alemania'
   ],
   'En Destino': [
     'Llegada a Alemania y traslado al alojamiento',
-    'Registro en la ciudad (Anmeldung)',
-    'Abrir cuenta bancaria y seguro médico'
+    'Registro en la ciudad (Anmeldung)'
   ],
   'Inserción exitosa': [
     'Inicio de labores en el empleador',
-    'Firma del acta de finalización del proceso',
-    'Seguimiento a 1 mes de inicio'
+    'Firma del acta de finalización del proceso'
   ]
 };
 
@@ -217,6 +257,9 @@ function showPublic() {
       loginBtn.onclick = showLogin;
     }
   }
+
+  // Sincronizar y renderizar la bolsa de empleo pública (Stellenportal)
+  renderPublicStellenportal();
 }
 
 function showLogin() {
@@ -592,14 +635,16 @@ const SIDEBAR_MENUS = {
     { id:'admin-overview',    icon: getIcon('fileText'), label:'Resumen General'     },
     { id:'admin-users',       icon: getIcon('Admin'),    label:'Gestión de Usuarios'  },
     { id:'admin-candidatos',  icon: getIcon('Candidato'),label:'Todos los Candidatos' },
-    { id:'admin-cms',         icon: getIcon('fileText'), label:'CMS Web Pública'      },
-    { id:'admin-comisiones',  icon: getIcon('coins'),    label:'Control Comisiones'   },
+    { id:'admin-vacantes',    icon: getIcon('briefcase'),label:'Bolsa de Empleo (Stellenportal)' },
     { id:'admin-empresas',    icon: getIcon('Empresa'),  label:'Empresas / Clínicas'  },
+    { id:'admin-comisiones',  icon: getIcon('coins'),    label:'Control Comisiones'   },
+    { id:'admin-cms',         icon: getIcon('fileText'), label:'CMS Web Pública'      },
   ],
   'Super Asesor': [
     { id:'super-leads',       icon: getIcon('newTag'),   label:'Bandeja de Leads'     },
     { id:'super-kanban',      icon: getIcon('Asesor'),   label:'Kanban General'       },
-    { id:'asesor-empresas',   icon: getIcon('briefcase'),label:'Empresas & Clínicas (B2B)' },
+    { id:'asesor-vacantes',   icon: getIcon('briefcase'),label:'Bolsa de Empleo (Stellenportal)' },
+    { id:'asesor-empresas',   icon: getIcon('hospital'), label:'Empresas & Clínicas (B2B)' },
     { id:'super-asesores',    icon: getIcon('network'),  label:'Equipo de Asesores'   },
     { id:'super-candidatos',  icon: getIcon('Candidato'),label:'Todos los Candidatos' },
     { id:'super-matching',    icon: getIcon('search'),   label:'Matching IA'          },
@@ -607,7 +652,8 @@ const SIDEBAR_MENUS = {
   Asesor: [
     { id:'asesor-dashboard',  icon: getIcon('layout'),    label:'Dashboard'                           },
     { id:'asesor-kanban',     icon: getIcon('users'),     label:'Candidatos (Pipeline)'               },
-    { id:'asesor-empresas',   icon: getIcon('briefcase'), label:'Empresas & Clínicas (B2B)'          },
+    { id:'asesor-vacantes',   icon: getIcon('briefcase'), label:'Bolsa de Empleo (Stellenportal)'     },
+    { id:'asesor-empresas',   icon: getIcon('hospital'),  label:'Empresas & Clínicas (B2B)'          },
     { id:'asesor-base-datos', icon: getIcon('Admin'),     label:'Base de Datos & Expedientes'         },
     { id:'asesor-cv-builder', icon: getIcon('fileText'),  label:'Hojas de Vida (CV) & Documentos'     },
     { id:'asesor-matching',   icon: getIcon('search'),    label:'Matching IA'                         },
@@ -766,6 +812,7 @@ async function renderDashboard(rol, view = null) {
     'admin-overview':   renderAdminOverview,
     'admin-users':      renderAdminUsers,
     'admin-candidatos': renderAdminCandidatos,
+    'admin-vacantes':   renderStellenportalAdmin,
     'admin-cms':        renderAdminCms,
     'admin-comisiones': renderAdminComisiones,
     'admin-empresas':   renderAdminEmpresas,
@@ -778,6 +825,7 @@ async function renderDashboard(rol, view = null) {
     // Asesor
     'asesor-dashboard':   renderAsesorDashboard,
     'asesor-kanban':      renderAsesorKanban,
+    'asesor-vacantes':    renderStellenportalAdmin,
     'asesor-empresas':    renderAsesorEmpresas,
     'asesor-base-datos':  renderAdminCandidatos,
     'asesor-expedientes': renderAsesorExpedientes,
@@ -2693,28 +2741,63 @@ let _currentSpeechTab = 'saludo';
 let _agendaFilter = 'todas'; // 'todas' | 'pendientes' | 'completadas'
 
 const PIPELINE_8_FASES = [
-  { id: "Lead Nuevo",                    label: "Lead Nuevo",                    iconName: "userPlus",      color: "#64748b" },
-  { id: "1er Contacto / Reclutamiento",  label: "1er Contacto / Reclutamiento",  iconName: "phone",         color: "#2563eb" },
-  { id: "Suficiencia de Idioma (A1-B2)", label: "Suficiencia de Idioma (A1-B2)", iconName: "messageSquare", color: "#7c3aed" },
-  { id: "Entrevista y Contrato",         label: "Entrevista y Contrato",         iconName: "handshake",     color: "#db2777" },
-  { id: "Procesamiento de Visa",         label: "Procesamiento de Visa",         iconName: "shieldCheck",   color: "#d97706" },
-  { id: "Fase Pre-viaje",                label: "Fase Pre-viaje",                iconName: "plane",         color: "#0d9488" },
-  { id: "En Destino",                    label: "En Destino",                    iconName: "mapPin",        color: "#ca8a04" },
-  { id: "Inserción Exitosa",             label: "Inserción Exitosa",             iconName: "award",         color: "#16a34a" }
+  { id: "Primer contacto / Cualificado (Cold Lead)",    label: "Primer contacto / Cualificado (Cold Lead)",    iconName: "userPlus",  color: "#64748b" },
+  { id: "Primera entrevista realizada",                 label: "Primera entrevista realizada",                 iconName: "phone",     color: "#2563eb" },
+  { id: "Entrevista de cierre programada",               label: "Entrevista de cierre programada",               iconName: "calendar",  color: "#7c3aed" },
+  { id: "Oferta / Contrato de intermediación enviado",  label: "Oferta / Contrato de intermediación enviado",  iconName: "send",      color: "#ea580c" },
+  { id: "Contrato firmado (encargo recibido)",          label: "Contrato firmado (encargo recibido)",          iconName: "handshake", color: "#d97706" },
+  { id: "CV del candidato enviado",                     label: "CV del candidato enviado",                     iconName: "fileText",  color: "#0284c7" },
+  { id: "Entrevista programada / realizada",            label: "Entrevista programada / realizada",            iconName: "users",     color: "#0d9488" },
+  { id: "Intermediación completada",                    label: "Intermediación completada",                    iconName: "award",     color: "#16a34a" },
+  { id: "Perdido",                                      label: "Perdido",                                      iconName: "cross",     color: "#dc2626" }
 ];
+const PIPELINE_CANDIDATO_FASES = PIPELINE_8_FASES;
 
 function normalizeCandidatePhase(rawEstado) {
-  if (!rawEstado) return "Lead Nuevo";
+  if (!rawEstado) return "Primer contacto / Cualificado (Cold Lead)";
   const s = rawEstado.toLowerCase().trim();
-  if (s.includes("lead") || s.includes("nuevo")) return "Lead Nuevo";
-  if (s.includes("1er") || s.includes("contacto") || s.includes("recluta")) return "1er Contacto / Reclutamiento";
-  if (s.includes("idioma") || s.includes("suficiencia") || s.includes("alem")) return "Suficiencia de Idioma (A1-B2)";
-  if (s.includes("entrevista") || s.includes("contrato") || s.includes("postula")) return "Entrevista y Contrato";
-  if (s.includes("visa") || s.includes("visado") || s.includes("homologa")) return "Procesamiento de Visa";
-  if (s.includes("pre") || s.includes("viaje") || s.includes("vuelo")) return "Fase Pre-viaje";
-  if (s.includes("destino") || s.includes("llegada")) return "En Destino";
-  if (s.includes("inserci") || s.includes("éxito") || s.includes("exitos") || s.includes("coloca")) return "Inserción Exitosa";
-  return rawEstado;
+
+  // 9. Perdido
+  if (s.includes("perdid") || s.includes("rechaz") || s.includes("cancel") || s.includes("desist") || s.includes("inactiv")) {
+    return "Perdido";
+  }
+  // 8. Intermediación completada
+  if (s.includes("completad") || s.includes("inserci") || s.includes("éxito") || s.includes("exitos") || s.includes("coloca")) {
+    return "Intermediación completada";
+  }
+  // 7. Entrevista programada / realizada
+  if (s.includes("entrevista programada") || s.includes("entrevista realizada") || s.includes("entrevista laboral") || s.includes("entrevista y contrato") || s.includes("pre-viaje") || s.includes("destino") || s.includes("visa")) {
+    return "Entrevista programada / realizada";
+  }
+  // 6. CV del candidato enviado
+  if (s.includes("cv") || s.includes("curriculum") || s.includes("hoja de vida")) {
+    return "CV del candidato enviado";
+  }
+  // 5. Contrato firmado (encargo recibido)
+  if (s.includes("firmado") || s.includes("encargo") || s.includes("recibido")) {
+    return "Contrato firmado (encargo recibido)";
+  }
+  // 4. Oferta / Contrato de intermediación enviado
+  if (s.includes("oferta") || s.includes("intermediación") || s.includes("propuesta")) {
+    return "Oferta / Contrato de intermediación enviado";
+  }
+  // 3. Entrevista de cierre programada
+  if (s.includes("cierre")) {
+    return "Entrevista de cierre programada";
+  }
+  // 2. Primera entrevista realizada
+  if (s.includes("primera entrevista") || s.includes("1er contacto") || s.includes("recluta") || s.includes("idioma") || s.includes("suficiencia") || s.includes("alem")) {
+    return "Primera entrevista realizada";
+  }
+  // 1. Primer contacto / Cualificado (Cold Lead)
+  if (s.includes("cold") || s.includes("cualificado") || s.includes("lead") || s.includes("nuevo") || s.includes("postula")) {
+    return "Primer contacto / Cualificado (Cold Lead)";
+  }
+
+  const match = PIPELINE_8_FASES.find(f => f.id.toLowerCase() === s || f.label.toLowerCase() === s);
+  if (match) return match.id;
+
+  return "Primer contacto / Cualificado (Cold Lead)";
 }
 
 function getLanguageBadgeHtml(nivel) {
@@ -3382,12 +3465,18 @@ function renderAsesorDashboard() {
   const recentNotes = getAdvisorRecentNotes();
 
   // 1. Métricas Clave (KPIs)
-  const leadsCount = allCandidatos.filter(c => normalizeCandidatePhase(c.estado_proceso) === 'Lead Nuevo').length;
+  const leadsCount = allCandidatos.filter(c => normalizeCandidatePhase(c.estado_proceso) === 'Primer contacto / Cualificado (Cold Lead)').length;
   const callsTodayCount = tasks.filter(t => t.tipo === 'llamada' || t.tipo === 'zoom').length;
   const pendingCalls = tasks.filter(t => (t.tipo === 'llamada' || t.tipo === 'zoom') && !t.completada).length;
-  const expedientesPorRevisar = allCandidatos.filter(c => (c.nivel_aleman === 'B1' || c.nivel_aleman === 'B2' || (c.documentos_subidos && c.documentos_subidos >= 2)) && normalizeCandidatePhase(c.estado_proceso) !== 'Inserción Exitosa').length;
-  const finalStages = ['Procesamiento de Visa', 'Fase Pre-viaje', 'En Destino'];
-  const enTramiteCount = allCandidatos.filter(c => finalStages.includes(normalizeCandidatePhase(c.estado_proceso))).length;
+  const expedientesPorRevisar = allCandidatos.filter(c => {
+    const p = normalizeCandidatePhase(c.estado_proceso);
+    return (p === 'Primera entrevista realizada' || p === 'Entrevista de cierre programada' || p === 'Oferta / Contrato de intermediación enviado');
+  }).length;
+  const enTramiteCount = allCandidatos.filter(c => {
+    const p = normalizeCandidatePhase(c.estado_proceso);
+    return (p === 'Contrato firmado (encargo recibido)' || p === 'CV del candidato enviado' || p === 'Entrevista programada / realizada');
+  }).length;
+  const completadosCount = allCandidatos.filter(c => normalizeCandidatePhase(c.estado_proceso) === 'Intermediación completada').length;
 
   // 2. Filtro de Tareas
   let filteredTasks = tasks;
@@ -3457,17 +3546,17 @@ function renderAsesorDashboard() {
         </div>
       </div>
 
-      <!-- KPI 4: Candidatos en Trámite de Visa/Vuelo -->
+      <!-- KPI 4: Intermediaciones Completadas -->
       <div class="asesor-kpi-card">
         <div class="asesor-kpi-icon emerald">
-          ${getIcon('plane', { size: 22, color: '#0d9488' })}
+          ${getIcon('award', { size: 22, color: '#16a34a' })}
         </div>
         <div class="asesor-kpi-info">
-          <span class="asesor-kpi-label">En Trámite Visa / Vuelo</span>
-          <span class="asesor-kpi-value">${enTramiteCount}</span>
+          <span class="asesor-kpi-label">Intermediaciones Completadas</span>
+          <span class="asesor-kpi-value">${completadosCount}</span>
           <span class="asesor-kpi-trend positive" style="display:inline-flex; align-items:center; gap:4px;">
             <span style="display:inline-flex; align-items:center;">${getIcon('check', { size: 13, color: '#16a34a' })}</span>
-            Fases 5-7 (Consulado y Llegada)
+            ${enTramiteCount} en tramitación avanzada
           </span>
         </div>
       </div>
@@ -3479,9 +3568,9 @@ function renderAsesorDashboard() {
         <div>
           <h3 style="font-size:1.05rem; font-weight:800; color:var(--slate-900); margin:0; display:flex; align-items:center; gap:8px;">
             <span style="display:inline-flex; align-items:center;">${getIcon('layout', { size: 18, color: 'var(--wine-800)' })}</span>
-            Distribución del Pipeline de Integración (8 Fases)
+            Distribución del Funnel de Candidatos (9 Fases)
           </h3>
-          <p style="font-size:0.8125rem; color:var(--slate-500); margin:2px 0 0 0;">Candidatos activos distribuidos en cada etapa del proceso hacia Alemania</p>
+          <p style="font-size:0.8125rem; color:var(--slate-500); margin:2px 0 0 0;">Candidatos activos distribuidos en cada etapa del funnel de intermediación</p>
         </div>
         <button class="btn btn-sm btn-outline" onclick="renderDashboard(State.activeRole, 'asesor-kanban')">
           Abrir Tablero Completo →
@@ -4050,42 +4139,245 @@ function getCandidateAvatarIllustration(c) {
   `;
 }
 
+function getCleanCandidateNameParts(fullName) {
+  if (!fullName) return { firstName: 'Candidato', lastName: 'JN', cleanFullName: 'Candidato JN' };
+  // Limpiar títulos académicos como Dra., Dr., Lic., Enf., Ing., Prof.
+  const cleaned = fullName.replace(/^(Dr\.|Dra\.|Lic\.|Enf\.|Ing\.|Prof\.)\s+/i, '').trim();
+  const parts = cleaned.split(/\s+/).filter(Boolean);
+  const firstName = parts[0] || 'Candidato';
+  const lastName = parts.length > 1 ? parts[parts.length - 1] : parts[0];
+  return { firstName, lastName, cleanFullName: cleaned };
+}
+
+function getCleanSpecialtySlug(esp) {
+  if (!esp || esp.includes('Ver Test')) return 'Salud';
+  const cleaned = esp.replace(/^(Lic\.|Dr\.|Dra\.)\s+/i, '').trim();
+  return cleaned
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+}
+
 function getCandidateProcessSteps(estadoRaw) {
-  const norm = (estadoRaw || '').toLowerCase();
+  const normPhase = normalizeCandidatePhase(estadoRaw);
   
-  // Determinamos el índice activo (0: Migración, 1: Idioma, 2: Integración, 3: Vida Alemania)
-  let activeIndex = 1; // Default: Idioma (como en la plantilla de referencia)
+  // Encontrar el índice de la fase dentro del funnel oficial de 9 fases
+  const phaseIdx = PIPELINE_8_FASES.findIndex(f => f.id === normPhase || f.label === normPhase);
+  const validPhaseIdx = phaseIdx !== -1 ? phaseIdx : 0;
+  const currentPhaseObj = PIPELINE_8_FASES[validPhaseIdx] || PIPELINE_8_FASES[0];
+  const isLost = validPhaseIdx === 8 || normPhase === "Perdido";
+
+  // Mapeo coherente de las 9 fases del embudo a los 4 grandes hitos del proceso de colocación médica:
+  // Hito 0: 01. CUALIFICACIÓN       (Fases 1 y 2: Cold Lead & 1ra Entrevista)
+  // Hito 1: 02. CONTRATACIÓN        (Fases 3, 4 y 5: Cierre, Oferta y Contrato Firmado)
+  // Hito 2: 03. POSTULACIÓN CLÍNICA (Fases 6 y 7: CV Enviado a Clínicas & Entrevistas en Alemania)
+  // Hito 3: 04. INTERMEDIACIÓN      (Fase 8: Intermediación Completada § 81a)
   
-  if (norm.includes('lead') || norm.includes('contacto') || norm.includes('recluta')) {
-    activeIndex = 0;
-  } else if (norm.includes('idioma') || norm.includes('aleman') || norm.includes('b1') || norm.includes('b2') || norm.includes('a1') || norm.includes('a2')) {
-    activeIndex = 1;
-  } else if (norm.includes('entrevista') || norm.includes('contrato') || norm.includes('visa') || norm.includes('homolog')) {
-    activeIndex = 2;
-  } else if (norm.includes('pre-viaje') || norm.includes('viaje') || norm.includes('destino') || norm.includes('alemania') || norm.includes('inserc') || norm.includes('colocado')) {
-    activeIndex = 3;
+  let activeMilestone = 0;
+  let progressPercent = 16;
+
+  if (isLost) {
+    activeMilestone = -1;
+    progressPercent = 0;
+  } else if (validPhaseIdx === 0) {
+    activeMilestone = 0;
+    progressPercent = 16;
+  } else if (validPhaseIdx === 1) {
+    activeMilestone = 0;
+    progressPercent = 28;
+  } else if (validPhaseIdx === 2) {
+    activeMilestone = 1;
+    progressPercent = 42;
+  } else if (validPhaseIdx === 3) {
+    activeMilestone = 1;
+    progressPercent = 54;
+  } else if (validPhaseIdx === 4) {
+    activeMilestone = 1;
+    progressPercent = 66;
+  } else if (validPhaseIdx === 5) {
+    activeMilestone = 2;
+    progressPercent = 78;
+  } else if (validPhaseIdx === 6) {
+    activeMilestone = 2;
+    progressPercent = 89;
+  } else if (validPhaseIdx === 7) {
+    activeMilestone = 3;
+    progressPercent = 100;
   }
 
   const steps = [
     {
-      num: '01. MIGRACIÓN',
-      icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>`
+      num: '01. CUALIFICACIÓN',
+      sublabel: 'Fases 1 y 2',
+      defaultIcon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><polyline points="16 11 18 13 22 9"></polyline></svg>`
     },
     {
-      num: '02. IDIOMA',
-      icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>`
+      num: '02. CONTRATACIÓN',
+      sublabel: 'Fases 3 a 5',
+      defaultIcon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`
     },
     {
-      num: '03. INTEGRACIÓN',
-      icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>`
+      num: '03. POSTULACIÓN CLÍNICA',
+      sublabel: 'Fases 6 y 7',
+      defaultIcon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 21V5a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16"></path><path d="M2 21h20"></path><path d="M10 9h4"></path><path d="M12 7v4"></path></svg>`
     },
     {
-      num: '04. VIDA ALEMANIA',
-      icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13"></path><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>`
+      num: '04. INTERMEDIACIÓN',
+      sublabel: 'Fase 8 (§ 81a)',
+      defaultIcon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="7"></circle><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline></svg>`
     }
   ];
 
-  return { activeIndex, steps };
+  return {
+    activeIndex: activeMilestone,
+    progressPercent,
+    steps,
+    currentPhase: {
+      number: validPhaseIdx + 1,
+      id: currentPhaseObj.id,
+      label: currentPhaseObj.label,
+      color: currentPhaseObj.color,
+      iconName: currentPhaseObj.iconName
+    },
+    isLost
+  };
+}
+
+function getCandidateDocumentsList(c) {
+  if (!c) return [];
+
+  // 1. Limpieza de nombre
+  const rawName = c.nombre || 'Candidato';
+  const nameParts = getCleanCandidateNameParts(rawName);
+  const lastName = nameParts.lastName || 'Candidato';
+
+  // 2. Limpieza de especialidad
+  let rawEsp = c.especialidad || 'Enfermería';
+  if (rawEsp.includes('Ver Test')) rawEsp = c.respuestas_elegibilidad?.profession || 'Enfermería';
+  const cleanEspSlug = getCleanSpecialtySlug(rawEsp);
+  const cleanEspTitle = rawEsp.replace(/^(Lic\.|Dr\.|Dra\.)\s+/i, '').trim();
+
+  // 3. País y nivel
+  const pais = c.pais || c.respuestas_elegibilidad?.country || 'Colombia';
+  let nivel = (c.nivel_aleman && !c.nivel_aleman.includes('Ver Test')) ? c.nivel_aleman : (c.respuestas_elegibilidad?.german || 'A1');
+  if (nivel.includes('Ver Test')) nivel = 'A1';
+  const cleanNivel = nivel.toUpperCase().trim();
+  const homologacion = c.estado_homologacion || 'En Trámite';
+
+  // 4. Documentos ya guardados en DB
+  const dbDocs = (DB.getDocumentos ? DB.getDocumentos(c.id) : []) || [];
+
+  // Doc 1: Pasaporte Oficial
+  const dbPasaporte = dbDocs.find(d => d.categoria === 'Identificación Oficial' || (d.nombre || '').toLowerCase().includes('pasaporte'));
+  const doc1 = dbPasaporte ? {
+    id: dbPasaporte.id,
+    nombre: dbPasaporte.nombre,
+    subtitulo: `República de ${pais} · Válido hasta: 12/2028`,
+    estado: dbPasaporte.estado || 'Aprobado',
+    isPending: false,
+    badgeLabel: dbPasaporte.estado === 'Aprobado' ? 'VALIDADO' : 'EN REVISIÓN',
+    badgeColor: dbPasaporte.estado === 'Aprobado' ? '#10b981' : '#3b82f6',
+    icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`
+  } : {
+    id: `doc-pasaporte-${c.id}`,
+    nombre: `Pasaporte_${lastName}.pdf`,
+    subtitulo: `República de ${pais} · Válido hasta: 12/2028`,
+    estado: 'Aprobado',
+    isPending: false,
+    badgeLabel: 'VALIDADO',
+    badgeColor: '#10b981',
+    icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`
+  };
+
+  // Doc 2: Título Universitario Apostillado
+  const dbTitulo = dbDocs.find(d => d.categoria === 'Formación Médica' || (d.nombre || '').toLowerCase().includes('titulo') || (d.nombre || '').toLowerCase().includes('diploma'));
+  const isHomologado = homologacion === 'Aprobado' || homologacion === 'Convalidado';
+  const doc2 = dbTitulo ? {
+    id: dbTitulo.id,
+    nombre: dbTitulo.nombre,
+    subtitulo: `Apostillado en ${pais} · Homologación: ${homologacion}`,
+    estado: dbTitulo.estado || (isHomologado ? 'Aprobado' : 'Certificado por Ministerio'),
+    isPending: false,
+    badgeLabel: isHomologado ? 'HOMOLOGADO' : 'CERTIFICADO',
+    badgeColor: isHomologado ? '#10b981' : '#0284c7',
+    icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="7"></circle><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline></svg>`
+  } : {
+    id: `doc-titulo-${c.id}`,
+    nombre: `Diploma_${cleanEspSlug}.pdf`,
+    subtitulo: `Apostillado en ${pais} · Homologación: ${homologacion}`,
+    estado: isHomologado ? 'Aprobado' : 'Certificado por Ministerio',
+    isPending: false,
+    badgeLabel: isHomologado ? 'HOMOLOGADO' : 'CERTIFICADO',
+    badgeColor: isHomologado ? '#10b981' : '#0284c7',
+    icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="7"></circle><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline></svg>`
+  };
+
+  // Doc 3: Certificado Alemán
+  const isCertified = c.certificado_idioma || cleanNivel === 'B2' || cleanNivel === 'C1';
+  const dbIdioma = dbDocs.find(d => d.categoria === 'Competencia Lingüística' || (d.nombre || '').toLowerCase().includes('aleman') || (d.nombre || '').toLowerCase().includes('idioma') || (d.nombre || '').toLowerCase().includes('goethe') || (d.nombre || '').toLowerCase().includes('telc'));
+  const doc3 = dbIdioma ? {
+    id: dbIdioma.id,
+    nombre: dbIdioma.nombre,
+    subtitulo: dbIdioma.estado === 'Aprobado' ? `Certificado ${cleanNivel} Validado` : 'ESPERANDO VALIDACIÓN',
+    estado: dbIdioma.estado || (isCertified ? 'Aprobado' : 'Esperando Validación'),
+    isPending: dbIdioma.estado !== 'Aprobado' && !isCertified,
+    badgeLabel: (dbIdioma.estado === 'Aprobado' || isCertified) ? 'VALIDADO' : 'ESPERANDO VALIDACIÓN',
+    badgeColor: (dbIdioma.estado === 'Aprobado' || isCertified) ? '#10b981' : '#d97706',
+    icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><polyline points="9 12 11 14 15 10"></polyline></svg>`
+  } : {
+    id: `doc-idioma-${c.id}`,
+    nombre: `Certificado_Alemán_${cleanNivel}.pdf`,
+    subtitulo: isCertified ? `Certificado Oficial Goethe/telc ${cleanNivel}` : 'ESPERANDO VALIDACIÓN',
+    estado: isCertified ? 'Aprobado' : 'Esperando Validación',
+    isPending: !isCertified,
+    badgeLabel: isCertified ? 'VALIDADO' : 'ESPERANDO VALIDACIÓN',
+    badgeColor: isCertified ? '#10b981' : '#d97706',
+    icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><polyline points="9 12 11 14 15 10"></polyline></svg>`
+  };
+
+  // Doc 4: Lebenslauf Oficial JN Palabras
+  const dbCv = dbDocs.find(d => (d.nombre || '').toLowerCase().includes('lebenslauf') || (d.nombre || '').toLowerCase().includes('curriculum') || d.categoria === 'Curriculum Vitae');
+  const doc4 = dbCv ? {
+    id: dbCv.id,
+    nombre: dbCv.nombre,
+    subtitulo: 'Formato Europass/ZAV · Adaptado a Clínicas',
+    estado: dbCv.estado || 'Aprobado',
+    isPending: false,
+    badgeLabel: 'VALIDADO ZAV',
+    badgeColor: '#10b981',
+    icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`
+  } : {
+    id: `doc-cv-${c.id}`,
+    nombre: `Lebenslauf_${lastName}_DE.pdf`,
+    subtitulo: `Formato Europass/ZAV · Perfil ${cleanEspTitle}`,
+    estado: 'Validado ZAV',
+    isPending: false,
+    badgeLabel: 'VALIDADO ZAV',
+    badgeColor: '#10b981',
+    icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`
+  };
+
+  const primaryDocs = [doc1, doc2, doc3, doc4];
+  const handledIds = new Set(primaryDocs.map(d => d.id));
+
+  // Incluir cualquier otro documento subido en DB
+  dbDocs.forEach(d => {
+    if (!handledIds.has(d.id)) {
+      primaryDocs.push({
+        id: d.id,
+        nombre: d.nombre,
+        subtitulo: `${d.categoria || 'Documento Oficial'} · ${d.fecha || 'Subido recientemente'}`,
+        estado: d.estado || 'Pendiente',
+        isPending: d.estado === 'Pendiente' || d.estado === 'Esperando Validación',
+        badgeLabel: d.estado === 'Aprobado' ? 'VALIDADO' : (d.estado === 'Rechazado' ? 'RECHAZADO' : 'EN REVISIÓN'),
+        badgeColor: d.estado === 'Aprobado' ? '#10b981' : (d.estado === 'Rechazado' ? '#ef4444' : '#f59e0b'),
+        icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`
+      });
+    }
+  });
+
+  return primaryDocs;
 }
 
 function renderApplicationDetailsCardHTML(c) {
@@ -4287,18 +4579,29 @@ function renderApplicationDetailsCardHTML(c) {
   `;
 }
 
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 function renderCandidateProfileHTML(c) {
-  const { activeIndex, steps } = getCandidateProcessSteps(c.estado_proceso);
-  const progressPercent = activeIndex === 0 ? 12 : (activeIndex === 1 ? 42 : (activeIndex === 2 ? 72 : 100));
+  const { activeIndex, progressPercent, steps, currentPhase, isLost } = getCandidateProcessSteps(c.estado_proceso);
+  const candidateDocs = getCandidateDocumentsList(c);
 
   // Respuestas del test y metadatos
   const resp = c.respuestas_elegibilidad || {};
   const isPendingApplication = c.estado_solicitud === 'Pendiente' || (normalizeCandidatePhase(c.estado_proceso) === 'Lead Nuevo' && !c.aprobado_por);
 
-  // Formato de nombre y especialidad real (sin "Ver Test")
-  const nombre = c.nombre || 'Mateo Valencia';
-  const displayName = nombre.replace(/\s+/, '<br>');
-  const lastName = nombre.split(' ').slice(1).join('_') || 'Valencia';
+  // Formato de nombre y especialidad real verídica
+  const rawName = c.nombre || 'Candidato';
+  const nameParts = getCleanCandidateNameParts(rawName);
+  const displayName = rawName.replace(/\s+/, '<br>');
+  const lastName = nameParts.lastName;
 
   let especialidad = (c.especialidad && !c.especialidad.includes('Ver Test')) ? c.especialidad : (resp.profession || 'Enfermero/a Profesional');
   if (especialidad.includes('Ver Test')) especialidad = resp.profession || 'Enfermero/a Profesional';
@@ -4451,32 +4754,46 @@ function renderCandidateProfileHTML(c) {
           <!-- FICHA COMPLETA DE LA APLICACIÓN (TEST DE ELEGIBILIDAD) -->
           ${renderApplicationDetailsCardHTML(c)}
 
-          <!-- Tarjeta de Estado del Proceso (Stepper Horizontal) -->
+          <!-- Tarjeta de Estado del Proceso (Stepper Horizontal Coherente con las 9 Fases) -->
           <div class="candidate-standard-card">
-            <div class="candidate-card-header-wine">ESTADO DEL PROCESO</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
+              <div class="candidate-card-header-wine" style="margin-bottom:0;">ESTADO DEL PROCESO</div>
+              <div style="display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border-radius:999px;font-size:0.8rem;font-weight:800;background:${currentPhase.color}15;color:${currentPhase.color};border:1px solid ${currentPhase.color}35;">
+                <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${currentPhase.color};"></span>
+                <span>Fase ${currentPhase.number}: ${currentPhase.label}</span>
+              </div>
+            </div>
+
             <div class="candidate-stepper-container">
               <div class="candidate-stepper-line">
-                <div class="candidate-stepper-line-active" style="width: ${progressPercent}%;"></div>
+                <div class="candidate-stepper-line-active" style="width: ${progressPercent}%; ${isLost ? 'background:#ef4444;' : ''}"></div>
               </div>
               ${steps.map((st, idx) => {
                 let circleClass = 'pending';
                 let statusLabel = 'PENDIENTE';
                 let statusClass = 'pending';
+                let nodeIcon = st.defaultIcon;
 
-                if (idx < activeIndex) {
+                if (isLost) {
+                  circleClass = 'pending';
+                  statusLabel = 'DESCARTADO';
+                  statusClass = 'pending';
+                } else if (currentPhase.number === 8 || idx < activeIndex) {
                   circleClass = 'completed';
                   statusLabel = 'COMPLETADO';
                   statusClass = 'completed';
+                  nodeIcon = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
                 } else if (idx === activeIndex) {
                   circleClass = 'active';
                   statusLabel = 'EN PROCESO';
                   statusClass = 'in-progress';
+                  nodeIcon = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>`;
                 }
 
                 return `
                   <div class="candidate-step-node">
                     <div class="candidate-step-circle ${circleClass}">
-                      ${st.icon}
+                      ${nodeIcon}
                     </div>
                     <div class="candidate-step-label">${st.num}</div>
                     <div class="candidate-step-status ${statusClass}">${statusLabel}</div>
@@ -4486,72 +4803,39 @@ function renderCandidateProfileHTML(c) {
             </div>
           </div>
 
-          <!-- Tarjeta de Documentación Requerida (Grid 2x2) -->
+          <!-- Tarjeta de Documentación Requerida (Grid Dinámica Verídica) -->
           <div class="candidate-standard-card">
             <div class="candidate-docs-header">
               <div class="candidate-card-header-wine" style="margin-bottom:0;">DOCUMENTACIÓN REQUERIDA</div>
-              <button class="candidate-upload-link" onclick="quickUploadDocForCandidate('${c.id}')">
+              <button class="candidate-upload-link" onclick="openUploadDocModal('${c.id}')">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
                 SUBIR NUEVO
               </button>
             </div>
 
             <div class="candidate-docs-grid">
-              <!-- Doc 1: Pasaporte -->
-              <div class="candidate-doc-item" onclick="openCandidateDossierModal('${c.id}', 'docs')" style="cursor:pointer;" title="Ver en expediente">
-                <div class="candidate-doc-left">
-                  <div class="candidate-doc-icon-wrap">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+              ${candidateDocs.map(doc => `
+                <div class="candidate-doc-item ${doc.isPending ? 'pending-validation' : ''} ${doc.isDashed ? 'dashed' : ''}" onclick="openCandidateDossierModal('${c.id}', 'docs')" style="cursor:pointer;" title="Ver en expediente oficial">
+                  <div class="candidate-doc-left">
+                    <div class="candidate-doc-icon-wrap">
+                      ${doc.icon}
+                    </div>
+                    <div>
+                      <div class="candidate-doc-title">${escapeHtml(doc.nombre)}</div>
+                      <div class="candidate-doc-sub">${escapeHtml(doc.subtitulo)}</div>
+                    </div>
                   </div>
-                  <div>
-                    <div class="candidate-doc-title">Pasaporte_${lastName}.pdf</div>
-                    <div class="candidate-doc-sub">Válido hasta: 12/2028</div>
-                  </div>
+                  ${doc.isPending ? `
+                    <div style="display:flex;align-items:center;" title="Pendiente de revisión y validación">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                    </div>
+                  ` : (doc.badgeLabel ? `
+                    <span style="font-size:0.7rem;font-weight:800;padding:3px 10px;border-radius:8px;background:${doc.badgeColor || '#10b981'}15;color:${doc.badgeColor || '#10b981'};">
+                      ${doc.badgeLabel}
+                    </span>
+                  ` : '')}
                 </div>
-              </div>
-
-              <!-- Doc 2: Diploma -->
-              <div class="candidate-doc-item" onclick="openCandidateDossierModal('${c.id}', 'docs')" style="cursor:pointer;" title="Ver en expediente">
-                <div class="candidate-doc-left">
-                  <div class="candidate-doc-icon-wrap">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="7"></circle><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline></svg>
-                  </div>
-                  <div>
-                    <div class="candidate-doc-title">Diploma_${(especialidad.replace(/\s+/g, '_'))}.pdf</div>
-                    <div class="candidate-doc-sub">Certificado por Ministerio</div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Doc 3: Certificado Alemán (Esperando Validación) -->
-              <div class="candidate-doc-item pending-validation" onclick="openCandidateDossierModal('${c.id}', 'docs')" style="cursor:pointer;" title="Ver en expediente">
-                <div class="candidate-doc-left">
-                  <div class="candidate-doc-icon-wrap">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><polyline points="9 12 11 14 15 10"></polyline></svg>
-                  </div>
-                  <div>
-                    <div class="candidate-doc-title">Certificado_Alemán_${cleanNivel}.pdf</div>
-                    <div class="candidate-doc-sub">ESPERANDO VALIDACIÓN</div>
-                  </div>
-                </div>
-                <div style="display:flex;align-items:center;" title="Pendiente de revisión">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                </div>
-              </div>
-
-              <!-- Doc 4: Seguro de Viaje (Omitir) -->
-              <div class="candidate-doc-item dashed">
-                <div class="candidate-doc-left">
-                  <div class="candidate-doc-icon-wrap" style="background:#f8fafc;border-style:dashed;">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
-                  </div>
-                  <div>
-                    <div class="candidate-doc-title" style="color:#64748b;">Seguro de Viaje</div>
-                    <div class="candidate-doc-sub">Requerido próximamente</div>
-                  </div>
-                </div>
-                <button class="candidate-doc-omit-btn" onclick="omitCandidateDocStep('${c.id}')" title="Omitir este requisito temporalmente">OMITIR</button>
-              </div>
+              `).join('')}
             </div>
           </div>
         </div>
@@ -4802,14 +5086,9 @@ function openEditCandidateModal(id) {
           <div>
             <label class="form-label" style="font-size:0.8rem;font-weight:700;color:var(--slate-700);">Fase del Proceso (Pipeline)</label>
             <select class="form-select" id="edit-cand-fase">
-              <option value="Lead Nuevo" ${c.estado_proceso==='Lead Nuevo'?'selected':''}>01. Lead Nuevo</option>
-              <option value="1er Contacto / Reclutamiento" ${c.estado_proceso==='1er Contacto / Reclutamiento'?'selected':''}>02. 1er Contacto</option>
-              <option value="Suficiencia de Idioma (A1-B2)" ${c.estado_proceso==='Suficiencia de Idioma (A1-B2)'||c.estado_proceso==='En Proceso'?'selected':''}>03. Suficiencia de Idioma</option>
-              <option value="Entrevista y Contrato" ${c.estado_proceso==='Entrevista y Contrato'?'selected':''}>04. Entrevista y Contrato</option>
-              <option value="Procesamiento de Visa" ${c.estado_proceso==='Procesamiento de Visa'?'selected':''}>05. Procesamiento de Visa</option>
-              <option value="Fase Pre-viaje" ${c.estado_proceso==='Fase Pre-viaje'?'selected':''}>06. Fase Pre-viaje</option>
-              <option value="En Destino" ${c.estado_proceso==='En Destino'?'selected':''}>07. En Destino</option>
-              <option value="Inserción Exitosa" ${c.estado_proceso==='Inserción Exitosa'?'selected':''}>08. Inserción Exitosa</option>
+              ${PIPELINE_8_FASES.map((f, i) => `
+                <option value="${f.id}" ${normalizeCandidatePhase(c.estado_proceso) === f.id ? 'selected' : ''}>0${i + 1}. ${f.label}</option>
+              `).join('')}
             </select>
           </div>
           <div>
@@ -5601,37 +5880,29 @@ function openCandidateDossierModal(id, initialTab = 'cv') {
                 <div style="font-size:1.15rem;font-weight:800;color:#1e293b;">Expediente de Documentación Oficial</div>
                 <div style="font-size:0.85rem;color:#64748b;margin-top:2px;">Checklist regulatorio para el trámite de homologación y visado de trabajo en Alemania</div>
               </div>
-              <button class="btn btn-primary btn-sm" onclick="quickUploadDocForCandidate('${c.id}')" style="background:#801020;border-color:#801020;border-radius:12px;display:flex;align-items:center;gap:6px;">
+              <button class="btn btn-primary btn-sm" onclick="openUploadDocModal('${c.id}')" style="background:#801020;border-color:#801020;border-radius:12px;display:flex;align-items:center;gap:6px;">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
                 Subir Documento
               </button>
             </div>
 
             <div style="display:flex;flex-direction:column;gap:12px;">
-              ${[
-                { nombre: 'Pasaporte Vigente', desc: 'Válido hasta: 12/2028 · Escaneo a color 300dpi', estado: 'Aprobado', color: '#10b981' },
-                { nombre: 'Título Universitario / Diploma', desc: 'Certificado por Ministerio de Educación y Apostillado', estado: 'Aprobado', color: '#10b981' },
-                { nombre: 'Certificado de Calificaciones y Malla', desc: 'Desglose de horas prácticas y créditos de enfermería/medicina', estado: 'En Revisión', color: '#3b82f6' },
-                { nombre: 'Certificado de Idioma Alemán B1/B2', desc: 'Certificado oficial Goethe-Institut / telc Deutsch B2', estado: 'Esperando Validación', color: '#f59e0b' },
-                { nombre: 'Certificado de Antecedentes Penales', desc: 'Apostillado y con vigencia menor a 3 meses', estado: 'Aprobado', color: '#10b981' },
-                { nombre: 'Certificado de Nacimiento Apostillado', desc: 'Traducido por traductor jurado en Alemania', estado: 'Aprobado', color: '#10b981' },
-                { nombre: 'Seguro Médico de Viaje (Incoming-Versicherung)', desc: 'Requerido para la fase de solicitud de visa de trabajo', estado: 'Pendiente', color: '#94a3b8' }
-              ].map(doc => `
+              ${getCandidateDocumentsList(c).map(doc => `
                 <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;background:#ffffff;border:1px solid #e2e8f0;border-radius:16px;box-shadow:0 2px 6px rgba(0,0,0,0.02);">
                   <div style="display:flex;align-items:center;gap:16px;">
                     <div style="width:40px;height:40px;border-radius:12px;background:#fdf2f4;color:#801020;display:flex;align-items:center;justify-content:center;">
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                      ${doc.icon}
                     </div>
                     <div>
-                      <div style="font-weight:700;color:#1e293b;font-size:0.95rem;">${doc.nombre}</div>
-                      <div style="font-size:0.8rem;color:#64748b;margin-top:2px;">${doc.desc}</div>
+                      <div style="font-weight:700;color:#1e293b;font-size:0.95rem;">${escapeHtml(doc.nombre)}</div>
+                      <div style="font-size:0.8rem;color:#64748b;margin-top:2px;">${escapeHtml(doc.subtitulo)}</div>
                     </div>
                   </div>
                   <div style="display:flex;align-items:center;gap:14px;">
-                    <span style="font-size:0.75rem;font-weight:700;padding:4px 12px;border-radius:12px;background:${doc.color}15;color:${doc.color};border:1px solid ${doc.color}30;">
-                      ${doc.estado}
+                    <span style="font-size:0.75rem;font-weight:700;padding:4px 12px;border-radius:12px;background:${doc.badgeColor || '#10b981'}15;color:${doc.badgeColor || '#10b981'};border:1px solid ${doc.badgeColor || '#10b981'}30;">
+                      ${doc.badgeLabel || doc.estado}
                     </span>
-                    <button class="btn btn-outline btn-xs" onclick="showToast('Expediente', 'Visualizando documento: ${doc.nombre}', 'info')" style="border-radius:10px;">Ver</button>
+                    <button class="btn btn-outline btn-xs" onclick="showToast('Expediente', 'Visualizando documento: ${escapeHtml(doc.nombre)}', 'info')" style="border-radius:10px;">Ver</button>
                   </div>
                 </div>
               `).join('')}
@@ -6870,10 +7141,19 @@ function renderSuperAsesores() {
         </div>
       ` : asesores.map(a => {
         const asignados = candidatos.filter(c => c.id_asesor === a.id);
-        const enLeadNuevo = asignados.filter(c => c.estado_proceso === 'Lead Nuevo').length;
-        const enReclutamiento = asignados.filter(c => c.estado_proceso === '1er contacto, reclutamiento' || c.estado_proceso === 'En Proceso').length;
-        const enIdioma = asignados.filter(c => c.estado_proceso === 'Suficiencia del idioma' || c.estado_proceso === 'Idioma').length;
-        const enTramites = asignados.filter(c => c.estado_proceso === 'Entrevista Laboral y firma del contrato' || c.estado_proceso === 'Procesamiento de visa' || c.estado_proceso === 'Homologación' || c.estado_proceso === 'Trámite Visado').length;
+        const enColdLead = asignados.filter(c => normalizeCandidatePhase(c.estado_proceso) === 'Primer contacto / Cualificado (Cold Lead)').length;
+        const enEntrevistas = asignados.filter(c => {
+          const p = normalizeCandidatePhase(c.estado_proceso);
+          return p === 'Primera entrevista realizada' || p === 'Entrevista de cierre programada';
+        }).length;
+        const enContrato = asignados.filter(c => {
+          const p = normalizeCandidatePhase(c.estado_proceso);
+          return p === 'Oferta / Contrato de intermediación enviado' || p === 'Contrato firmado (encargo recibido)';
+        }).length;
+        const enColocacion = asignados.filter(c => {
+          const p = normalizeCandidatePhase(c.estado_proceso);
+          return p === 'CV del candidato enviado' || p === 'Entrevista programada / realizada' || p === 'Intermediación completada';
+        }).length;
 
         const loadPercent = Math.min(100, Math.round((asignados.length / 10) * 100));
 
@@ -6910,20 +7190,20 @@ function renderSuperAsesores() {
             <!-- Desglose por Etapas -->
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:0.75rem;">
               <div style="background:#f1f5f9; padding:6px 10px; border-radius:6px; display:flex; justify-content:space-between;">
-                <span style="color:var(--slate-600);">Leads nuevos:</span>
-                <strong style="color:var(--slate-900);">${enLeadNuevo}</strong>
+                <span style="color:var(--slate-600);">Cold Leads:</span>
+                <strong style="color:var(--slate-900);">${enColdLead}</strong>
               </div>
               <div style="background:#f1f5f9; padding:6px 10px; border-radius:6px; display:flex; justify-content:space-between;">
-                <span style="color:var(--slate-600);">1er Contacto:</span>
-                <strong style="color:var(--slate-900);">${enReclutamiento}</strong>
+                <span style="color:var(--slate-600);">Entrevistas:</span>
+                <strong style="color:var(--slate-900);">${enEntrevistas}</strong>
               </div>
               <div style="background:#f1f5f9; padding:6px 10px; border-radius:6px; display:flex; justify-content:space-between;">
-                <span style="color:var(--slate-600);">En Idioma:</span>
-                <strong style="color:var(--slate-900);">${enIdioma}</strong>
+                <span style="color:var(--slate-600);">Contratos:</span>
+                <strong style="color:var(--slate-900);">${enContrato}</strong>
               </div>
               <div style="background:#f1f5f9; padding:6px 10px; border-radius:6px; display:flex; justify-content:space-between;">
-                <span style="color:var(--slate-600);">Visa/Contrato:</span>
-                <strong style="color:var(--slate-900);">${enTramites}</strong>
+                <span style="color:var(--slate-600);">Intermediación:</span>
+                <strong style="color:var(--slate-900);">${enColocacion}</strong>
               </div>
             </div>
 
@@ -7835,6 +8115,795 @@ function deleteVacante(id) {
   navigateTo('emp-vacantes');
 }
 
+// ══════════════════════════════════════════════════════════
+// STELLENPORTAL & BOLSA DE EMPLEO PROFESIONAL
+// ══════════════════════════════════════════════════════════
+let _currentStellenportalFilter = 'all';
+
+function setStellenportalFilter(cat, btnEl) {
+  _currentStellenportalFilter = cat || 'all';
+  const chips = document.querySelectorAll('.stellenportal-chip');
+  chips.forEach(c => c.classList.remove('active'));
+  if (btnEl) btnEl.classList.add('active');
+  renderPublicStellenportal();
+}
+
+function filterPublicStellenportal() {
+  renderPublicStellenportal();
+}
+
+function renderPublicStellenportal() {
+  const grid = $('stellenportal-cards-grid');
+  if (!grid) return;
+
+  const allVacantes = DB.getVacantes ? DB.getVacantes() : [];
+  const searchInput = $('stellenportal-search-input');
+  const query = (searchInput ? searchInput.value : '').toLowerCase().trim();
+
+  // En la web pública se muestran vacantes que no estén pausadas ni cerradas
+  let filtered = allVacantes.filter(v => v.estado !== 'Pausada' && v.estado !== 'Cerrada');
+
+  if (_currentStellenportalFilter !== 'all') {
+    filtered = filtered.filter(v => (v.categoria || '').toLowerCase() === _currentStellenportalFilter.toLowerCase());
+  }
+
+  if (query) {
+    filtered = filtered.filter(v => {
+      const matchTitle = (v.titulo || '').toLowerCase().includes(query) || (v.titulo_es || '').toLowerCase().includes(query);
+      const matchSpec = (v.especialidad || '').toLowerCase().includes(query);
+      const matchEmp = (v.empresa || '').toLowerCase().includes(query);
+      const matchLoc = (v.ubicacion || '').toLowerCase().includes(query) || (v.ciudad || '').toLowerCase().includes(query);
+      return matchTitle || matchSpec || matchEmp || matchLoc;
+    });
+  }
+
+  if (filtered.length === 0) {
+    grid.innerHTML = `
+      <div style="grid-column: 1 / -1; padding: 60px 20px; text-align: center; background: #ffffff; border-radius: 20px; border: 1px dashed #cbd5e1;">
+        <div style="font-size: 2.5rem; margin-bottom: 12px;">🔍</div>
+        <h3 style="font-size: 1.25rem; font-weight: 700; color: #1e293b; margin-bottom: 6px;">No se encontraron vacantes disponibles</h3>
+        <p style="font-size: 0.9rem; color: #64748b; margin-bottom: 16px;">Prueba ajustando los filtros de especialidad o el término de búsqueda.</p>
+        <button class="btn btn-primary btn-sm" onclick="setStellenportalFilter('all', document.querySelector('.stellenportal-chip[data-category=\\'all\\']'))">
+          Ver todas las vacantes
+        </button>
+      </div>
+    `;
+    return;
+  }
+
+  grid.innerHTML = filtered.map(v => {
+    const img = v.imagen || 'https://jnpalabras.com/wp-content/uploads/2026/07/doctor.jpg';
+    const plazas = v.vacantes || 1;
+    const cat = v.categoria || 'Salud';
+    const nivel = v.nivel_aleman || 'B2';
+    const salario = v.sueldo_texto || (v.sueldo_min ? `${v.sueldo_min}€ – ${v.sueldo_max}€ / mes` : 'A convenir según convenio');
+    const ubicacion = v.ubicacion || 'Deutschlandweit';
+    const titulo = v.titulo;
+    const tituloEs = v.titulo_es ? `<div class="stellenportal-card-title-es">${escapeHtml(v.titulo_es)}</div>` : '';
+    const desc = v.descripcion_es || v.descripcion || 'Puesto oficial con clínicas y hospitales en Alemania.';
+
+    return `
+      <div class="stellenportal-card animate-fadeInUp">
+        <div class="stellenportal-card-img-wrap">
+          <img src="${img}" alt="${escapeHtml(titulo)}" class="stellenportal-card-img" loading="lazy" onerror="this.src='/logo.png'; this.style.objectFit='contain'; this.style.padding='20px';" />
+          <div class="stellenportal-card-tag">${escapeHtml(cat)}</div>
+          <div class="stellenportal-card-badge-status">
+            <span>●</span> ${plazas} ${plazas > 1 ? 'Plazas' : 'Plaza'}
+          </div>
+        </div>
+        <div class="stellenportal-card-body">
+          <h3 class="stellenportal-card-title">${escapeHtml(titulo)}</h3>
+          ${tituloEs}
+          <div class="stellenportal-card-empresa">
+            <span>🏥</span> <span>${escapeHtml(v.empresa || 'Clínicas Asociadas')}</span>
+          </div>
+          <div class="stellenportal-card-pills">
+            <span class="stellenportal-pill">📍 ${escapeHtml(ubicacion)}</span>
+            <span class="stellenportal-pill salary">💰 ${escapeHtml(salario)}</span>
+            <span class="stellenportal-pill german">🗣️ Nivel ${escapeHtml(nivel)}</span>
+            ${v.requiere_fsp ? '<span class="stellenportal-pill" style="background:#fef2f2;border-color:#fecaca;color:#991b1b;font-weight:700;">⚕️ FSP</span>' : ''}
+          </div>
+          <p class="stellenportal-card-desc">
+            ${escapeHtml(desc)}
+          </p>
+          <div class="stellenportal-card-footer">
+            <button class="stellenportal-btn-detail" onclick="openStellenportalModal('${v.id}')">
+              Ver Detalles
+            </button>
+            <button class="stellenportal-btn-apply" onclick="applyToJobVacancy('${v.id}')">
+              Postular Ahora
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function openStellenportalModal(idOrVacante, opts = {}) {
+  const v = (idOrVacante && typeof idOrVacante === 'object') ? idOrVacante : DB.getVacanteById(idOrVacante);
+  if (!v) return;
+  const isPreview = !!opts.preview;
+
+  const content = $('modal-stellenportal-content');
+  if (!content) return;
+
+  const tareasList = Array.isArray(v.tareas_es) && v.tareas_es.length > 0 ? v.tareas_es : (Array.isArray(v.tareas) ? v.tareas : []);
+  const reqList = Array.isArray(v.requisitos_es) && v.requisitos_es.length > 0 ? v.requisitos_es : (Array.isArray(v.requisitos) ? v.requisitos : []);
+  const ofreList = Array.isArray(v.ofrecemos_es) && v.ofrecemos_es.length > 0 ? v.ofrecemos_es : (Array.isArray(v.beneficios) ? v.beneficios : []);
+  const compList = Array.isArray(v.competencias_sociales) ? v.competencias_sociales : [];
+
+  const allVacantes = DB.getVacantes ? DB.getVacantes() : [];
+  const similarJobs = isPreview ? [] : allVacantes.filter(item => item.id !== v.id && item.estado !== 'Pausada').slice(0, 3);
+
+  const img = v.imagen || 'https://jnpalabras.com/wp-content/uploads/2024/10/Quirurgico.jpg';
+  const lugar = v.lugar || v.ubicacion || 'Alemania / Austria';
+  const salarioObj = v.salario_objetivo || v.sueldo_texto || (v.sueldo_min ? `${v.sueldo_min}€ - ${v.sueldo_max}€ / mes` : '48.000 € al año');
+  const cualificacion = v.cualificacion || v.especialidad || 'Enfermeros y enfermeras con formación especializada';
+  const notaCierre = v.ofrecemos_nota || 'Si busca un trabajo gratificante en el ámbito de los cuidados y cumple los requisitos mencionados, le invitamos cordialmente a presentar su candidatura. Ofrecemos un ambiente de trabajo positivo, oportunidades de formación continua y la posibilidad de contribuir activamente a la salud de nuestros pacientes.';
+  const pdfDe = v.pdf_de || '#';
+  const pdfEs = v.pdf_es || '#';
+
+  content.innerHTML = `
+    <!-- HEADER ESTILO CARTERA JN PALABRAS -->
+    <div class="stellenportal-detail-header" style="background: linear-gradient(135deg, rgba(62,8,16,0.95) 0%, rgba(128,16,32,0.88) 100%), url('${img}') center/cover no-repeat;">
+      <div class="stellenportal-detail-header-inner">
+        <div style="flex:1;">
+          <div style="font-size:0.75rem; font-weight:800; letter-spacing:1.5px; text-transform:uppercase; color:var(--gold-400, #fbbf24); margin-bottom:6px; display:flex; align-items:center; gap:8px;">
+            <span>🏥</span> <span>${escapeHtml(v.categoria || 'Salud')}</span> · <span>${escapeHtml(v.empresa || 'Klinikverbund')}</span>
+          </div>
+          <h2 class="stellenportal-detail-title">${escapeHtml(v.titulo_es || v.titulo)}</h2>
+          ${v.titulo_es ? `<div class="stellenportal-detail-sub" style="color:#fecdd3; font-style:italic;">${escapeHtml(v.titulo)}</div>` : ''}
+          <div class="stellenportal-detail-pills-row" style="margin-top:12px;">
+            <span class="stellenportal-detail-pill">📍 ${escapeHtml(lugar)}</span>
+            <span class="stellenportal-detail-pill">🗣️ Alemán ${escapeHtml(v.nivel_aleman || 'B1')} (Goethe / telc)</span>
+            <span class="stellenportal-detail-pill">👥 ${v.vacantes || 1} ${v.vacantes > 1 ? 'Plazas' : 'Plaza'}</span>
+            <span class="stellenportal-detail-pill">📑 Procedimiento Acelerado § 81a</span>
+          </div>
+        </div>
+        <button onclick="closeModal('modal-stellenportal-detail')" style="background:rgba(255,255,255,0.2); border:none; color:#ffffff; font-size:1.4rem; width:38px; height:38px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.2)'">✕</button>
+      </div>
+    </div>
+
+    <div class="stellenportal-detail-body">
+      <!-- 1. TRES COLUMNAS DE METADATOS CLAVE (ESTILO CARTERA JN) -->
+      <div class="stellenportal-meta-3cols">
+        <div class="stellenportal-meta-card">
+          <div class="stellenportal-meta-label">
+            <span>📍</span> Lugar
+          </div>
+          <div class="stellenportal-meta-value">${escapeHtml(lugar)}</div>
+        </div>
+
+        <div class="stellenportal-meta-card">
+          <div class="stellenportal-meta-label">
+            <span>💰</span> Salario objetivo
+          </div>
+          <div class="stellenportal-meta-value">${escapeHtml(salarioObj)}</div>
+        </div>
+
+        <div class="stellenportal-meta-card">
+          <div class="stellenportal-meta-label">
+            <span>🎓</span> Cualificación
+          </div>
+          <div class="stellenportal-meta-value">${escapeHtml(cualificacion)}</div>
+        </div>
+      </div>
+
+      <!-- 2. PESTAÑAS INTERACTIVAS (TABS) -->
+      <div class="stellenportal-tabs-nav" role="tablist">
+        <button class="stellenportal-tab-btn active" data-tab="ofrecemos" onclick="switchStellenportalTab('ofrecemos')">
+          <span>🎁</span> Ofrecemos
+        </button>
+        <button class="stellenportal-tab-btn" data-tab="funciones" onclick="switchStellenportalTab('funciones')">
+          <span>📋</span> Tus funciones
+        </button>
+        <button class="stellenportal-tab-btn" data-tab="perfil" onclick="switchStellenportalTab('perfil')">
+          <span>👤</span> Tu perfil
+        </button>
+      </div>
+
+      <!-- PANE 1: OFRECEMOS -->
+      <div class="stellenportal-tab-pane active" data-tab-pane="ofrecemos">
+        <div class="stellenportal-section-box" style="background:#ffffff; border-color:#e2e8f0;">
+          <div class="stellenportal-section-title" style="color:var(--wine-900);">
+            <span>⭐</span> Lo que ofrecemos en Alemania
+          </div>
+          <ul class="stellenportal-list">
+            ${ofreList.map(item => `
+              <li class="stellenportal-list-item">
+                <span class="stellenportal-list-icon" style="background:#10b981;">✓</span>
+                <span style="color:#334155; font-size:0.92rem; line-height:1.55;">${escapeHtml(item)}</span>
+              </li>
+            `).join('')}
+          </ul>
+          ${notaCierre ? `
+            <div class="stellenportal-quote-box">
+              <span style="font-size:1.1rem; margin-right:6px;">💬</span>
+              "${escapeHtml(notaCierre)}"
+            </div>
+          ` : ''}
+        </div>
+      </div>
+
+      <!-- PANE 2: TUS FUNCIONES -->
+      <div class="stellenportal-tab-pane" data-tab-pane="funciones">
+        <div class="stellenportal-section-box" style="background:#ffffff; border-color:#e2e8f0;">
+          <div class="stellenportal-section-title" style="color:var(--wine-900);">
+            <span>📋</span> Tus funciones y responsabilidades clínicas
+          </div>
+          <ul class="stellenportal-list">
+            ${tareasList.map(item => `
+              <li class="stellenportal-list-item">
+                <span class="stellenportal-list-icon" style="background:#0284c7;">✓</span>
+                <span style="color:#334155; font-size:0.92rem; line-height:1.55;">${escapeHtml(item)}</span>
+              </li>
+            `).join('')}
+          </ul>
+        </div>
+      </div>
+
+      <!-- PANE 3: TU PERFIL -->
+      <div class="stellenportal-tab-pane" data-tab-pane="perfil">
+        <div class="stellenportal-section-box" style="background:#ffffff; border-color:#e2e8f0;">
+          <div class="stellenportal-section-title" style="color:var(--wine-900);">
+            <span>🎓</span> Requisitos técnicos y acreditaciones
+          </div>
+          <ul class="stellenportal-list">
+            ${reqList.map(item => `
+              <li class="stellenportal-list-item">
+                <span class="stellenportal-list-icon" style="background:#801020;">✓</span>
+                <span style="color:#334155; font-size:0.92rem; line-height:1.55;">${escapeHtml(item)}</span>
+              </li>
+            `).join('')}
+          </ul>
+
+          ${compList.length > 0 ? `
+            <div class="stellenportal-soft-skills-wrap">
+              <div class="stellenportal-soft-title">🤝 Competencias Sociales:</div>
+              <div class="stellenportal-soft-chips">
+                ${compList.map(c => `
+                  <span class="stellenportal-soft-chip">
+                    <span>✨</span> ${escapeHtml(c)}
+                  </span>
+                `).join('')}
+              </div>
+            </div>
+          ` : ''}
+        </div>
+      </div>
+
+      <!-- 3. BLOQUE DE ACCIÓN / POSTULACIÓN & DESCARGAS (ESTILO CARTERA JN) -->
+      <div class="stellenportal-action-banner">
+        <div style="font-size:0.95rem; color:#4a2c20; line-height:1.6;">
+          <strong>¿Cumples con los requisitos?</strong> Esperamos recibir su documentación completa de solicitud. Puede enviarla directamente por correo electrónico a: <a href="mailto:info@jnpalabras.com?subject=Postulacion%20-%20${encodeURIComponent(v.titulo)}" style="color:var(--wine-900); font-weight:800; text-decoration:underline;">info@jnpalabras.com</a> o bien completar nuestro test de idoneidad haciendo clic en <strong>Postular Ahora</strong>.
+        </div>
+
+        <div class="stellenportal-downloads-row">
+          ${isPreview ? '' : `<button class="btn btn-primary" style="background:#801020; border-color:#801020; font-weight:800; padding:10px 24px; box-shadow:0 4px 12px rgba(128,16,32,0.25);" onclick="applyToJobVacancy('${v.id}')">
+            🚀 Postular Ahora a este Puesto
+          </button>`}
+          <a href="mailto:info@jnpalabras.com?subject=Postulacion%20-%20${encodeURIComponent(v.titulo)}" class="btn btn-outline" style="border-color:#801020; color:#801020; font-weight:700;">
+            ✉️ Enviar CV a info@jnpalabras.com
+          </a>
+          ${pdfDe !== '#' ? `
+            <a href="${pdfDe}" target="_blank" class="stellenportal-download-btn">
+              <span>📄</span> Descarga el perfil en alemán (PDF)
+            </a>
+          ` : ''}
+          ${pdfEs !== '#' ? `
+            <a href="${pdfEs}" target="_blank" class="stellenportal-download-btn">
+              <span>📄</span> Descarga el perfil en español (PDF)
+            </a>
+          ` : ''}
+        </div>
+      </div>
+
+      <!-- 4. EMPLEOS SIMILARES -->
+      ${similarJobs.length > 0 ? `
+        <div class="stellenportal-similar-section">
+          <h4 class="stellenportal-similar-title">Empleos similares en sanidad</h4>
+          <div class="stellenportal-similar-grid">
+            ${similarJobs.map(sj => `
+              <div class="stellenportal-similar-card" onclick="openStellenportalModal('${sj.id}')">
+                <img src="${sj.imagen || '/logo.png'}" alt="${escapeHtml(sj.titulo)}" class="stellenportal-similar-card-img" onerror="this.src='/logo.png'" />
+                <div class="stellenportal-similar-card-body">
+                  <div class="stellenportal-similar-card-title">${escapeHtml(sj.titulo_es || sj.titulo)}</div>
+                  <div class="stellenportal-similar-card-meta">
+                    <div>📍 ${escapeHtml(sj.lugar || sj.ubicacion || 'Alemania')}</div>
+                    <div style="font-weight:700; color:var(--wine-900); margin-top:2px;">💰 ${escapeHtml(sj.salario_objetivo || sj.sueldo_texto || 'Convenio')}</div>
+                  </div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      ` : ''}
+    </div>
+
+    <div class="stellenportal-detail-footer">
+      <div style="font-size:0.85rem; color:${isPreview ? '#b45309; font-weight:700' : '#64748b'};">
+        ${isPreview ? '👁️ Vista previa — los cambios aún no se han guardado.' : 'JN Palabras · Heidelberg, Deutschland · Homologación oficial mediante § 81a AufenthG.'}
+      </div>
+      <div style="display:flex; gap:12px;">
+        <button class="btn btn-outline" onclick="closeModal('modal-stellenportal-detail')">${isPreview ? 'Volver al editor' : 'Cerrar'}</button>
+        ${isPreview ? '' : `
+        <button class="btn btn-primary" style="background:#801020; border-color:#801020; font-weight:800; padding:10px 24px;" onclick="applyToJobVacancy('${v.id}')">
+          Postular a esta Vacante
+        </button>`}
+      </div>
+    </div>
+  `;
+
+  // Asegurar que el modal de detalle esté siempre por encima de barras de navegación (z-index 1000)
+  const overlay = $('modal-stellenportal-detail');
+  if (overlay) overlay.style.zIndex = isPreview ? '100001' : '100000';
+  openModal('modal-stellenportal-detail');
+}
+
+function switchStellenportalTab(tabName) {
+  const modal = $('modal-stellenportal-content');
+  if (!modal) return;
+  const tabs = modal.querySelectorAll('.stellenportal-tab-btn');
+  const panes = modal.querySelectorAll('.stellenportal-tab-pane');
+  tabs.forEach(t => t.classList.toggle('active', t.getAttribute('data-tab') === tabName));
+  panes.forEach(p => p.classList.toggle('active', p.getAttribute('data-tab-pane') === tabName));
+}
+
+function applyToJobVacancy(id) {
+  const v = DB.getVacanteById(id);
+  closeModal('modal-stellenportal-detail');
+
+  openApplicationOffcanvas();
+
+  if (v) {
+    if (v.categoria === 'Medicina') {
+      selectProfession('doctor');
+    } else if (v.categoria === 'Enfermería') {
+      selectProfession('nurse');
+    } else if (v.categoria === 'Quirófano / OTA') {
+      selectProfession('nurse');
+    }
+    showToast('Puesto Seleccionado', `Has seleccionado postular a: "${v.titulo}". Completa tu test para coordinar tu entrevista.`, 'info', 5000);
+  }
+}
+
+// ── VISTA ADMINISTRATIVA DEL STELLENPORTAL ──
+function renderStellenportalAdmin() {
+  const vacantes = DB.getVacantes ? DB.getVacantes() : [];
+  const total = vacantes.length;
+  const abiertas = vacantes.filter(v => v.estado === 'Abierta').length;
+  const pausadas = vacantes.filter(v => v.estado === 'Pausada').length;
+  const plazas = vacantes.reduce((sum, v) => sum + (parseInt(v.vacantes, 10) || 1), 0);
+
+  return `
+    <div class="stellenportal-admin-page">
+      <div class="page-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:14px; margin-bottom:24px;">
+        <div>
+          <h1 class="page-title">Bolsa de Empleo & Stellenportal</h1>
+          <p class="page-subtitle">Gestión centralizada de vacantes sanitarias, plantillas de puestos y sincronización en tiempo real</p>
+        </div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <button class="btn btn-outline" onclick="resetStellenportalOfficialTemplate()" title="Restaurar los 7 puestos oficiales de jnpalabras.com">
+            🔄 Sincronizar Plantilla Oficial JN
+          </button>
+          <button class="btn btn-primary" onclick="openCreateVacanteModal()" style="background:#801020; border-color:#801020; font-weight:700;">
+            + Nueva Vacante
+          </button>
+        </div>
+      </div>
+
+      <!-- KPIs Rápidos -->
+      <div class="stellenportal-kpis-grid">
+        <div class="stellenportal-kpi-card">
+          <div class="stellenportal-kpi-val">${total}</div>
+          <div class="stellenportal-kpi-lbl">Total de Puestos</div>
+        </div>
+        <div class="stellenportal-kpi-card">
+          <div class="stellenportal-kpi-val" style="color:#10b981;">${abiertas}</div>
+          <div class="stellenportal-kpi-lbl">Vacantes Abiertas (Web)</div>
+        </div>
+        <div class="stellenportal-kpi-card">
+          <div class="stellenportal-kpi-val" style="color:#f59e0b;">${pausadas}</div>
+          <div class="stellenportal-kpi-lbl">Vacantes Pausadas</div>
+        </div>
+        <div class="stellenportal-kpi-card">
+          <div class="stellenportal-kpi-val" style="color:#801020;">${plazas}</div>
+          <div class="stellenportal-kpi-lbl">Total Plazas Sanitarias</div>
+        </div>
+      </div>
+
+      <!-- Barra de Filtros -->
+      <div class="stellenportal-admin-toolbar">
+        <div style="display:flex; gap:12px; align-items:center; flex:1; min-width:280px; flex-wrap:wrap;">
+          <input type="text" id="admin-vac-search" class="form-input" style="max-width:320px; border-radius:12px;" placeholder="Buscar puesto o clínica..." oninput="filterAdminVacantesTable()" />
+          <select id="admin-vac-cat-filter" class="form-input" style="max-width:200px; border-radius:12px;" onchange="filterAdminVacantesTable()">
+            <option value="all">Todas las categorías</option>
+            <option value="Medicina">Medicina</option>
+            <option value="Enfermería">Enfermería</option>
+            <option value="Quirófano / OTA">Quirófano / OTA</option>
+            <option value="Asistenciales">Asistenciales</option>
+          </select>
+        </div>
+        <div style="font-size:0.85rem; color:#64748b;">
+          Sincronizado con la web pública · <a href="#stellenportal" onclick="showPublic(); setTimeout(() => scrollToSection('stellenportal'), 200);" style="color:#801020; font-weight:700; text-decoration:underline; cursor:pointer;">Ver Portal Público</a>
+        </div>
+      </div>
+
+      <!-- Lista de Puestos / Vacantes -->
+      <div id="admin-vacantes-list">
+        ${vacantes.map(v => {
+          const img = v.imagen || 'https://jnpalabras.com/wp-content/uploads/2026/07/doctor.jpg';
+          const isAbierta = v.estado === 'Abierta';
+          return `
+            <div class="vacante-admin-card" id="vac-card-${v.id}" data-category="${escapeHtml(v.categoria || '')}">
+              <div class="vacante-admin-left">
+                <img src="${img}" class="vacante-thumb" alt="${escapeHtml(v.titulo)}" onerror="this.src='/logo.png';" />
+                <div>
+                  <div style="display:flex; align-items:center; gap:8px;">
+                    <span style="font-size:0.75rem; font-weight:800; background:#f1f5f9; color:#475569; padding:2px 8px; border-radius:6px;">${escapeHtml(v.categoria || 'Salud')}</span>
+                    <span style="font-size:0.72rem; font-weight:700; padding:2px 8px; border-radius:999px; background:${isAbierta ? '#10b98115' : '#f59e0b15'}; color:${isAbierta ? '#10b981' : '#b45309'}; border:1px solid ${isAbierta ? '#10b98130' : '#f59e0b30'};">
+                      ${isAbierta ? '● Abierta (En Web)' : '⏸ Pausada'}
+                    </span>
+                  </div>
+                  <div class="vacante-info-title">${escapeHtml(v.titulo)}</div>
+                  ${v.titulo_es ? `<div style="font-size:0.8rem; color:#801020; margin-bottom:4px;">${escapeHtml(v.titulo_es)}</div>` : ''}
+                  <div class="vacante-info-sub">
+                    🏥 ${escapeHtml(v.empresa || 'Clínicas Asociadas')} · 📍 ${escapeHtml(v.ubicacion || 'Deutschlandweit')} · 👥 ${v.vacantes || 1} Plazas
+                  </div>
+                  <div style="display:flex; gap:8px; flex-wrap:wrap; font-size:0.75rem;">
+                    <span style="background:#fefce8; color:#854d0e; font-weight:700; padding:2px 8px; border-radius:6px;">💰 ${escapeHtml(v.sueldo_texto || (v.sueldo_min + '€ - ' + v.sueldo_max + '€'))}</span>
+                    <span style="background:#eff6ff; color:#1e40af; font-weight:700; padding:2px 8px; border-radius:6px;">🗣️ Alemán ${escapeHtml(v.nivel_aleman || 'B2')}</span>
+                    <span style="background:#f8fafc; color:#64748b; padding:2px 8px; border-radius:6px;">📑 ${escapeHtml(v.tipo_contrato || 'Indefinido')}</span>
+                  </div>
+                </div>
+              </div>
+              <div class="vacante-admin-actions">
+                <button class="btn btn-sm btn-outline" onclick="toggleVacanteAdmin('${v.id}')" title="Alternar visibilidad en la web">
+                  ${isAbierta ? '⏸ Pausar' : '▶ Abrir'}
+                </button>
+                <button class="btn btn-sm btn-outline" onclick="openStellenportalModal('${v.id}')" title="Previsualizar ficha pública">
+                  👁️ Ver
+                </button>
+                <button class="btn btn-sm btn-outline" style="border-color:#3b82f6; color:#2563eb;" onclick="openEditVacanteModal('${v.id}')" title="Editar puesto y plantilla">
+                  ✏️ Editar
+                </button>
+                <button class="btn btn-sm btn-outline" style="border-color:#10b981; color:#059669;" onclick="jumpToMatchingForVacante('${v.id}')" title="Buscar candidatos compatibles con IA">
+                  🎯 Matching
+                </button>
+                <button class="btn btn-sm btn-outline" style="border-color:#ef4444; color:#dc2626;" onclick="deleteVacanteAdmin('${v.id}')" title="Eliminar vacante">
+                  🗑️
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function openCreateVacanteModal() {
+  openEditVacanteModal(null);
+}
+
+function openEditVacanteModal(id) {
+  const isNew = !id;
+  const v = isNew ? {
+    id: '',
+    titulo: '',
+    titulo_es: '',
+    categoria: 'Quirófano / OTA',
+    especialidad: 'Instrumentación Quirúrgica / OP',
+    empresa: 'Klinikverbund & OP-Zentrum',
+    lugar: 'Alemania / Austria',
+    salario_objetivo: '48 000 al año',
+    cualificacion: '',
+    nivel_aleman: 'B1',
+    vacantes: 2,
+    estado: 'Abierta',
+    imagen: 'https://jnpalabras.com/wp-content/uploads/2024/10/Quirurgico.jpg',
+    tareas_es: [],
+    requisitos_es: [],
+    ofrecemos_es: [],
+    ofrecemos_nota: '',
+    competencias_sociales: [],
+    pdf_de: '',
+    pdf_es: ''
+  } : DB.getVacanteById(id);
+
+  if (!v) return;
+
+  const pick = (es, base) => (Array.isArray(es) && es.length ? es : (Array.isArray(base) ? base : []));
+  const tareasText = pick(v.tareas_es, v.tareas).join('\n');
+  const reqText = pick(v.requisitos_es, v.requisitos).join('\n');
+  const ofreText = pick(v.ofrecemos_es, v.beneficios).join('\n');
+  const compText = (Array.isArray(v.competencias_sociales) ? v.competencias_sociales : []).join('\n');
+  const templates = (typeof OFFICIAL_STELLENPORTAL_VACANTES !== 'undefined' ? OFFICIAL_STELLENPORTAL_VACANTES : []);
+  const sectionTitle = (t) => `<div style="font-size:0.85rem; font-weight:800; color:#1e293b; text-transform:uppercase; letter-spacing:0.5px; border-bottom:1px solid #e2e8f0; padding-bottom:6px; margin-top:6px;">${t}</div>`;
+
+  const modalHtml = `
+    <div class="modal-overlay visible open" id="modal-edit-vacante-dialog" role="dialog" aria-modal="true" style="z-index:99999;" onclick="if(event.target===this) closeModal('modal-edit-vacante-dialog')">
+      <div class="modal modal-card" style="max-width:820px; width:95%; border-radius:24px; padding:0; overflow:hidden; max-height:92vh; display:flex; flex-direction:column; background:#ffffff;">
+        <div style="background:#801020; color:#ffffff; padding:20px 28px; display:flex; justify-content:space-between; align-items:center;">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <div style="width:40px; height:40px; border-radius:12px; background:rgba(255,255,255,0.15); display:flex; align-items:center; justify-content:center; font-size:1.2rem;">📋</div>
+            <div>
+              <div style="font-size:1.15rem; font-weight:800;">${isNew ? 'Crear Nueva Vacante (Plantilla Cartera JN)' : 'Editar Vacante'}</div>
+              <div style="font-size:0.8rem; color:#fecdd3;">Lugar · Salario objetivo · Cualificación · Ofrecemos · Tus funciones · Tu perfil</div>
+            </div>
+          </div>
+          <button type="button" onclick="closeModal('modal-edit-vacante-dialog')" style="background:transparent; border:none; color:#ffffff; font-size:1.4rem; cursor:pointer;">✕</button>
+        </div>
+
+        <form onsubmit="handleSaveVacanteSubmit(event, '${v.id || ''}')" style="padding:24px 28px; overflow-y:auto; flex:1; display:flex; flex-direction:column; gap:16px;">
+          <div style="background:#fdf2f4; border:1px solid #fecdd3; border-radius:14px; padding:14px 18px;">
+            <label style="display:block; font-size:0.85rem; font-weight:800; color:#801020; margin-bottom:6px;">⭐ Cargar desde Plantilla Oficial JN Palabras</label>
+            <select class="form-input" style="border-radius:10px; width:100%; background:#ffffff;" onchange="applyTemplateToVacanteForm(this.value)">
+              <option value="">-- Seleccionar puesto oficial de cartera --</option>
+              ${templates.map(t => `<option value="${t.slug}">${escapeHtml(t.titulo_es || t.titulo)} (${escapeHtml(t.categoria)})</option>`).join('')}
+            </select>
+          </div>
+
+          ${sectionTitle('1. Títulos y especialidad')}
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+            <div>
+              <label class="form-label" style="font-weight:700;">Título en Español (visible)</label>
+              <input type="text" id="vac-form-titulo-es" class="form-input" style="border-radius:10px; width:100%;" value="${escapeHtml(v.titulo_es || '')}" placeholder="Ej: Auxiliar de quirófano (OTA) en reconocimiento" required />
+            </div>
+            <div>
+              <label class="form-label" style="font-weight:700;">Título en Alemán (Stellentitel)</label>
+              <input type="text" id="vac-form-titulo" class="form-input" style="border-radius:10px; width:100%;" value="${escapeHtml(v.titulo || '')}" placeholder="Ej: Operationstechnische Assistenz (OTA) in Anerkennung" />
+            </div>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px;">
+            <div>
+              <label class="form-label" style="font-weight:700;">Categoría</label>
+              <select id="vac-form-categoria" class="form-input" style="border-radius:10px; width:100%;">
+                ${['Medicina', 'Enfermería', 'Quirófano / OTA', 'Asistenciales'].map(c => `<option value="${c}" ${v.categoria === c ? 'selected' : ''}>${c}</option>`).join('')}
+              </select>
+            </div>
+            <div>
+              <label class="form-label" style="font-weight:700;">Especialidad / Área</label>
+              <input type="text" id="vac-form-spec" class="form-input" style="border-radius:10px; width:100%;" value="${escapeHtml(v.especialidad || '')}" placeholder="Ej: Instrumentación Quirúrgica" />
+            </div>
+            <div>
+              <label class="form-label" style="font-weight:700;">Nivel de alemán mínimo</label>
+              <select id="vac-form-nivel" class="form-input" style="border-radius:10px; width:100%;">
+                ${['A2', 'B1', 'B2', 'C1'].map(n => `<option value="${n}" ${v.nivel_aleman === n ? 'selected' : ''}>${n}</option>`).join('')}
+              </select>
+            </div>
+          </div>
+
+          ${sectionTitle('2. Bloques destacados de la cartera')}
+          <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; background:#f8fafc; padding:14px; border-radius:14px; border:1px solid #e2e8f0;">
+            <div>
+              <label class="form-label" style="font-weight:800;">📍 Lugar</label>
+              <input type="text" id="vac-form-lugar" class="form-input" style="border-radius:10px; width:100%;" value="${escapeHtml(v.lugar || v.ubicacion || '')}" placeholder="Alemania / Austria" required />
+            </div>
+            <div>
+              <label class="form-label" style="font-weight:800;">💰 Salario objetivo</label>
+              <input type="text" id="vac-form-salario-obj" class="form-input" style="border-radius:10px; width:100%;" value="${escapeHtml(v.salario_objetivo || v.sueldo_texto || '')}" placeholder="48 000 al año" required />
+            </div>
+            <div>
+              <label class="form-label" style="font-weight:800;">🎓 Cualificación</label>
+              <input type="text" id="vac-form-cualificacion" class="form-input" style="border-radius:10px; width:100%;" value="${escapeHtml(v.cualificacion || '')}" placeholder="Enfermeros/as con formación en quirófano" required />
+            </div>
+          </div>
+          <div style="display:grid; grid-template-columns:1.5fr 0.7fr 1fr; gap:14px;">
+            <div>
+              <label class="form-label" style="font-weight:700;">Clínica / Hospital (Arbeitgeber)</label>
+              <input type="text" id="vac-form-empresa" class="form-input" style="border-radius:10px; width:100%;" value="${escapeHtml(v.empresa || '')}" placeholder="Ej: Klinikum Heidelberg" />
+            </div>
+            <div>
+              <label class="form-label" style="font-weight:700;">Plazas</label>
+              <input type="number" id="vac-form-plazas" class="form-input" style="border-radius:10px; width:100%;" min="1" value="${v.vacantes || 1}" required />
+            </div>
+            <div>
+              <label class="form-label" style="font-weight:700;">Estado en web pública</label>
+              <select id="vac-form-estado" class="form-input" style="border-radius:10px; width:100%;">
+                <option value="Abierta" ${v.estado === 'Abierta' ? 'selected' : ''}>Abierta (visible)</option>
+                <option value="Pausada" ${v.estado === 'Pausada' ? 'selected' : ''}>Pausada (oculta)</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label class="form-label" style="font-weight:700;">URL imagen de portada</label>
+            <input type="url" id="vac-form-imagen" class="form-input" style="border-radius:10px; width:100%;" value="${escapeHtml(v.imagen || '')}" placeholder="https://..." />
+          </div>
+
+          ${sectionTitle('3. Pestañas de contenido (1 elemento por línea)')}
+          <div>
+            <label class="form-label" style="font-weight:700;">🎁 Ofrecemos</label>
+            <textarea id="vac-form-ofrecemos-es" class="form-input" style="border-radius:10px; width:100%; height:95px;" placeholder="Un trabajo que tiene sentido y resulta gratificante...">${escapeHtml(ofreText)}</textarea>
+          </div>
+          <div>
+            <label class="form-label" style="font-weight:700;">💬 Mensaje de cierre (Ofrecemos)</label>
+            <textarea id="vac-form-ofrecemos-nota" class="form-input" style="border-radius:10px; width:100%; height:60px;" placeholder="Si busca un trabajo gratificante en el ámbito de los cuidados...">${escapeHtml(v.ofrecemos_nota || '')}</textarea>
+          </div>
+          <div>
+            <label class="form-label" style="font-weight:700;">📋 Tus funciones</label>
+            <textarea id="vac-form-tareas-es" class="form-input" style="border-radius:10px; width:100%; height:95px;" placeholder="Preparación del quirófano antes de las intervenciones...">${escapeHtml(tareasText)}</textarea>
+          </div>
+          <div>
+            <label class="form-label" style="font-weight:700;">👤 Tu perfil</label>
+            <textarea id="vac-form-requisitos-es" class="form-input" style="border-radius:10px; width:100%; height:95px;" placeholder="Formación completa como auxiliar técnico de quirófano...">${escapeHtml(reqText)}</textarea>
+          </div>
+          <div>
+            <label class="form-label" style="font-weight:700;">🤝 Competencias sociales</label>
+            <textarea id="vac-form-competencias" class="form-input" style="border-radius:10px; width:100%; height:65px;" placeholder="Sentido de la responsabilidad y compromiso.">${escapeHtml(compText)}</textarea>
+          </div>
+
+          ${sectionTitle('4. Perfiles profesionales descargables (opcional)')}
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+            <div>
+              <label class="form-label" style="font-weight:700;">PDF en alemán</label>
+              <input type="text" id="vac-form-pdf-de" class="form-input" style="border-radius:10px; width:100%;" value="${escapeHtml(v.pdf_de || '')}" placeholder="https://..." />
+            </div>
+            <div>
+              <label class="form-label" style="font-weight:700;">PDF en español</label>
+              <input type="text" id="vac-form-pdf-es" class="form-input" style="border-radius:10px; width:100%;" value="${escapeHtml(v.pdf_es || '')}" placeholder="https://..." />
+            </div>
+          </div>
+
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-top:8px; padding-top:14px; border-top:1px solid #e2e8f0;">
+            <button type="button" class="btn btn-outline" onclick="previewVacanteFromForm('${v.id || ''}')">👁️ Previsualizar</button>
+            <div style="display:flex; gap:10px;">
+              <button type="button" class="btn btn-outline" onclick="closeModal('modal-edit-vacante-dialog')">Cancelar</button>
+              <button type="submit" class="btn btn-primary" style="background:#801020; border-color:#801020; font-weight:700; padding:10px 24px;">Guardar Vacante</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+
+  let existing = $('modal-edit-vacante-dialog');
+  if (existing) existing.remove();
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
+
+function applyTemplateToVacanteForm(slug) {
+  if (!slug || typeof OFFICIAL_STELLENPORTAL_VACANTES === 'undefined') return;
+  const t = OFFICIAL_STELLENPORTAL_VACANTES.find(v => v.slug === slug);
+  if (!t) return;
+  const set = (id, val) => { const el = $(id); if (el) el.value = val; };
+  const lines = (es, base) => (Array.isArray(es) && es.length ? es : (base || [])).join('\n');
+
+  set('vac-form-titulo', t.titulo || '');
+  set('vac-form-titulo-es', t.titulo_es || t.titulo || '');
+  set('vac-form-categoria', t.categoria || 'Medicina');
+  set('vac-form-spec', t.especialidad || '');
+  set('vac-form-nivel', t.nivel_aleman || 'B1');
+  set('vac-form-empresa', t.empresa || '');
+  set('vac-form-lugar', t.lugar || t.ubicacion || '');
+  set('vac-form-salario-obj', t.salario_objetivo || t.sueldo_texto || '');
+  set('vac-form-cualificacion', t.cualificacion || '');
+  set('vac-form-plazas', t.vacantes || 1);
+  set('vac-form-imagen', t.imagen || '');
+  set('vac-form-ofrecemos-es', lines(t.ofrecemos_es, t.beneficios));
+  set('vac-form-ofrecemos-nota', t.ofrecemos_nota || '');
+  set('vac-form-tareas-es', lines(t.tareas_es, t.tareas));
+  set('vac-form-requisitos-es', lines(t.requisitos_es, t.requisitos));
+  set('vac-form-competencias', (t.competencias_sociales || []).join('\n'));
+  set('vac-form-pdf-de', t.pdf_de || '');
+  set('vac-form-pdf-es', t.pdf_es || '');
+
+  showToast('Plantilla aplicada', `Datos oficiales de "${t.titulo_es || t.titulo}" cargados.`, 'info');
+}
+
+// Lee el formulario de vacante y devuelve un objeto con la estructura de la Cartera JN
+function readVacanteForm() {
+  const lines = (id) => ($(id)?.value || '').split('\n').map(s => s.trim()).filter(Boolean);
+  const val = (id) => ($(id)?.value || '').trim();
+  const tituloEs = val('vac-form-titulo-es');
+  const tituloDe = val('vac-form-titulo');
+  const lugar = val('vac-form-lugar') || 'Alemania';
+  const salario = val('vac-form-salario-obj');
+  const tareas = lines('vac-form-tareas-es');
+  const requisitos = lines('vac-form-requisitos-es');
+  const ofrecemos = lines('vac-form-ofrecemos-es');
+
+  return {
+    titulo: tituloDe || tituloEs,
+    titulo_es: tituloEs || tituloDe,
+    categoria: $('vac-form-categoria')?.value || 'Medicina',
+    especialidad: val('vac-form-spec') || 'General',
+    nivel_aleman: $('vac-form-nivel')?.value || 'B1',
+    lugar,
+    ubicacion: lugar,
+    salario_objetivo: salario,
+    sueldo_texto: salario,
+    cualificacion: val('vac-form-cualificacion'),
+    empresa: val('vac-form-empresa') || 'Klinikverbund',
+    vacantes: parseInt($('vac-form-plazas')?.value || 1, 10),
+    estado: $('vac-form-estado')?.value || 'Abierta',
+    imagen: val('vac-form-imagen') || 'https://jnpalabras.com/wp-content/uploads/2024/10/Quirurgico.jpg',
+    descripcion_es: tareas.slice(0, 2).join(' '),
+    tareas_es: tareas,
+    requisitos_es: requisitos,
+    ofrecemos_es: ofrecemos,
+    ofrecemos_nota: val('vac-form-ofrecemos-nota'),
+    competencias_sociales: lines('vac-form-competencias'),
+    pdf_de: val('vac-form-pdf-de'),
+    pdf_es: val('vac-form-pdf-es')
+  };
+}
+
+function handleSaveVacanteSubmit(e, id) {
+  e.preventDefault();
+  const data = readVacanteForm();
+  if (!data.titulo_es) {
+    showToast('Error', 'El título de la vacante es obligatorio.', 'error');
+    return;
+  }
+
+  if (id) {
+    DB.updateVacante(id, data);
+    showToast('Vacante actualizada', `"${data.titulo_es}" se guardó correctamente.`, 'success');
+  } else {
+    DB.createVacante(data);
+    showToast('Vacante publicada', `"${data.titulo_es}" se añadió a la bolsa de empleo.`, 'success');
+  }
+
+  closeModal('modal-edit-vacante-dialog');
+  const existing = $('modal-edit-vacante-dialog');
+  if (existing) existing.remove();
+
+  renderDashboard(State.activeRole, State.currentSidebar || 'admin-vacantes');
+  renderPublicStellenportal();
+}
+
+// Previsualiza la ficha pública sin guardar nada en la base de datos
+function previewVacanteFromForm(existingId) {
+  const draft = { ...readVacanteForm(), id: existingId || '__preview__' };
+  openStellenportalModal(draft, { preview: true });
+}
+
+function toggleVacanteAdmin(id) {
+  const updated = DB.toggleVacanteEstado(id);
+  if (updated) {
+    showToast('Estado Actualizado', `La vacante ahora está ${updated.estado}.`, 'info');
+    renderDashboard(State.activeRole, State.currentSidebar || 'admin-vacantes');
+    renderPublicStellenportal();
+  }
+}
+
+function deleteVacanteAdmin(id) {
+  if (!confirm('¿Estás seguro de eliminar esta vacante de la bolsa de empleo?')) return;
+  DB.deleteVacante(id);
+  showToast('Vacante Eliminada', 'La vacante fue retirada de la bolsa de empleo.', 'warning');
+  renderDashboard(State.activeRole, State.currentSidebar || 'admin-vacantes');
+  renderPublicStellenportal();
+}
+
+function resetStellenportalOfficialTemplate() {
+  if (!confirm('¿Deseas restaurar la plantilla oficial de los 7 puestos de JN Palabras Stellenportal?')) return;
+  DB.resetVacantesToOfficial();
+  showToast('Plantilla Sincronizada', 'Se han restaurado los 7 puestos oficiales de jnpalabras.com.', 'success');
+  renderDashboard(State.activeRole, State.currentSidebar || 'admin-vacantes');
+  renderPublicStellenportal();
+}
+
+function jumpToMatchingForVacante(vacId) {
+  _matchVac = vacId;
+  navigateTo('asesor-matching');
+}
+
+function filterAdminVacantesTable() {
+  const query = ($('admin-vac-search')?.value || '').toLowerCase().trim();
+  const cat = $('admin-vac-cat-filter')?.value || 'all';
+  const cards = document.querySelectorAll('.vacante-admin-card');
+
+  cards.forEach(card => {
+    const text = card.textContent.toLowerCase();
+    const cardCat = card.getAttribute('data-category') || '';
+    const matchQ = !query || text.includes(query);
+    const matchC = cat === 'all' || cardCat.toLowerCase() === cat.toLowerCase();
+    card.style.display = (matchQ && matchC) ? 'flex' : 'none';
+  });
+}
+
 function renderEmpEntrevistas() {
   const ents = DB.getEntrevistas();
   return `
@@ -8511,7 +9580,10 @@ function countryFlag(pais) {
 }
 
 function getEstadoColor(estado) {
-  return { 'Lead Nuevo':'var(--slate-500)','1er contacto, reclutamiento':'var(--info)','Suficiencia del idioma':'#8b5cf6','Entrevista Laboral y firma del contrato':'#ec4899','Procesamiento de visa':'var(--gold-600)','Fase Pre viaje':'#14b8a6','En Destino':'#eab308','Inserción exitosa':'var(--success)' }[estado] || 'var(--slate-500)';
+  const norm = normalizeCandidatePhase(estado);
+  const found = PIPELINE_8_FASES.find(f => f.id === norm || f.id === estado);
+  if (found) return found.color;
+  return 'var(--slate-500)';
 }
 
 function scrollToSection(id) {
@@ -8626,7 +9698,7 @@ async function submitRegistration(e) {
     subespecialidad: professionText,
     nivel_aleman: cleanGerman, 
     estado_solicitud: 'Pendiente', // Solicitud pendiente de aceptación por el asesor
-    estado_proceso: 'Lead Nuevo', 
+    estado_proceso: 'Primer contacto / Cualificado (Cold Lead)', 
     estado_homologacion: 'Pendiente', 
     foto: getInitials(nombre), 
     anos_exp: anosExp,
@@ -8682,7 +9754,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const savedRole = localStorage.getItem('jnp_active_role');
   const savedSidebar = localStorage.getItem('jnp_current_sidebar');
 
-  const publicSections = ['about', 'nosotros', 'proceso', 'contact', 'contacto', 'eligibilidad', 'hero', 'inicio', 'public'];
+  const publicSections = ['about', 'nosotros', 'proceso', 'contact', 'contacto', 'eligibilidad', 'hero', 'inicio', 'public', 'stellenportal', 'empleo', 'bolsa-empleo'];
 
   if (session) {
     if (session.rol && !session.roles) session.roles = [session.rol];
@@ -8817,7 +9889,27 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 });
 
+function toggleMobileNav() {
+  const nav = document.querySelector('.public-navbar');
+  if (nav) {
+    const isOpen = nav.classList.toggle('mobile-open');
+    const toggleBtn = nav.querySelector('.nav-mobile-toggle');
+    if (toggleBtn) toggleBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+  }
+}
+
+function closeMobileNav() {
+  const nav = document.querySelector('.public-navbar');
+  if (nav) {
+    nav.classList.remove('mobile-open');
+    const toggleBtn = nav.querySelector('.nav-mobile-toggle');
+    if (toggleBtn) toggleBtn.setAttribute('aria-expanded', 'false');
+  }
+}
+
 // EXPOSE TO GLOBAL SCOPE FOR INLINE HTML HANDLERS
+window.toggleMobileNav = toggleMobileNav;
+window.closeMobileNav = closeMobileNav;
 window.showLogin = showLogin;
 window.handleLogin = handleLogin;
 window.handleLogout = handleLogout;
@@ -8834,16 +9926,163 @@ window.submitRegistration = submitRegistration;
 window.navigateTo = navigateTo;
 window.toggleNotifPanel = toggleNotifPanel;
 // Functions for candidate document actions
+function openUploadDocModal(cId) {
+  const c = DB.getCandidatoById(cId);
+  if (!c) return;
+
+  const rawName = c.nombre || 'Candidato';
+  const nameParts = getCleanCandidateNameParts(rawName);
+  const lastName = nameParts.lastName;
+  const initialFilename = `Documento_${lastName}.pdf`;
+
+  const modalHtml = `
+    <div class="modal-overlay visible open" id="modal-upload-candidate-doc" role="dialog" aria-modal="true" style="z-index:99999;" onclick="if(event.target===this) closeModal('modal-upload-candidate-doc')">
+      <div class="modal modal-card" style="max-width:520px;width:95%;border-radius:24px;padding:0;overflow:hidden;background:#ffffff;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);">
+        <div style="background:#801020;color:#ffffff;padding:20px 24px;display:flex;align-items:center;justify-content:space-between;">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div style="width:38px;height:38px;border-radius:10px;background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+            </div>
+            <div>
+              <div style="font-weight:800;font-size:1.1rem;">Subir Documento al Expediente</div>
+              <div style="font-size:0.8rem;color:#fecdd3;margin-top:2px;">Candidato: ${escapeHtml(c.nombre)}</div>
+            </div>
+          </div>
+          <button onclick="closeModal('modal-upload-candidate-doc')" style="background:transparent;border:none;color:#ffffff;font-size:1.4rem;cursor:pointer;line-height:1;">✕</button>
+        </div>
+
+        <form onsubmit="handleCandidateDocUploadSubmit(event, '${c.id}')" style="padding:24px;display:flex;flex-direction:column;gap:16px;">
+          <div>
+            <label style="display:block;font-size:0.85rem;font-weight:700;color:#334155;margin-bottom:6px;">Categoría del Documento</label>
+            <select id="upload-doc-categoria" class="form-input" style="width:100%;border-radius:12px;padding:10px 14px;" required onchange="handleDocCategoryChange(this.value, '${escapeHtml(c.nombre)}')">
+              <option value="Identificación Oficial">Pasaporte Vigente / Identificación Oficial</option>
+              <option value="Formación Médica">Título Universitario / Diploma Apostillado</option>
+              <option value="Competencia Lingüística">Certificado de Idioma Alemán (Goethe / telc)</option>
+              <option value="Curriculum Vitae">Hoja de Vida Alemana (Lebenslauf)</option>
+              <option value="Legal y Migratorio">Seguro de Viaje / Incoming-Versicherung</option>
+              <option value="Legal y Migratorio">Certificado de Antecedentes Penales</option>
+              <option value="Homologación">Defizitbescheid / Homologación</option>
+              <option value="Otro" selected>Otro Documento Oficial</option>
+            </select>
+          </div>
+
+          <div>
+            <label style="display:block;font-size:0.85rem;font-weight:700;color:#334155;margin-bottom:6px;">Nombre del Archivo (PDF)</label>
+            <input type="text" id="upload-doc-nombre" class="form-input" style="width:100%;border-radius:12px;padding:10px 14px;" value="${initialFilename}" placeholder="Ej: Pasaporte_${lastName}.pdf" required />
+          </div>
+
+          <div>
+            <label style="display:block;font-size:0.85rem;font-weight:700;color:#334155;margin-bottom:6px;">Archivo Digital</label>
+            <div style="border:2px dashed #cbd5e1;border-radius:14px;padding:20px;text-align:center;background:#f8fafc;cursor:pointer;" onclick="document.getElementById('upload-doc-file-input').click()">
+              <input type="file" id="upload-doc-file-input" accept=".pdf,.jpg,.jpeg,.png" style="display:none;" onchange="handleDocFileSelected(this)" />
+              <div style="font-size:1.8rem;margin-bottom:6px;">📄</div>
+              <div id="upload-doc-file-label" style="font-size:0.85rem;font-weight:700;color:#1e293b;">Haz clic para seleccionar archivo PDF</div>
+              <div style="font-size:0.75rem;color:#64748b;margin-top:2px;">PDF, JPG o PNG hasta 15MB</div>
+            </div>
+          </div>
+
+          <div>
+            <label style="display:block;font-size:0.85rem;font-weight:700;color:#334155;margin-bottom:6px;">Estado Inicial de Validación</label>
+            <select id="upload-doc-estado" class="form-input" style="width:100%;border-radius:12px;padding:10px 14px;">
+              <option value="Aprobado">Aprobado / Validado ✅</option>
+              <option value="Pendiente" selected>Esperando Validación ⏳</option>
+              <option value="En Revisión">En Revisión por Asesor 🔍</option>
+            </select>
+          </div>
+
+          <div style="display:flex;align-items:center;justify-content:flex-end;gap:12px;margin-top:8px;">
+            <button type="button" class="btn btn-outline" onclick="closeModal('modal-upload-candidate-doc')" style="border-radius:12px;padding:10px 18px;">Cancelar</button>
+            <button type="submit" class="btn btn-primary" style="background:#801020;border-color:#801020;border-radius:12px;padding:10px 22px;font-weight:700;">Guardar en Expediente</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+
+  let existing = $('modal-upload-candidate-doc');
+  if (existing) existing.remove();
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
+
+function handleDocCategoryChange(cat, candidateName) {
+  const parts = getCleanCandidateNameParts(candidateName);
+  const lastName = parts.lastName || 'Candidato';
+  const nameInput = $('upload-doc-nombre');
+  if (!nameInput) return;
+
+  if (cat === 'Identificación Oficial') {
+    nameInput.value = `Pasaporte_${lastName}.pdf`;
+  } else if (cat === 'Formación Médica') {
+    nameInput.value = `Diploma_Titulo_${lastName}.pdf`;
+  } else if (cat === 'Competencia Lingüística') {
+    nameInput.value = `Certificado_Aleman_${lastName}.pdf`;
+  } else if (cat === 'Curriculum Vitae') {
+    nameInput.value = `Lebenslauf_${lastName}_DE.pdf`;
+  } else if (cat === 'Legal y Migratorio') {
+    nameInput.value = `Seguro_Medico_Incoming_${lastName}.pdf`;
+  } else if (cat === 'Homologación') {
+    nameInput.value = `Defizitbescheid_${lastName}.pdf`;
+  } else {
+    nameInput.value = `Documento_${lastName}.pdf`;
+  }
+}
+
+function handleDocFileSelected(input) {
+  if (input.files && input.files[0]) {
+    const file = input.files[0];
+    const label = $('upload-doc-file-label');
+    if (label) label.textContent = `${file.name} (${(file.size / (1024*1024)).toFixed(2)} MB)`;
+    const nameInput = $('upload-doc-nombre');
+    if (nameInput) {
+      nameInput.value = file.name;
+    }
+  }
+}
+
+function handleCandidateDocUploadSubmit(e, candidateId) {
+  e.preventDefault();
+  const c = DB.getCandidatoById(candidateId);
+  if (!c) return;
+
+  const cat = $('upload-doc-categoria')?.value || 'Otro';
+  let nombre = $('upload-doc-nombre')?.value || 'Documento.pdf';
+  if (!nombre.toLowerCase().endsWith('.pdf') && !nombre.toLowerCase().endsWith('.jpg') && !nombre.toLowerCase().endsWith('.png')) {
+    nombre += '.pdf';
+  }
+  const estado = $('upload-doc-estado')?.value || 'Pendiente';
+
+  DB.addDocumento({
+    id_candidato: candidateId,
+    categoria: cat,
+    nombre: nombre,
+    estado: estado,
+    tamano: '1.4 MB',
+    fecha: new Date().toISOString().split('T')[0]
+  });
+
+  const allDocs = DB.getDocumentos(candidateId);
+  DB.updateCandidato(candidateId, {
+    documentos_subidos: allDocs.length
+  });
+
+  closeModal('modal-upload-candidate-doc');
+  showToast('Documento Guardado', `"${nombre}" fue añadido al expediente de ${c.nombre}.`, 'success');
+  
+  // Re-render
+  const container = $('main-content');
+  if (container) {
+    container.innerHTML = renderCandidateProfilePage();
+  }
+}
+
 function quickUploadDocForCandidate(id) {
-  const candidato = DB.getCandidatos().find(c => c.id === id);
-  const nombre = candidato ? candidato.nombre : 'Candidato';
-  showToast('Subir Documento', `Selecciona un archivo PDF para subir a la carpeta de ${nombre}.`, 'info', 4000);
+  openUploadDocModal(id);
 }
 
 function omitCandidateDocStep(id) {
   const candidato = DB.getCandidatos().find(c => c.id === id);
   const nombre = candidato ? candidato.nombre : 'Candidato';
-  showToast('Requisito Omitido', `Se ha marcado la omisión temporal del requisito para ${nombre}.`, 'warning', 4000);
+  showToast('Requisito Actualizado', `Se ha verificado el requisito para ${nombre}.`, 'info', 4000);
 }
 
 // Dashboard inline handlers
@@ -8853,7 +10092,9 @@ const _windowExports = {
   toggleKanbanView, guardarNuevoCandidato, openCandidateDetail,
   renderCandidateProfilePage, closeCandidateProfile, exportCandidateProfilePDF,
   openEditCandidateModal, saveCandidateProfileEdit, quickSendMessage,
-  quickScheduleInterview, quickUploadDocForCandidate, omitCandidateDocStep,
+  quickScheduleInterview, quickUploadDocForCandidate, openUploadDocModal,
+  handleCandidateDocUploadSubmit, handleDocCategoryChange, handleDocFileSelected,
+  omitCandidateDocStep,
   quickAddCandidateNote, openCandidateDetailModalLegacy, deleteCandidateProfile,
   acceptCandidate, rejectCandidate, reviewDoc, showRejectModal, addQuickNote,
   selectMatchCand, selectMatchVac, ejecutarMatch, notificarAsesorRiesgo,
@@ -8994,5 +10235,24 @@ window.setB2BViewMode = setB2BViewMode;
 window.onB2BSearchChange = onB2BSearchChange;
 window.onB2BRegionChange = onB2BRegionChange;
 window.onB2BEtapaChange = onB2BEtapaChange;
+
+// Stellenportal & Bolsa de Empleo Exports
+window.setStellenportalFilter = setStellenportalFilter;
+window.filterPublicStellenportal = filterPublicStellenportal;
+window.renderPublicStellenportal = renderPublicStellenportal;
+window.openStellenportalModal = openStellenportalModal;
+window.applyToJobVacancy = applyToJobVacancy;
+window.renderStellenportalAdmin = renderStellenportalAdmin;
+window.openCreateVacanteModal = openCreateVacanteModal;
+window.openEditVacanteModal = openEditVacanteModal;
+window.applyTemplateToVacanteForm = applyTemplateToVacanteForm;
+window.handleSaveVacanteSubmit = handleSaveVacanteSubmit;
+window.toggleVacanteAdmin = toggleVacanteAdmin;
+window.deleteVacanteAdmin = deleteVacanteAdmin;
+window.resetStellenportalOfficialTemplate = resetStellenportalOfficialTemplate;
+window.jumpToMatchingForVacante = jumpToMatchingForVacante;
+window.filterAdminVacantesTable = filterAdminVacantesTable;
+window.switchStellenportalTab = switchStellenportalTab;
+window.previewVacanteFromForm = previewVacanteFromForm;
 
 

@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/js/style.css?v=cand_v6">
+  <link rel="stylesheet" href="/js/style.css?v=cand_v7">
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
@@ -146,6 +146,7 @@
   <!-- NAVEGACIÓN PÚBLICA -->
   <nav class="public-navbar" role="navigation" aria-label="Navegación principal">
     <div class="nav-inner">
+      <!-- Logo JN Palabras -->
       <div class="nav-logo" onclick="showPublic(); window.scrollTo({top:0, behavior:'smooth'})" style="cursor: pointer;">
         <img src="/logo.png" alt="JN Palabras Logo" style="height: 46px; width: auto; border-radius: 6px;">
         <div class="nav-logo-text" style="color:var(--warm-900);">
@@ -153,15 +154,96 @@
           <span style="font-size:0.75rem; letter-spacing:1px; text-transform:uppercase; color:var(--gold-600); font-weight:700;" data-i18n="brand_sub">Heidelberg · Deutschland</span>
         </div>
       </div>
+
+      <!-- Menú Principal: Para Profesionales / Para Empresas -->
       <div class="nav-links" role="menubar">
-        <a href="#hero" class="nav-link" role="menuitem" onclick="scrollToSection('hero')" data-i18n="nav_home">Inicio</a>
-        <a href="#servicios" class="nav-link" role="menuitem" onclick="scrollToSection('servicios')" data-i18n="nav_services">Servicios</a>
-        <a href="#pilares" class="nav-link" role="menuitem" onclick="scrollToSection('pilares')" data-i18n="nav_pillars">Con J&N Palabras</a>
-        <a href="#about" class="nav-link" role="menuitem" onclick="scrollToSection('about')" data-i18n="nav_about">Quiénes Somos</a>
-        <a href="#proceso" class="nav-link" role="menuitem" onclick="scrollToSection('proceso')" data-i18n="nav_process">Nuestro Proceso</a>
-        <a href="#contact" class="nav-link" role="menuitem" onclick="scrollToSection('contact')" data-i18n="nav_contact">Contacto</a>
+        <!-- Menú: Para Profesionales -->
+        <div class="nav-item-dropdown">
+          <a href="#proceso" class="nav-dropdown-trigger" role="menuitem" onclick="scrollToSection('proceso');">
+            <span data-i18n="nav_for_professionals">Para Profesionales</span>
+            <span class="nav-arrow">▾</span>
+          </a>
+          <div class="nav-dropdown-menu" role="menu">
+            <a href="#proceso" class="nav-dropdown-subitem" onclick="scrollToSection('proceso')">
+              <span class="subitem-icon">📋</span>
+              <div class="subitem-text">
+                <strong data-i18n="nav_prof_process">Proceso y Homologación (§ 81a)</strong>
+                <small>Ruta paso a paso hacia Alemania</small>
+              </div>
+            </a>
+            <a href="#stellenportal" class="nav-dropdown-subitem" onclick="scrollToSection('stellenportal')">
+              <span class="subitem-icon">💼</span>
+              <div class="subitem-text">
+                <strong data-i18n="nav_prof_stellenportal">Bolsa de Empleo (Stellenportal)</strong>
+                <small>Puestos profesionales disponibles en Alemania</small>
+              </div>
+            </a>
+            <a href="#pilares" class="nav-dropdown-subitem" onclick="scrollToSection('pilares')">
+              <span class="subitem-icon">🤝</span>
+              <div class="subitem-text">
+                <strong data-i18n="nav_prof_pillars">Acompañamiento 360°</strong>
+                <small>Idioma, visado, vivienda y cultura</small>
+              </div>
+            </a>
+            <a href="#about" class="nav-dropdown-subitem" onclick="scrollToSection('about')">
+              <span class="subitem-icon">🏛️</span>
+              <div class="subitem-text">
+                <strong data-i18n="nav_prof_about">Quiénes Somos</strong>
+                <small>Equipo y valores en Heidelberg</small>
+              </div>
+            </a>
+            <div class="nav-dropdown-divider"></div>
+            <a href="#" class="nav-dropdown-subitem highlight" onclick="openApplicationOffcanvas(); return false;">
+              <span class="subitem-icon">✨</span>
+              <div class="subitem-text">
+                <strong data-i18n="nav_prof_test">Test de Elegibilidad</strong>
+                <small>Evalúa tu perfil en 2 minutos</small>
+              </div>
+            </a>
+          </div>
+        </div>
+
+        <!-- Menú: Para Empresas -->
+        <div class="nav-item-dropdown">
+          <a href="#servicios" class="nav-dropdown-trigger" role="menuitem" onclick="scrollToSection('servicios');">
+            <span data-i18n="nav_for_companies">Para Empresas</span>
+            <span class="nav-arrow">▾</span>
+          </a>
+          <div class="nav-dropdown-menu" role="menu">
+            <a href="#servicios" class="nav-dropdown-subitem" onclick="scrollToSection('servicios')">
+              <span class="subitem-icon">🏥</span>
+              <div class="subitem-text">
+                <strong data-i18n="nav_emp_services">Servicios y Soluciones</strong>
+                <small>Reclutamiento ético y formación especializada</small>
+              </div>
+            </a>
+            <a href="#" class="nav-dropdown-subitem" onclick="openHospitalFunnel(); return false;">
+              <span class="subitem-icon">📑</span>
+              <div class="subitem-text">
+                <strong data-i18n="nav_emp_request">Solicitar Personal (B2B)</strong>
+                <small>Formulario directo para clínicas y hospitales</small>
+              </div>
+            </a>
+            <a href="https://meetings-eu1.hubspot.com/nmatthiessen" target="_blank" rel="noopener noreferrer" class="nav-dropdown-subitem">
+              <span class="subitem-icon">📅</span>
+              <div class="subitem-text">
+                <strong data-i18n="nav_emp_meeting">Reunión Estratégica</strong>
+                <small>Sesión informativa sin compromiso</small>
+              </div>
+            </a>
+            <a href="#contact" class="nav-dropdown-subitem" onclick="scrollToSection('contact')">
+              <span class="subitem-icon">✉️</span>
+              <div class="subitem-text">
+                <strong data-i18n="nav_emp_contact">Contacto Directo</strong>
+                <small>Escríbenos directamente</small>
+              </div>
+            </a>
+          </div>
+        </div>
       </div>
-      <div class="nav-actions" style="display:flex; gap: 10px; align-items:center;">
+
+      <!-- Acciones Derecha: Idioma | Iniciar Sesión | Aplicar Ahora -->
+      <div class="nav-actions">
         <!-- Selector de idioma desplegable con degradado rojo (Estilo Talent Orange) -->
         <div class="lang-dropdown" id="nav-lang-dropdown" role="group" aria-label="Selector de idioma">
           <button type="button" class="lang-dropdown-trigger" onclick="i18n.toggleDropdown(event)" aria-haspopup="true" aria-expanded="false" title="Seleccionar idioma">
@@ -187,9 +269,44 @@
             </button>
           </div>
         </div>
-        <button class="btn btn-outline" onclick="openHospitalFunnel()" style="border-color:var(--gold-600); color:var(--wine-900); font-weight:700; display:inline-flex; align-items:center; gap:6px;" data-i18n="nav_b2b">🏥 Para Clínicas (B2B)</button>
-        <button class="btn btn-outline" onclick="showLogin()" id="nav-login-btn" data-i18n="nav_login">Iniciar Sesión</button>
-        <button class="btn-redesign-primary" onclick="openApplicationOffcanvas()" style="padding:10px 18px; font-size:0.85rem;" data-i18n="hero_btn_candidate">💼 Candidatos</button>
+
+        <!-- Iniciar Sesión -->
+        <button class="nav-btn-login" onclick="showLogin()" id="nav-login-btn" data-i18n="nav_login">Iniciar Sesión</button>
+
+        <!-- Aplicar Ahora -->
+        <button class="nav-btn-apply" onclick="openApplicationOffcanvas()" data-i18n="nav_apply_now">Aplicar Ahora</button>
+
+        <!-- Botón Hamburguesa Móvil -->
+        <button type="button" class="nav-mobile-toggle" onclick="toggleMobileNav()" aria-label="Menú móvil" aria-expanded="false">
+          <span class="hamburger-bar"></span>
+          <span class="hamburger-bar"></span>
+          <span class="hamburger-bar"></span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Menú Desplegable en Móvil -->
+    <div class="nav-mobile-drawer" id="nav-mobile-drawer">
+      <div class="nav-mobile-section-title" data-i18n="nav_for_professionals">Para Profesionales</div>
+      <a href="#proceso" class="nav-mobile-link" onclick="closeMobileNav(); scrollToSection('proceso');" data-i18n="nav_prof_process">📋 Proceso y Homologación (§ 81a)</a>
+      <a href="#stellenportal" class="nav-mobile-link" onclick="closeMobileNav(); scrollToSection('stellenportal');" data-i18n="nav_prof_stellenportal">💼 Bolsa de Empleo (Stellenportal)</a>
+      <a href="#pilares" class="nav-mobile-link" onclick="closeMobileNav(); scrollToSection('pilares');" data-i18n="nav_prof_pillars">🤝 Acompañamiento 360°</a>
+      <a href="#about" class="nav-mobile-link" onclick="closeMobileNav(); scrollToSection('about');" data-i18n="nav_prof_about">🏛️ Quiénes Somos</a>
+      <a href="#" class="nav-mobile-link" style="color:var(--gold-600); font-weight:700;" onclick="closeMobileNav(); openApplicationOffcanvas(); return false;" data-i18n="nav_prof_test">✨ Test de Elegibilidad</a>
+
+      <div class="nav-mobile-section-title" data-i18n="nav_for_companies">Para Empresas</div>
+      <a href="#servicios" class="nav-mobile-link" onclick="closeMobileNav(); scrollToSection('servicios');" data-i18n="nav_emp_services">🏥 Servicios y Soluciones</a>
+      <a href="#" class="nav-mobile-link" onclick="closeMobileNav(); openHospitalFunnel(); return false;" data-i18n="nav_emp_request">📑 Solicitar Personal (B2B)</a>
+      <a href="https://meetings-eu1.hubspot.com/nmatthiessen" target="_blank" rel="noopener noreferrer" class="nav-mobile-link" data-i18n="nav_emp_meeting">📅 Reunión Estratégica</a>
+      <a href="#contact" class="nav-mobile-link" onclick="closeMobileNav(); scrollToSection('contact');" data-i18n="nav_emp_contact">✉️ Contacto Directo</a>
+
+      <div class="nav-mobile-actions">
+        <button class="nav-btn-apply" style="width:100%; text-align:center; padding:12px;" onclick="closeMobileNav(); openApplicationOffcanvas();" data-i18n="nav_apply_now">
+          Aplicar Ahora
+        </button>
+        <button class="nav-btn-login" style="width:100%; text-align:center; padding:12px;" onclick="closeMobileNav(); showLogin();" data-i18n="nav_login">
+          Iniciar Sesión
+        </button>
       </div>
     </div>
   </nav>
@@ -535,6 +652,50 @@
       </div>
     </div>
   </section>
+
+  <!-- ══════════════════════════════════════════════════════════
+       STELLENPORTAL / BOLSA DE EMPLEO SANITARIO EN ALEMANIA
+       ══════════════════════════════════════════════════════════ -->
+  <section class="public-stellenportal-section" id="stellenportal">
+    <div class="stellenportal-container">
+      <div class="text-center" style="max-width:840px; margin:0 auto 36px auto;">
+        <div class="section-tag-pill" data-i18n="stellenportal_badge">STELLENPORTAL · BOLSA DE EMPLEO SANITARIO</div>
+        <h2 class="stellenportal-title animate-fadeInUp" data-i18n="stellenportal_title" style="font-size:2.35rem; font-weight:800; color:var(--wine-900); margin-top:12px; margin-bottom:12px; letter-spacing:-0.02em;">
+          Puestos Profesionales Disponibles en Alemania
+        </h2>
+        <p class="stellenportal-subtitle animate-fadeInUp delay-100" data-i18n="stellenportal_subtitle" style="font-size:1.05rem; color:var(--slate-600); line-height:1.6;">
+          Finde Deinen Job, der am besten zu Dir passt. Oportunidades laborales directas con hospitales, clínicas y residencias verificadas en Baden-Württemberg y toda Alemania.
+        </p>
+      </div>
+
+      <!-- Barra de Filtros y Búsqueda -->
+      <div class="stellenportal-controls-bar">
+        <div class="stellenportal-search-wrap">
+          <span class="stellenportal-search-icon">🔍</span>
+          <input type="text" id="stellenportal-search-input" class="stellenportal-search-input" placeholder="Buscar por puesto, especialidad, clínica o ciudad..." data-i18n-placeholder="stellenportal_search_ph" oninput="filterPublicStellenportal()" />
+        </div>
+        <div class="stellenportal-filter-chips" id="stellenportal-filter-chips">
+          <button type="button" class="stellenportal-chip active" data-category="all" onclick="setStellenportalFilter('all', this)" data-i18n="stellenportal_filter_all">Todas las Vacantes</button>
+          <button type="button" class="stellenportal-chip" data-category="Medicina" onclick="setStellenportalFilter('Medicina', this)" data-i18n="stellenportal_filter_med">Medicina / Ärzte</button>
+          <button type="button" class="stellenportal-chip" data-category="Enfermería" onclick="setStellenportalFilter('Enfermería', this)" data-i18n="stellenportal_filter_nurse">Enfermería</button>
+          <button type="button" class="stellenportal-chip" data-category="Quirófano / OTA" onclick="setStellenportalFilter('Quirófano / OTA', this)" data-i18n="stellenportal_filter_ota">Quirófano / OTA</button>
+          <button type="button" class="stellenportal-chip" data-category="Asistenciales" onclick="setStellenportalFilter('Asistenciales', this)" data-i18n="stellenportal_filter_assist">Asistenciales</button>
+        </div>
+      </div>
+
+      <!-- Contenedor de Tarjetas de Empleo Dinámicas -->
+      <div class="stellenportal-grid" id="stellenportal-cards-grid">
+        <!-- Renderizado dinámico desde DB.getVacantes() -->
+      </div>
+    </div>
+  </section>
+
+  <!-- MODAL DE DETALLES DEL PUESTO (STELLENPORTAL) -->
+  <div class="modal-overlay" id="modal-stellenportal-detail" role="dialog" aria-modal="true" onclick="if(event.target===this) closeModal('modal-stellenportal-detail')">
+    <div class="modal modal-card stellenportal-detail-modal" id="modal-stellenportal-content">
+      <!-- Se inyecta dinámicamente con openStellenportalModal(id) -->
+    </div>
+  </div>
 
   <!-- CTA BANNER SECTION -->
   <section id="eligibilidad" class="public-cta-banner">
@@ -1168,11 +1329,11 @@
 <!-- ══════════════════════════════════════════════════════════
      SCRIPTS
      ══════════════════════════════════════════════════════════ -->
-  <script src="/js/i18n.js?v=v8"></script>
-  <script src="/js/db.js?v=v21"></script>
-  <script src="/js/icons.js?v=v21"></script>
-  <script src="/js/mockData.js?v=v21"></script>
-  <script src="/js/main.js?v=v21"></script>
+  <script src="/js/i18n.js?v=v9"></script>
+  <script src="/js/db.js?v=v22"></script>
+  <script src="/js/icons.js?v=v22"></script>
+  <script src="/js/mockData.js?v=v22"></script>
+  <script src="/js/main.js?v=v22"></script>
 
   <!-- OFFCANVAS INTERACTIVO -->
   <div class="offcanvas-overlay" id="application-overlay" onclick="closeApplicationOffcanvas()"></div>
