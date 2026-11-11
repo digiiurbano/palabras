@@ -8222,11 +8222,25 @@ function renderPublicStellenportal() {
 
 function openStellenportalModal(idOrVacante, opts = {}) {
   const v = (idOrVacante && typeof idOrVacante === 'object') ? idOrVacante : DB.getVacanteById(idOrVacante);
-  if (!v) return;
+  if (!v) {
+    console.warn("Vacante no encontrada para mostrar en modal:", idOrVacante);
+    return;
+  }
   const isPreview = !!opts.preview;
 
-  const content = $('modal-stellenportal-content');
-  if (!content) return;
+  let overlay = $('modal-stellenportal-detail');
+  let content = $('modal-stellenportal-content');
+  if (!overlay || !content) {
+    overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.id = 'modal-stellenportal-detail';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.onclick = function(e) { if (e.target === overlay) closeModal('modal-stellenportal-detail'); };
+    overlay.innerHTML = `<div class="modal modal-card stellenportal-detail-modal" id="modal-stellenportal-content"></div>`;
+    document.body.appendChild(overlay);
+    content = $('modal-stellenportal-content');
+  }
 
   const tareasList = Array.isArray(v.tareas_es) && v.tareas_es.length > 0 ? v.tareas_es : (Array.isArray(v.tareas) ? v.tareas : []);
   const reqList = Array.isArray(v.requisitos_es) && v.requisitos_es.length > 0 ? v.requisitos_es : (Array.isArray(v.requisitos) ? v.requisitos : []);
@@ -8436,7 +8450,7 @@ function openStellenportalModal(idOrVacante, opts = {}) {
   `;
 
   // Asegurar que el modal de detalle esté siempre por encima de barras de navegación (z-index 1000)
-  const overlay = $('modal-stellenportal-detail');
+  overlay = $('modal-stellenportal-detail') || overlay;
   if (overlay) overlay.style.zIndex = isPreview ? '100001' : '100000';
   openModal('modal-stellenportal-detail');
 }
@@ -8546,13 +8560,13 @@ function renderStellenportalAdmin() {
                       ${isAbierta ? '● Abierta (En Web)' : '⏸ Pausada'}
                     </span>
                   </div>
-                  <div class="vacante-info-title">${escapeHtml(v.titulo)}</div>
-                  ${v.titulo_es ? `<div style="font-size:0.8rem; color:#801020; margin-bottom:4px;">${escapeHtml(v.titulo_es)}</div>` : ''}
+                  <div class="vacante-info-title">${escapeHtml(v.titulo || v.titulo_es || v.titulo_puesto || 'Puesto Sanitario')}</div>
+                  ${(v.titulo_es && v.titulo_es !== v.titulo) ? `<div style="font-size:0.8rem; color:#801020; margin-bottom:4px;">${escapeHtml(v.titulo_es)}</div>` : ''}
                   <div class="vacante-info-sub">
-                    🏥 ${escapeHtml(v.empresa || 'Clínicas Asociadas')} · 📍 ${escapeHtml(v.ubicacion || 'Deutschlandweit')} · 👥 ${v.vacantes || 1} Plazas
+                    🏥 ${escapeHtml(v.empresa || 'Clínicas Asociadas')} · 📍 ${escapeHtml(v.lugar || v.ubicacion || 'Deutschlandweit')} · 👥 ${v.vacantes || 1} Plazas
                   </div>
                   <div style="display:flex; gap:8px; flex-wrap:wrap; font-size:0.75rem;">
-                    <span style="background:#fefce8; color:#854d0e; font-weight:700; padding:2px 8px; border-radius:6px;">💰 ${escapeHtml(v.sueldo_texto || (v.sueldo_min + '€ - ' + v.sueldo_max + '€'))}</span>
+                    <span style="background:#fefce8; color:#854d0e; font-weight:700; padding:2px 8px; border-radius:6px;">💰 ${escapeHtml(v.salario_objetivo || v.sueldo_texto || (v.sueldo_min ? (v.sueldo_min + '€ - ' + v.sueldo_max + '€') : 'Según convenio'))}</span>
                     <span style="background:#eff6ff; color:#1e40af; font-weight:700; padding:2px 8px; border-radius:6px;">🗣️ Alemán ${escapeHtml(v.nivel_aleman || 'B2')}</span>
                     <span style="background:#f8fafc; color:#64748b; padding:2px 8px; border-radius:6px;">📑 ${escapeHtml(v.tipo_contrato || 'Indefinido')}</span>
                   </div>

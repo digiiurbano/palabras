@@ -690,13 +690,6 @@
     </div>
   </section>
 
-  <!-- MODAL DE DETALLES DEL PUESTO (STELLENPORTAL) -->
-  <div class="modal-overlay" id="modal-stellenportal-detail" role="dialog" aria-modal="true" onclick="if(event.target===this) closeModal('modal-stellenportal-detail')">
-    <div class="modal modal-card stellenportal-detail-modal" id="modal-stellenportal-content">
-      <!-- Se inyecta dinámicamente con openStellenportalModal(id) -->
-    </div>
-  </div>
-
   <!-- CTA BANNER SECTION -->
   <section id="eligibilidad" class="public-cta-banner">
     <div class="cta-banner-circle animate-scaleIn">
@@ -834,6 +827,13 @@
 <!-- ══════════════════════════════════════════════════════════
      MODALES GLOBALES
      ══════════════════════════════════════════════════════════ -->
+
+<!-- MODAL DE DETALLES DEL PUESTO (STELLENPORTAL - GLOBAL) -->
+<div class="modal-overlay" id="modal-stellenportal-detail" role="dialog" aria-modal="true" onclick="if(event.target===this) closeModal('modal-stellenportal-detail')">
+  <div class="modal modal-card stellenportal-detail-modal" id="modal-stellenportal-content">
+    <!-- Se inyecta dinámicamente con openStellenportalModal(id) -->
+  </div>
+</div>
 
 <!-- Modal Edit Profile -->
 <div class="modal-overlay" id="modal-edit-profile" role="dialog" aria-modal="true" aria-labelledby="modal-ep-title">
@@ -1329,11 +1329,11 @@
 <!-- ══════════════════════════════════════════════════════════
      SCRIPTS
      ══════════════════════════════════════════════════════════ -->
-  <script src="/js/i18n.js?v=v9"></script>
-  <script src="/js/db.js?v=v22"></script>
-  <script src="/js/icons.js?v=v22"></script>
-  <script src="/js/mockData.js?v=v22"></script>
-  <script src="/js/main.js?v=v22"></script>
+  <script src="/js/i18n.js?v=v23"></script>
+  <script src="/js/db.js?v=v23"></script>
+  <script src="/js/icons.js?v=v23"></script>
+  <script src="/js/mockData.js?v=v23"></script>
+  <script src="/js/main.js?v=v23"></script>
 
   <!-- OFFCANVAS INTERACTIVO -->
   <div class="offcanvas-overlay" id="application-overlay" onclick="closeApplicationOffcanvas()"></div>

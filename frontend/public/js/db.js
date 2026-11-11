@@ -123,10 +123,18 @@ const DB = {
             // Si no hay usuarios remotos, usar la base oficial inicial
             const finalUsers = sanitizedUsers.length > 0 ? sanitizedUsers : [...OFFICIAL_USERS];
 
+            // Saneamiento de vacantes remotas para asegurar los 7 puestos oficiales de JN Palabras
+            const officialTemplate = (typeof OFFICIAL_STELLENPORTAL_VACANTES !== 'undefined') ? OFFICIAL_STELLENPORTAL_VACANTES : [];
+            let remoteVacantes = Array.isArray(remote.vacantes) ? remote.vacantes : [];
+            const legacyIds = ['7913ea4d-132d-49d5-ae1f-4e98a0c37ea4', 'a0a0de72-e257-4d29-acf4-9f93a2ec7959', '1f228dac-624e-4640-ad49-3a9b8e3d7887'];
+            const customVacs = remoteVacantes.filter(v => v && !legacyIds.includes(v.id) && !v.id?.startsWith('vac-'));
+            const finalVacantes = [...JSON.parse(JSON.stringify(officialTemplate)), ...customVacs];
+
             this.data = {
               ...INITIAL_DATA,
               ...remote,
-              usuarios: finalUsers
+              usuarios: finalUsers,
+              vacantes: finalVacantes
             };
 
             try {
@@ -726,36 +734,64 @@ const DB = {
   // ── VACANTES & STELLENPORTAL ──────────────────────────────────
   getVacantes() {
     const db = this.get();
-    if (!db.vacantes || !Array.isArray(db.vacantes) || db.vacantes.length === 0) {
-      const template = (typeof OFFICIAL_STELLENPORTAL_VACANTES !== 'undefined')
-        ? OFFICIAL_STELLENPORTAL_VACANTES
-        : (typeof INITIAL_DATA !== 'undefined' && INITIAL_DATA.vacantes ? INITIAL_DATA.vacantes : []);
-      db.vacantes = JSON.parse(JSON.stringify(template));
-      if (!db.kpis) db.kpis = {};
-      db.kpis.vacantes_activas = db.vacantes.filter(v => v.estado === 'Abierta').length;
-      this.save(db);
-    } else if (typeof OFFICIAL_STELLENPORTAL_VACANTES !== 'undefined') {
-      // Migración: completar vacantes oficiales antiguas con los campos de la plantilla Cartera JN
-      // (lugar, salario_objetivo, cualificacion, ofrecemos_es, tareas_es, ...) sin pisar ediciones.
-      let changed = false;
-      db.vacantes = db.vacantes.map(v => {
-        const official = OFFICIAL_STELLENPORTAL_VACANTES.find(o => o.id === v.id);
-        if (!official || v.cualificacion) return v;
+    const officialList = (typeof OFFICIAL_STELLENPORTAL_VACANTES !== 'undefined') ? OFFICIAL_STELLENPORTAL_VACANTES : [];
+    const legacyIds = ['7913ea4d-132d-49d5-ae1f-4e98a0c37ea4', 'a0a0de72-e257-4d29-acf4-9f93a2ec7959', '1f228dac-624e-4640-ad49-3a9b8e3d7887'];
+
+    let vacantes = Array.isArray(db.vacantes) ? db.vacantes : [];
+    // Filtrar registros dummy legacy antiguos que no tienen plantilla ni datos oficiales
+    const filtered = vacantes.filter(v => v && !legacyIds.includes(v.id));
+
+    // Verificar si faltan los 7 puestos oficiales
+    let changed = false;
+    if (vacantes.length !== filtered.length) {
+      vacantes = filtered;
+      changed = true;
+    }
+
+    // Asegurar que cada uno de los 7 puestos oficiales esté en la lista
+    officialList.forEach(official => {
+      const idx = vacantes.findIndex(v => v.id === official.id || v.slug === official.slug);
+      if (idx === -1) {
+        vacantes.push(JSON.parse(JSON.stringify(official)));
         changed = true;
-        const merged = { ...official, ...v };
-        ['lugar', 'salario_objetivo', 'cualificacion', 'ofrecemos_es', 'ofrecemos_nota', 'tareas_es',
-         'requisitos_es', 'competencias_sociales', 'pdf_de', 'pdf_es', 'titulo_es', 'url_original']
-          .forEach(k => { merged[k] = official[k]; });
-        return merged;
-      });
-      if (changed) this.save(db);
+      } else {
+        const v = vacantes[idx];
+        if (!v.cualificacion || !v.salario_objetivo || !v.titulo_es || !v.lugar) {
+          ['lugar', 'salario_objetivo', 'cualificacion', 'ofrecemos_es', 'ofrecemos_nota', 'tareas_es',
+           'requisitos_es', 'competencias_sociales', 'pdf_de', 'pdf_es', 'titulo_es', 'url_original', 'titulo']
+            .forEach(k => {
+              if (!v[k] && official[k]) { v[k] = official[k]; changed = true; }
+            });
+        }
+      }
+    });
+
+    // Normalizar títulos para evitar que se muestren vacíos en el admin o la web
+    vacantes.forEach(v => {
+      if (!v.titulo) {
+        v.titulo = v.titulo_es || v.titulo_puesto || 'Puesto Sanitario';
+        changed = true;
+      }
+      if (!v.estado) {
+        v.estado = 'Abierta';
+        changed = true;
+      }
+    });
+
+    db.vacantes = vacantes;
+    if (!db.kpis) db.kpis = {};
+    db.kpis.vacantes_activas = db.vacantes.filter(v => v.estado === 'Abierta').length;
+
+    if (changed) {
+      this.save(db);
     }
     return db.vacantes || [];
   },
 
   getVacanteById(id) {
     if (!id) return null;
-    return this.getVacantes().find(v => v.id === id || v.slug === id) || null;
+    const list = this.getVacantes();
+    return list.find(v => v.id === id || v.slug === id || String(v.id) === String(id)) || null;
   },
 
   getVacantesByEmpresa(id_empresa) {
