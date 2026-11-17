@@ -467,3 +467,4 @@ mockContent = mockContent.replace(exportTarget, newExports);
 
 fs.writeFileSync(mockPath, mockContent, 'utf8');
 console.log('✅ Updated frontend/public/js/mockData.js successfully!');
+

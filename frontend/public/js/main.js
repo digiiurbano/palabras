@@ -8241,6 +8241,7 @@ function openStellenportalModal(idOrVacante, opts = {}) {
     console.warn("Vacante no encontrada para mostrar en modal:", idOrVacante);
     return;
   }
+  window._currentStellenportalModalVacante = v;
   const isPreview = !!opts.preview;
 
   let overlay = $('modal-stellenportal-detail');
@@ -8415,16 +8416,12 @@ function openStellenportalModal(idOrVacante, opts = {}) {
           <a href="mailto:info@jnpalabras.com?subject=Postulacion%20-%20${encodeURIComponent(v.titulo)}" class="btn btn-outline" style="border-color:#801020; color:#801020; font-weight:700;">
             ✉️ Enviar CV a info@jnpalabras.com
           </a>
-          ${pdfDe !== '#' ? `
-            <a href="${pdfDe}" target="_blank" class="stellenportal-download-btn">
-              <span>📄</span> Descarga el perfil en alemán (PDF)
-            </a>
-          ` : ''}
-          ${pdfEs !== '#' ? `
-            <a href="${pdfEs}" target="_blank" class="stellenportal-download-btn">
-              <span>📄</span> Descarga el perfil en español (PDF)
-            </a>
-          ` : ''}
+          <button type="button" class="stellenportal-download-btn" onclick="downloadVacantePDF(window._currentStellenportalModalVacante || '${v.id}', 'es')" title="Descargar perfil oficial en español (PDF)">
+            <span>📄</span> Descargar perfil en español (PDF)
+          </button>
+          <button type="button" class="stellenportal-download-btn" onclick="downloadVacantePDF(window._currentStellenportalModalVacante || '${v.id}', 'de')" title="Offizielles Stellenprofil als PDF herunterladen (Deutsch)">
+            <span>📄</span> Offizielles Profil herunterladen (PDF DE)
+          </button>
         </div>
       </div>
 
@@ -8593,6 +8590,9 @@ function renderStellenportalAdmin() {
                 </button>
                 <button class="btn btn-sm btn-outline" onclick="openStellenportalModal('${v.id}')" title="Previsualizar ficha pública">
                   👁️ Ver
+                </button>
+                <button class="btn btn-sm btn-outline" style="border-color:#801020; color:#801020; font-weight:700;" onclick="downloadVacantePDF('${v.id}', 'es')" title="Descargar perfil oficial en PDF">
+                  📄 PDF
                 </button>
                 <button class="btn btn-sm btn-outline" style="border-color:#3b82f6; color:#2563eb;" onclick="openEditVacanteModal('${v.id}')" title="Editar puesto y plantilla">
                   ✏️ Editar
@@ -8776,7 +8776,10 @@ function openEditVacanteModal(id) {
           </div>
 
           <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-top:8px; padding-top:14px; border-top:1px solid #e2e8f0;">
-            <button type="button" class="btn btn-outline" onclick="previewVacanteFromForm('${v.id || ''}')">👁️ Previsualizar</button>
+            <div style="display:flex; gap:8px;">
+              <button type="button" class="btn btn-outline" onclick="previewVacanteFromForm('${v.id || ''}')">👁️ Previsualizar</button>
+              <button type="button" class="btn btn-outline" style="border-color:#801020; color:#801020; font-weight:700;" onclick="previewVacantePDFFromForm('${v.id || ''}')" title="Descargar PDF con la plantilla oficial">📄 Descargar PDF</button>
+            </div>
             <div style="display:flex; gap:10px;">
               <button type="button" class="btn btn-outline" onclick="closeModal('modal-edit-vacante-dialog')">Cancelar</button>
               <button type="submit" class="btn btn-primary" style="background:#801020; border-color:#801020; font-weight:700; padding:10px 24px;">Guardar Vacante</button>
@@ -8931,6 +8934,481 @@ function filterAdminVacantesTable() {
     const matchC = cat === 'all' || cardCat.toLowerCase() === cat.toLowerCase();
     card.style.display = (matchQ && matchC) ? 'flex' : 'none';
   });
+}
+
+// =====================================================================
+// GENERADOR DE PDF OFICIAL DE VACANTES (PLANTILLA JN PALABRAS)
+// Basado fielmente en la plantilla oficial de la Cartera JN
+// =====================================================================
+
+function generateVacantePDFHTML(v, lang = 'es') {
+  if (!v) return '';
+  const isDe = (lang === 'de');
+  const title = isDe ? (v.titulo || v.titulo_es || 'Stellenangebot') : (v.titulo_es || v.titulo || 'Puesto Laboral');
+  const applyText = isDe ? 'Jetzt Bewerben' : 'Aplicar Ahora';
+  const applyUrl = 'https://jnpalabras.com/stellenportal/';
+
+  const col1Title = isDe ? 'Standort' : 'Ubicación';
+  const col1Val = isDe ? (v.ubicacion || v.lugar || 'Deutschland / Österreich') : (v.lugar || v.ubicacion || 'Alemania / Austria');
+
+  const col2Title = isDe ? 'Gehaltsrahmen' : 'Rango Salarial';
+  const col2Val = isDe ? (v.sueldo_texto || v.salario_objetivo || 'Nach Tarif') : (v.salario_objetivo || v.sueldo_texto || 'Según convenio');
+
+  const col3Title = isDe ? 'Beruf / Qualifikation' : 'Ocupación/Profesión';
+  const col3Val = isDe 
+    ? (v.cualificacion_de || v.cualificacion || 'Fachkräfte im Gesundheitswesen mit Anerkennung') 
+    : (v.cualificacion || 'Profesionales sanitarios con homologación');
+
+  const tab1Title = isDe ? 'Wir bieten' : 'Ofrecemos';
+  const tab2Title = isDe ? 'Ihre Aufgaben' : 'Tus Tareas';
+  const tab3Title = isDe ? 'Ihr Profil' : 'Tu perfil';
+
+  const ofrecemosList = isDe 
+    ? ((v.beneficios && v.beneficios.length) ? v.beneficios : (v.ofrecemos_es || []))
+    : ((v.ofrecemos_es && v.ofrecemos_es.length) ? v.ofrecemos_es : (v.beneficios || []));
+
+  const ofrecemosNota = isDe 
+    ? (v.ofrecemos_nota_de || 'Wenn Sie eine erfüllende Tätigkeit im Gesundheitswesen suchen und die Voraussetzungen erfüllen, laden wir Sie herzlich ein, sich zu bewerben. Wir bieten ein positives Arbeitsumfeld, Weiterbildungsmöglichkeiten und die Chance, aktiv zur Gesundheit unserer Patienten beizutragen.')
+    : (v.ofrecemos_nota || 'Si busca un trabajo satisfactorio en enfermería y cumple los requisitos anteriores, le invitamos cordialmente a presentar su candidatura. Ofrecemos un ambiente de trabajo positivo, oportunidades de formación continua y la posibilidad de contribuir activamente a la salud de nuestros pacientes.');
+
+  const tareasList = isDe
+    ? ((v.tareas && v.tareas.length) ? v.tareas : (v.tareas_es || []))
+    : ((v.tareas_es && v.tareas_es.length) ? v.tareas_es : (v.tareas || []));
+
+  const requisitosList = isDe
+    ? ((v.requisitos && v.requisitos.length) ? v.requisitos : (v.requisitos_es || []))
+    : ((v.requisitos_es && v.requisitos_es.length) ? v.requisitos_es : (v.requisitos || []));
+
+  const softSkillsTitle = isDe ? 'Soziale Kompetenzen:' : 'Habilidades blandas:';
+  const softSkillsList = (v.competencias_sociales && v.competencias_sociales.length)
+    ? v.competencias_sociales
+    : [
+        isDe ? 'Verantwortungsbewusstsein und Engagement.' : 'Sentido de la responsabilidad y compromiso.',
+        isDe ? 'Flexibilität und Anpassungsfähigkeit in einem dynamischen Arbeitsumfeld.' : 'Flexibilidad y adaptabilidad en un entorno de trabajo dinámico.',
+        isDe ? 'Belastbarkeit und Selbstreflexion.' : 'Resiliencia y autorreflexión.'
+      ];
+
+  const logoUrl = (typeof window !== 'undefined' && window.location && window.location.origin)
+    ? `${window.location.origin}/logo.png`
+    : '/logo.png';
+
+  return `
+    <div class="pdf-document-body">
+      <style>
+        .pdf-document-body {
+          font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+          color: #1f2937;
+          background: #ffffff;
+          padding: 24px 32px;
+          max-width: 800px;
+          margin: 0 auto;
+          box-sizing: border-box;
+          line-height: 1.5;
+        }
+        .pdf-header {
+          text-align: center;
+          margin-bottom: 22px;
+        }
+        .pdf-logo {
+          width: 68px;
+          height: 68px;
+          border-radius: 50%;
+          margin: 0 auto 12px auto;
+          display: block;
+          object-fit: contain;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+        }
+        .pdf-title {
+          font-size: 21px;
+          font-weight: 800;
+          color: #111827;
+          margin: 0 0 12px 0;
+          line-height: 1.35;
+          text-align: center;
+        }
+        .pdf-apply-btn {
+          display: inline-block;
+          background-color: #801020;
+          color: #ffffff !important;
+          text-decoration: none;
+          padding: 7px 26px;
+          border-radius: 9999px;
+          font-weight: 700;
+          font-size: 13px;
+          letter-spacing: 0.2px;
+          text-align: center;
+          box-shadow: 0 2px 6px rgba(128,16,32,0.25);
+        }
+        .pdf-metrics-grid {
+          display: flex;
+          justify-content: space-between;
+          gap: 16px;
+          margin: 22px 0 26px 0;
+          text-align: center;
+        }
+        .pdf-metric-col {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          padding: 0 6px;
+        }
+        .pdf-metric-label {
+          font-size: 12.5px;
+          font-weight: 700;
+          color: #2b1810;
+          margin-bottom: 5px;
+        }
+        .pdf-metric-icon {
+          font-size: 19px;
+          color: #801020;
+          margin-bottom: 3px;
+          line-height: 1;
+        }
+        .pdf-metric-divider {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 90px;
+          margin: 5px auto 8px auto;
+          gap: 3px;
+        }
+        .pdf-metric-line {
+          flex: 1;
+          height: 1.5px;
+          background-color: #801020;
+        }
+        .pdf-metric-dot {
+          width: 5px;
+          height: 5px;
+          border-radius: 50%;
+          background-color: #801020;
+        }
+        .pdf-metric-value {
+          font-size: 12px;
+          color: #374151;
+          line-height: 1.45;
+          text-align: center;
+        }
+        .pdf-card {
+          background: #ffffff;
+          border: 1px solid #d1d5db;
+          border-radius: 8px;
+          margin-bottom: 20px;
+          overflow: hidden;
+          page-break-inside: avoid;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        }
+        .pdf-tab-bar {
+          display: flex;
+          background: #f8fafc;
+          border-bottom: 1px solid #d1d5db;
+        }
+        .pdf-tab {
+          flex: 1;
+          padding: 9px 12px;
+          text-align: center;
+          font-size: 13px;
+          font-weight: 600;
+          color: #64748b;
+          background: #f1f5f9;
+          border-right: 1px solid #e2e8f0;
+        }
+        .pdf-tab:last-child {
+          border-right: none;
+        }
+        .pdf-tab.active {
+          background: #ffffff;
+          color: #0f172a;
+          font-weight: 800;
+          border-top: 3.5px solid #d97706;
+          padding-top: 7px;
+        }
+        .pdf-card-body {
+          padding: 18px 22px;
+          font-size: 12px;
+          line-height: 1.65;
+          color: #334155;
+        }
+        .pdf-bullet-list {
+          list-style: none;
+          padding: 0;
+          margin: 0;
+        }
+        .pdf-bullet-list li {
+          position: relative;
+          padding-left: 18px;
+          margin-bottom: 7px;
+          line-height: 1.6;
+        }
+        .pdf-bullet-list li::before {
+          content: "•";
+          position: absolute;
+          left: 2px;
+          color: #0f172a;
+          font-weight: 800;
+          font-size: 14px;
+        }
+        .pdf-note-paragraph {
+          margin-top: 14px;
+          font-style: italic;
+          color: #475569;
+          line-height: 1.6;
+          padding-top: 8px;
+        }
+        .pdf-numbered-list {
+          padding-left: 18px;
+          margin: 0;
+        }
+        .pdf-numbered-list li {
+          margin-bottom: 7px;
+          padding-left: 4px;
+          line-height: 1.6;
+        }
+        .pdf-subheading {
+          font-weight: 700;
+          color: #0f172a;
+          margin: 14px 0 8px 0;
+          font-size: 12.5px;
+        }
+        .pdf-footer {
+          margin-top: 24px;
+          padding-top: 12px;
+          border-top: 1px solid #e2e8f0;
+          text-align: center;
+          font-size: 11px;
+          color: #64748b;
+          line-height: 1.5;
+          page-break-inside: avoid;
+        }
+        @media print {
+          body {
+            background: #ffffff !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+          .pdf-document-body {
+            padding: 12px 20px !important;
+            max-width: 100% !important;
+          }
+        }
+      </style>
+
+      <!-- HEADER -->
+      <div class="pdf-header">
+        <img src="${logoUrl}" class="pdf-logo" alt="JN Palabras Logo" crossorigin="anonymous" onerror="this.style.display='none'" />
+        <h1 class="pdf-title">${escapeHtml(title)}</h1>
+        <div>
+          <a href="${applyUrl}" target="_blank" class="pdf-apply-btn">${escapeHtml(applyText)}</a>
+        </div>
+      </div>
+
+      <!-- KEY METRICS ROW (3 COLUMNS) -->
+      <div class="pdf-metrics-grid">
+        <div class="pdf-metric-col">
+          <div class="pdf-metric-label">${escapeHtml(col1Title)}</div>
+          <div class="pdf-metric-icon">📍</div>
+          <div class="pdf-metric-divider">
+            <span class="pdf-metric-line"></span>
+            <span class="pdf-metric-dot"></span>
+            <span class="pdf-metric-line"></span>
+          </div>
+          <div class="pdf-metric-value">${escapeHtml(col1Val)}</div>
+        </div>
+
+        <div class="pdf-metric-col">
+          <div class="pdf-metric-label">${escapeHtml(col2Title)}</div>
+          <div class="pdf-metric-icon">€</div>
+          <div class="pdf-metric-divider">
+            <span class="pdf-metric-line"></span>
+            <span class="pdf-metric-dot"></span>
+            <span class="pdf-metric-line"></span>
+          </div>
+          <div class="pdf-metric-value">${escapeHtml(col2Val)}</div>
+        </div>
+
+        <div class="pdf-metric-col">
+          <div class="pdf-metric-label">${escapeHtml(col3Title)}</div>
+          <div class="pdf-metric-icon">👤</div>
+          <div class="pdf-metric-divider">
+            <span class="pdf-metric-line"></span>
+            <span class="pdf-metric-dot"></span>
+            <span class="pdf-metric-line"></span>
+          </div>
+          <div class="pdf-metric-value">${escapeHtml(col3Val)}</div>
+        </div>
+      </div>
+
+      <!-- CARD 1: OFRECEMOS -->
+      <div class="pdf-card">
+        <div class="pdf-tab-bar">
+          <div class="pdf-tab active">${escapeHtml(tab1Title)}</div>
+          <div class="pdf-tab">${escapeHtml(tab2Title)}</div>
+          <div class="pdf-tab">${escapeHtml(tab3Title)}</div>
+        </div>
+        <div class="pdf-card-body">
+          <ul class="pdf-bullet-list">
+            ${ofrecemosList.map(item => `<li>${escapeHtml(item)}</li>`).join('')}
+          </ul>
+          ${ofrecemosNota ? `
+            <div class="pdf-note-paragraph">
+              ${escapeHtml(ofrecemosNota)}
+            </div>
+          ` : ''}
+        </div>
+      </div>
+
+      <!-- CARD 2: TUS TAREAS -->
+      <div class="pdf-card">
+        <div class="pdf-tab-bar">
+          <div class="pdf-tab">${escapeHtml(tab1Title)}</div>
+          <div class="pdf-tab active">${escapeHtml(tab2Title)}</div>
+          <div class="pdf-tab">${escapeHtml(tab3Title)}</div>
+        </div>
+        <div class="pdf-card-body">
+          <ol class="pdf-numbered-list">
+            ${tareasList.map(item => `<li>${escapeHtml(item)}</li>`).join('')}
+          </ol>
+        </div>
+      </div>
+
+      <!-- CARD 3: TU PERFIL -->
+      <div class="pdf-card">
+        <div class="pdf-tab-bar">
+          <div class="pdf-tab">${escapeHtml(tab1Title)}</div>
+          <div class="pdf-tab">${escapeHtml(tab2Title)}</div>
+          <div class="pdf-tab active">${escapeHtml(tab3Title)}</div>
+        </div>
+        <div class="pdf-card-body">
+          <ul class="pdf-bullet-list">
+            ${requisitosList.map(item => `<li>${escapeHtml(item)}</li>`).join('')}
+          </ul>
+          ${softSkillsList.length ? `
+            <div class="pdf-subheading">${escapeHtml(softSkillsTitle)}</div>
+            <ul class="pdf-bullet-list">
+              ${softSkillsList.map(item => `<li>${escapeHtml(item)}</li>`).join('')}
+            </ul>
+          ` : ''}
+        </div>
+      </div>
+
+      <!-- FOOTER -->
+      <div class="pdf-footer">
+        <div style="font-weight:700; color:#801020; margin-bottom:4px;">
+          JN PALABRAS Consulting · Heidelberg, Deutschland
+        </div>
+        <div>
+          Homologación Oficial &amp; Asistencia Integral (§ 81a AufenthG) · <a href="https://jnpalabras.com" target="_blank" style="color:#801020; text-decoration:none; font-weight:600;">www.jnpalabras.com</a> · info@jnpalabras.com
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function downloadVacantePDF(idOrVacante, lang = 'es') {
+  let v = (idOrVacante && typeof idOrVacante === 'object') ? idOrVacante : null;
+  if (!v && typeof DB !== 'undefined' && DB.getVacanteById) {
+    v = DB.getVacanteById(idOrVacante);
+  }
+  if (!v && typeof OFFICIAL_STELLENPORTAL_VACANTES !== 'undefined') {
+    v = OFFICIAL_STELLENPORTAL_VACANTES.find(item => item.id === idOrVacante || item.slug === idOrVacante);
+  }
+  if (!v && window._currentStellenportalModalVacante) {
+    v = window._currentStellenportalModalVacante;
+  }
+  if (!v) {
+    if (typeof showToast === 'function') {
+      showToast('Error', 'No se encontró la vacante para generar el PDF.', 'error');
+    }
+    return;
+  }
+
+  const isDe = (lang === 'de');
+  const jobTitle = isDe ? (v.titulo || v.titulo_es || 'Puesto') : (v.titulo_es || v.titulo || 'Puesto');
+  if (typeof showToast === 'function') {
+    showToast('Generando PDF oficial...', `Creando documento en ${isDe ? 'alemán' : 'español'} para "${jobTitle}".`, 'info');
+  }
+
+  const htmlContent = generateVacantePDFHTML(v, lang);
+
+  if (typeof html2pdf !== 'undefined') {
+    const tempContainer = document.createElement('div');
+    tempContainer.id = 'stellenportal-pdf-render-temp';
+    tempContainer.style.position = 'fixed';
+    tempContainer.style.left = '-99999px';
+    tempContainer.style.top = '0';
+    tempContainer.style.width = '794px';
+    tempContainer.style.background = '#ffffff';
+    tempContainer.innerHTML = htmlContent;
+    document.body.appendChild(tempContainer);
+
+    const cleanTitle = jobTitle
+      .toLowerCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '');
+    const filename = `JN_Palabras_${cleanTitle}_${lang.toUpperCase()}.pdf`;
+
+    const opt = {
+      margin: [10, 8, 10, 8],
+      filename: filename,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true, logging: false },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+    };
+
+    html2pdf().set(opt).from(tempContainer).save().then(() => {
+      tempContainer.remove();
+      if (typeof showToast === 'function') {
+        showToast('PDF Descargado', `El perfil oficial de "${jobTitle}" se descargó exitosamente.`, 'success');
+      }
+    }).catch(err => {
+      console.warn('html2pdf fallback activado:', err);
+      tempContainer.remove();
+      openPrintFallback(jobTitle, htmlContent);
+    });
+  } else {
+    openPrintFallback(jobTitle, htmlContent);
+  }
+}
+
+function openPrintFallback(jobTitle, htmlContent) {
+  const printWindow = window.open('', '_blank');
+  if (!printWindow) {
+    if (typeof showToast === 'function') {
+      showToast('Ventana bloqueada', 'Por favor habilita las ventanas emergentes para imprimir o guardar como PDF.', 'warning');
+    }
+    return;
+  }
+  printWindow.document.open();
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+      <meta charset="UTF-8">
+      <title>${jobTitle} - JN Palabras Consulting</title>
+      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    </head>
+    <body>
+      ${htmlContent}
+      <script>
+        window.addEventListener('load', () => {
+          setTimeout(() => {
+            window.focus();
+            window.print();
+          }, 350);
+        });
+      </script>
+    </body>
+    </html>
+  `);
+  printWindow.document.close();
+}
+
+function previewVacantePDFFromForm(existingId) {
+  const draft = { ...readVacanteForm(), id: existingId || '__preview__' };
+  downloadVacantePDF(draft, 'es');
 }
 
 function renderEmpEntrevistas() {
@@ -10283,5 +10761,8 @@ window.jumpToMatchingForVacante = jumpToMatchingForVacante;
 window.filterAdminVacantesTable = filterAdminVacantesTable;
 window.switchStellenportalTab = switchStellenportalTab;
 window.previewVacanteFromForm = previewVacanteFromForm;
+window.generateVacantePDFHTML = generateVacantePDFHTML;
+window.downloadVacantePDF = downloadVacantePDF;
+window.previewVacantePDFFromForm = previewVacantePDFFromForm;
 
 
