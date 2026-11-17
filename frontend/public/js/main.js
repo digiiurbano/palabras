@@ -1773,7 +1773,7 @@ function renderB2BKanbanHTML(empresas) {
         const hasMore = stageEmpresas.length > KANBAN_MAX_PER_STAGE;
 
         return `
-          <div class="kanban-col" data-b2b-stage="${stage.id}" style="min-width:280px; width:280px; background:#f8fafc; border-top:3px solid ${stage.color}; border-radius:12px; padding:12px; display:flex; flex-direction:column; gap:10px;">
+          <div class="kanban-col" data-b2b-stage="${stage.id}" style="min-width:300px; width:300px; background:#f8fafc; border-top:3px solid ${stage.color}; border-radius:12px; padding:12px; display:flex; flex-direction:column; gap:10px;">
             <div class="kanban-col-header" style="display:flex; justify-content:space-between; align-items:center; padding-bottom:6px; border-bottom:1px solid #e2e8f0;">
               <div>
                 <span class="kanban-col-title" style="font-weight:700; color:var(--slate-800); font-size:0.85rem;">${stage.label}</span>
@@ -1812,7 +1812,7 @@ function renderB2BCardHTML(e) {
   const specs = Array.isArray(e.especialidades_requeridas) ? e.especialidades_requeridas : [e.especialidades_requeridas || 'Salud'];
   const plazas = parseInt(e.plazas_solicitadas || e.plazas || 1, 10);
   const nombreLimpio = e.nombre_clinica || e.nombre || 'Clínica';
-  const contactoLimpio = e.contacto_nombre || e.contacto || 'Contacto';
+  const contactoLimpio = e.contacto_nombre || e.contacto || 'Contacto Principal';
   const telLimpio = (e.telefono || '').replace(/[^0-9+]/g, '');
 
   return `
@@ -1844,32 +1844,49 @@ function renderB2BCardHTML(e) {
         ${specs.length > 2 ? `<span style="font-size:0.68rem; color:#64748b;">+${specs.length - 2}</span>` : ''}
       </div>
 
-      <!-- Contacto de RRHH -->
-      <div style="font-size:0.75rem; color:var(--slate-700); background:#f8fafc; padding:6px 8px; border-radius:6px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
-        <div>
-          <div style="font-weight:600;">👤 ${contactoLimpio}</div>
-          <div style="font-size:0.7rem; color:var(--slate-500);">${e.contacto_cargo || 'RRHH'}</div>
+      <!-- Contacto de RRHH & Teléfono Visible -->
+      <div style="font-size:0.75rem; color:var(--slate-700); background:#f8fafc; padding:8px 10px; border-radius:8px; margin-bottom:10px; border:1px solid #eef2f6;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:6px; margin-bottom:6px;">
+          <div style="font-weight:700; color:#1e293b; font-size:0.8rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+            👤 ${contactoLimpio}
+          </div>
+          <span style="font-size:0.67rem; color:#64748b; background:#e2e8f0; padding:1px 6px; border-radius:4px; flex-shrink:0;">
+            ${e.contacto_cargo || 'RRHH'}
+          </span>
         </div>
-        ${e.telefono ? `
-          <a href="tel:${e.telefono}" onclick="event.stopPropagation();" title="Llamar directamente" style="color:#2563eb; background:#eff6ff; padding:4px 6px; border-radius:4px; text-decoration:none; font-weight:700;">
-            📞
-          </a>
-        ` : ''}
+
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:6px;">
+          ${e.telefono ? `
+            <a href="tel:${telLimpio || e.telefono}" onclick="event.stopPropagation();" title="Llamar a ${escapeHtml(e.telefono)}" style="display:inline-flex; align-items:center; gap:5px; color:#1d4ed8; background:#eff6ff; padding:3px 8px; border-radius:6px; font-weight:700; font-size:0.75rem; text-decoration:none; border:1px solid #bfdbfe; max-width:100%; transition:all 0.15s ease;" onmouseover="this.style.background='#dbeafe'" onmouseout="this.style.background='#eff6ff'">
+              📞 <span style="letter-spacing:0.2px;">${escapeHtml(e.telefono)}</span>
+            </a>
+          ` : `
+            <span style="display:inline-flex; align-items:center; gap:4px; color:#94a3b8; font-size:0.72rem;">
+              📞 <span style="font-style:italic;">Sin teléfono</span>
+            </span>
+          `}
+
+          ${(e.correo_contacto || e.email) ? `
+            <a href="mailto:${e.correo_contacto || e.email}" onclick="event.stopPropagation();" title="Enviar correo a ${e.correo_contacto || e.email}" style="color:#475569; background:#ffffff; padding:3px 7px; border-radius:5px; text-decoration:none; font-size:0.72rem; border:1px solid #cbd5e1; display:inline-flex; align-items:center;">
+              ✉️
+            </a>
+          ` : ''}
+        </div>
       </div>
 
-      <!-- Acciones de Tarjeta B2B -->
-      <div style="display:flex; justify-content:space-between; align-items:center; padding-top:8px; border-top:1px solid #f1f5f9;" onclick="event.stopPropagation();">
-        <button class="btn btn-xs" style="background:#2563eb; color:#fff; font-weight:700; display:inline-flex; align-items:center; gap:4px; border:none; padding:4px 8px; border-radius:5px;" onclick="openB2BCRMWidget('${e.id}')" title="Abrir CRM y Speech de Llamada Institucional">
-          📞 Llamada CRM
+      <!-- Acciones de Tarjeta B2B (Sin solapamientos) -->
+      <div style="display:flex; flex-direction:column; gap:6px; padding-top:8px; border-top:1px solid #f1f5f9;" onclick="event.stopPropagation();">
+        <button class="btn btn-xs" style="width:100%; background:#2563eb; color:#fff; font-weight:700; display:flex; align-items:center; justify-content:center; gap:6px; border:none; padding:6px 10px; border-radius:6px; font-size:0.75rem; box-shadow:0 1px 2px rgba(37,99,235,0.25); cursor:pointer;" onclick="openB2BCRMWidget('${e.id}')" title="Abrir CRM y Speech de Llamada Institucional">
+          📞 Iniciar Llamada CRM / Speech
         </button>
 
-        <div style="display:flex; gap:4px;">
-          <select style="font-size:0.7rem; padding:2px 4px; border-radius:4px; border:1px solid #cbd5e1; background:#fff;" onchange="quickMoveEmpresaEtapa('${e.id}', this.value)">
+        <div style="display:flex; gap:6px; align-items:center;">
+          <select style="flex:1; min-width:0; font-size:0.72rem; padding:4px 6px; border-radius:6px; border:1px solid #cbd5e1; background:#fff; color:#334155; font-weight:600;" onchange="quickMoveEmpresaEtapa('${e.id}', this.value)" title="Mover etapa del pipeline B2B">
             ${B2B_PIPELINE_STAGES.map(s => `
               <option value="${s.id}" ${(e.etapa_b2b || 'Lead B2B Nuevo') === s.id ? 'selected' : ''}>${s.label}</option>
             `).join('')}
           </select>
-          <button class="btn btn-xs btn-outline" onclick="openEditEmpresaModal('${e.id}')" title="Editar ficha">
+          <button class="btn btn-xs btn-outline" style="padding:4px 8px; border-radius:6px; border-color:#cbd5e1; flex-shrink:0;" onclick="openEditEmpresaModal('${e.id}')" title="Editar ficha de la clínica">
             ✏️
           </button>
         </div>
@@ -1951,7 +1968,11 @@ function renderB2BTableHTML(empresas) {
                   </td>
                   <td>
                     <div style="font-weight:600;">${e.contacto_nombre || e.contacto || 'Sin contacto'} ${contactCount}</div>
-                    <div style="font-size:0.75rem; color:var(--slate-500);">${e.contacto_cargo || 'RRHH'} · ${e.correo_contacto || e.correo || ''}</div>
+                    <div style="font-size:0.75rem; color:var(--slate-500); display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-top:2px;">
+                      <span>${e.contacto_cargo || 'RRHH'}</span>
+                      ${(e.correo_contacto || e.correo) ? `<a href="mailto:${e.correo_contacto || e.correo}" style="color:#2563eb; text-decoration:none;">✉️ ${e.correo_contacto || e.correo}</a>` : ''}
+                      ${e.telefono ? `<a href="tel:${e.telefono}" style="color:#1d4ed8; font-weight:700; text-decoration:none; background:#eff6ff; padding:1px 6px; border-radius:4px; font-size:0.72rem; border:1px solid #bfdbfe;">📞 ${e.telefono}</a>` : ''}
+                    </div>
                   </td>
                   <td>
                     <div style="font-weight:700; color:var(--gold-600);">🩺 ${plazas} vacantes</div>
