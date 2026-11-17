@@ -4600,27 +4600,42 @@ function renderCandidateProfileHTML(c) {
   // Formato de nombre y especialidad real verídica
   const rawName = c.nombre || 'Candidato';
   const nameParts = getCleanCandidateNameParts(rawName);
-  const displayName = rawName.replace(/\s+/, '<br>');
+  const displayName = rawName;
   const lastName = nameParts.lastName;
 
-  let especialidad = (c.especialidad && !c.especialidad.includes('Ver Test')) ? c.especialidad : (resp.profession || 'Enfermero/a Profesional');
-  if (especialidad.includes('Ver Test')) especialidad = resp.profession || 'Enfermero/a Profesional';
+  let especialidad = (c.especialidad && !c.especialidad.includes('Ver Test')) ? c.especialidad : (resp.profession || 'Médico General');
+  if (especialidad.includes('Ver Test')) especialidad = resp.profession || 'Médico General';
 
-  const subespecialidad = (c.subespecialidad && !c.subespecialidad.includes('Ver Test')) ? c.subespecialidad : (resp.profession || 'Cuidados Intensivos');
+  const subespecialidad = (c.subespecialidad && !c.subespecialidad.includes('Ver Test')) ? c.subespecialidad : (resp.profession || 'Urgencias y Medicina Interna');
 
   let cleanNivel = (c.nivel_aleman && !c.nivel_aleman.includes('Ver Test')) ? c.nivel_aleman : (resp.german || 'B1');
   if (cleanNivel.includes('Ver Test')) cleanNivel = 'B1';
-  const idioma = `Alemán ${cleanNivel} (En curso)`;
+  const isCertified = c.certificado_idioma || cleanNivel === 'B2' || cleanNivel === 'C1';
+  const idioma = isCertified ? `Alemán ${cleanNivel} (Certificado)` : `Alemán ${cleanNivel} (En curso)`;
 
   const roleBadge = (especialidad.toLowerCase().includes('enferm') 
-    ? 'ENFERMERO<br>PROFESIONAL' 
+    ? 'ENFERMERÍA' 
     : (especialidad.toLowerCase().includes('médic') || especialidad.toLowerCase().includes('medic')) 
-      ? 'MÉDICO<br>ESPECIALISTA' 
-      : especialidad.toUpperCase());
+      ? 'MEDICINA' 
+      : (especialidad.toLowerCase().includes('fisio') ? 'FISIOTERAPIA' : 'SALUD'));
 
-  const ciudad = c.ciudad || 'Medellín';
-  const pais = c.pais || 'Colombia';
-  let fechaMiembro = 'Miembro desde Oct 2026';
+  const pais = c.pais || resp.location || 'Ecuador';
+  const defaultCities = {
+    'Ecuador': 'Quito',
+    'Colombia': 'Medellín',
+    'Perú': 'Lima',
+    'Peru': 'Lima',
+    'México': 'Ciudad de México',
+    'Mexico': 'Ciudad de México',
+    'Argentina': 'Buenos Aires',
+    'Chile': 'Santiago',
+    'España': 'Valencia',
+    'Espana': 'Valencia',
+    'Venezuela': 'Caracas'
+  };
+  const ciudad = c.ciudad || defaultCities[pais] || 'Quito';
+
+  let fechaMiembro = 'Miembro desde Sep 2026';
   if (c.fecha_alta) {
     try {
       const d = new Date(c.fecha_alta);
@@ -4634,8 +4649,8 @@ function renderCandidateProfileHTML(c) {
   // Notas e Historial
   const notas = DB.getNotas ? DB.getNotas(c.id) : [];
   const latestNota = notas && notas.length > 0 ? notas[0] : null;
-  const quoteText = latestNota ? latestNota.contenido : `El candidato muestra gran disposición para el aprendizaje del idioma. Su experiencia en ${subespecialidad} es un valor agregado muy fuerte para los hospitales en Heidelberg.`;
-  const authorName = latestNota && latestNota.autor ? latestNota.autor : 'Dr. Hans Müller';
+  const quoteText = latestNota ? latestNota.contenido : (c.notas_internas || `El candidato cuenta con expediente académico legalizado y perfil idóneo para el reconocimiento profesional en Alemania.`);
+  const authorName = latestNota && (latestNota.asesor || latestNota.autor) ? (latestNota.asesor || latestNota.autor) : (c.nombre_asesor || 'Carlos Martínez');
   const authorInitials = getInitials(authorName);
 
   return `
@@ -4921,8 +4936,8 @@ function renderCandidateProfileHTML(c) {
                       "${n.contenido}"
                     </p>
                     <div class="candidate-notes-quote-author">
-                      <div class="candidate-notes-author-circle">${getInitials(n.autor || 'JN')}</div>
-                      <div class="candidate-notes-author-name">${n.autor || 'Asesor'}</div>
+                      <div class="candidate-notes-author-circle">${getInitials(n.asesor || n.autor || 'CM')}</div>
+                      <div class="candidate-notes-author-name">${n.asesor || n.autor || 'Carlos Martínez'}</div>
                     </div>
                   </div>
                 `).join('')}
@@ -4947,9 +4962,9 @@ function renderCandidateProfileHTML(c) {
 
 function renderCandidateProfilePage() {
   const id = State.viewingCandidateId || State.selectedCandidato;
-  let c = DB.getCandidatoById(id);
+  let c = (id && id !== 'c-1790184385853') ? DB.getCandidatoById(id) : null;
 
-  if (!c) {
+  if (!c || (c.nombre && c.nombre.toLowerCase().includes('prueba'))) {
     const list = DB.getCandidatos ? DB.getCandidatos() : [];
     if (list && list.length > 0) {
       c = list[0];

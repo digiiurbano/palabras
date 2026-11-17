@@ -130,11 +130,26 @@ const DB = {
             const customVacs = remoteVacantes.filter(v => v && !legacyIds.includes(v.id) && !v.id?.startsWith('vac-'));
             const finalVacantes = [...JSON.parse(JSON.stringify(officialTemplate)), ...customVacs];
 
+            // Saneamiento de candidatos para asegurar perfiles reales y eliminar cualquier residuo de datos demo o "Prueba"
+            const officialCandidates = (typeof OFFICIAL_REAL_CANDIDATOS !== 'undefined') ? OFFICIAL_REAL_CANDIDATOS : ((typeof INITIAL_DATA !== 'undefined' && INITIAL_DATA.candidatos) ? INITIAL_DATA.candidatos : []);
+            let remoteCandidatos = Array.isArray(remote.candidatos) ? remote.candidatos : [];
+            const cleanCandidatos = remoteCandidatos.filter(c => c && c.nombre && !c.nombre.toLowerCase().includes('prueba') && c.id !== 'c-1790184385853');
+            let finalCandidatos = (cleanCandidatos.length > 0 && cleanCandidatos.some(c => c.id && c.id.startsWith('cand-')))
+              ? cleanCandidatos
+              : JSON.parse(JSON.stringify(officialCandidates));
+
+            // Saneamiento de notas
+            const officialNotes = (typeof OFFICIAL_REAL_NOTAS !== 'undefined') ? OFFICIAL_REAL_NOTAS : ((typeof INITIAL_DATA !== 'undefined' && INITIAL_DATA.notas) ? INITIAL_DATA.notas : []);
+            let remoteNotas = Array.isArray(remote.notas) ? remote.notas : [];
+            const finalNotas = (remoteNotas.length > 0) ? remoteNotas : JSON.parse(JSON.stringify(officialNotes));
+
             this.data = {
               ...INITIAL_DATA,
               ...remote,
               usuarios: finalUsers,
-              vacantes: finalVacantes
+              vacantes: finalVacantes,
+              candidatos: finalCandidatos,
+              notas: finalNotas
             };
 
             try {
@@ -415,19 +430,55 @@ const DB = {
 
   // ── CANDIDATOS ────────────────────────────────────────────────
   getCandidatos() {
-    let list = (this.get().candidatos && this.get().candidatos.length > 0)
-      ? this.get().candidatos
-      : (typeof INITIAL_DATA !== 'undefined' && INITIAL_DATA.candidatos ? INITIAL_DATA.candidatos : []);
+    const db = this.get();
+    const officialCandidates = (typeof OFFICIAL_REAL_CANDIDATOS !== 'undefined') ? OFFICIAL_REAL_CANDIDATOS : ((typeof INITIAL_DATA !== 'undefined' && INITIAL_DATA.candidatos) ? INITIAL_DATA.candidatos : []);
+    let list = Array.isArray(db.candidatos) ? db.candidatos : [];
+
+    // Purgar incondicionalmente cualquier registro "Prueba" o datos demo residuales
+    const filtered = list.filter(c => c && c.nombre && !c.nombre.toLowerCase().includes('prueba') && c.id !== 'c-1790184385853');
+    let changed = false;
+
+    if (filtered.length !== list.length || filtered.length === 0) {
+      list = (filtered.length > 0) ? filtered : JSON.parse(JSON.stringify(officialCandidates));
+      changed = true;
+    }
+
+    // Asegurar que los candidatos reales oficiales estén presentes
+    officialCandidates.forEach(off => {
+      const idx = list.findIndex(c => c.id === off.id || (c.correo && off.correo && c.correo.toLowerCase() === off.correo.toLowerCase()));
+      if (idx === -1) {
+        list.push(JSON.parse(JSON.stringify(off)));
+        changed = true;
+      } else {
+        // Enriquecer datos si faltan teléfono, correo o respuestas completas
+        const current = list[idx];
+        if (!current.telefono || !current.correo || !current.ciudad || !current.respuestas_elegibilidad) {
+          list[idx] = { ...JSON.parse(JSON.stringify(off)), ...current };
+          if (!list[idx].telefono) list[idx].telefono = off.telefono;
+          if (!list[idx].correo) list[idx].correo = off.correo;
+          if (!list[idx].ciudad) list[idx].ciudad = off.ciudad;
+          if (!list[idx].edad) list[idx].edad = off.edad;
+          if (!list[idx].respuestas_elegibilidad) list[idx].respuestas_elegibilidad = off.respuestas_elegibilidad;
+          changed = true;
+        }
+      }
+    });
+
+    if (changed) {
+      db.candidatos = list;
+      this.save(db);
+    }
+
     const usuarios = this.getUsuarios();
     return list.map(c => {
       const asesor = c.id_asesor ? usuarios.find(u => u.id === c.id_asesor) : null;
       let esp = c.especialidad || c.especialidad_medica;
       if (!esp || esp.includes('Ver Test')) {
-        esp = c.respuestas_elegibilidad?.profession || 'Enfermero/a Profesional';
+        esp = c.respuestas_elegibilidad?.profession || 'Médico General';
       }
       let aleman = c.nivel_aleman || c.nivel_aleman_actual;
       if (!aleman || aleman.includes('Ver Test')) {
-        aleman = c.respuestas_elegibilidad?.german || 'A1';
+        aleman = c.respuestas_elegibilidad?.german || 'B1';
       }
 
       // Solicitud pendiente si está en Cold Lead y no ha sido formalmente aprobado
@@ -450,7 +501,8 @@ const DB = {
 
   getCandidatoById(id) {
     const list = this.getCandidatos();
-    return list.find(c => c.id === id);
+    if (!id || id === 'c-1790184385853') return list[0] || null;
+    return list.find(c => c.id === id) || list[0] || null;
   },
 
   getCandidatosByEstado(estado) {
