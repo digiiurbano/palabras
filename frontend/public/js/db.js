@@ -91,7 +91,7 @@ const DB = {
         if (stored) {
           this.data = JSON.parse(stored);
         }
-      } catch (e) {}
+      } catch (e) { }
     }
 
     if (!this.data) {
@@ -108,7 +108,7 @@ const DB = {
             const sanitizedUsers = remoteUsers.map(u => ({
               ...u,
               roles: typeof u.roles === 'string' ? JSON.parse(u.roles) : (Array.isArray(u.roles) ? u.roles : ['Candidato']),
-              avatar: u.avatar || (u.nombre ? u.nombre.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase() : 'U')
+              avatar: u.avatar || (u.nombre ? u.nombre.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'U')
             }));
 
             // Actualizar roles/contraseñas de los usuarios existentes si corresponden
@@ -154,7 +154,7 @@ const DB = {
 
             try {
               localStorage.setItem(DB_STORAGE_KEY, JSON.stringify(this.data));
-            } catch (e) {}
+            } catch (e) { }
             return this.data;
           }
         }
@@ -173,7 +173,7 @@ const DB = {
         if (stored) {
           this.data = JSON.parse(stored);
         }
-      } catch (e) {}
+      } catch (e) { }
     }
     if (!this.data) {
       this.data = JSON.parse(JSON.stringify(INITIAL_DATA));
@@ -186,7 +186,7 @@ const DB = {
     this.data = data;
     try {
       localStorage.setItem(DB_STORAGE_KEY, JSON.stringify(data));
-    } catch (e) {}
+    } catch (e) { }
 
     if (API_URL) {
       fetch(`${API_URL}/api/db`, {
@@ -201,7 +201,7 @@ const DB = {
     this.data = JSON.parse(JSON.stringify(INITIAL_DATA));
     try {
       localStorage.removeItem(DB_STORAGE_KEY);
-    } catch (e) {}
+    } catch (e) { }
     if (API_URL) {
       fetch(`${API_URL}/api/reset`, { method: 'POST' })
         .then(() => window.location.reload())
@@ -300,9 +300,9 @@ const DB = {
         if (res.ok) {
           return await res.json();
         }
-      } catch (e) {}
+      } catch (e) { }
     }
-    
+
     const list = await this.getUsuarios();
     let user = list.find(u => u.id === id);
     if (!user) {
@@ -315,12 +315,12 @@ const DB = {
     const db = this.get();
     if (!db.usuarios) db.usuarios = [...OFFICIAL_USERS];
 
-    const localUser = { 
-      ...data, 
-      id: data.id || ('u-' + Date.now()), 
-      fecha_creacion: data.fecha_creacion || new Date().toISOString(), 
+    const localUser = {
+      ...data,
+      id: data.id || ('u-' + Date.now()),
+      fecha_creacion: data.fecha_creacion || new Date().toISOString(),
       activo: true,
-      avatar: data.avatar || (data.nombre ? data.nombre.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase() : 'U')
+      avatar: data.avatar || (data.nombre ? data.nombre.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'U')
     };
 
     // 1. Persistencia local inmediata incondicional (NUNCA perder el usuario)
@@ -355,7 +355,7 @@ const DB = {
         console.warn("Aviso de red: usuario guardado en almacenamiento persistente local:", e);
       }
     }
-    
+
     return localUser;
   },
 
@@ -409,23 +409,23 @@ const DB = {
   },
 
   // ── SESIÓN ────────────────────────────────────────────────────
-  getSession() { 
+  getSession() {
     try {
       const stored = localStorage.getItem('jnpalabras_session');
       return stored ? JSON.parse(stored) : null;
-    } catch(e) { return null; }
+    } catch (e) { return null; }
   },
 
   setSession(usuario) {
     try {
       localStorage.setItem('jnpalabras_session', JSON.stringify(usuario));
-    } catch(e) {}
+    } catch (e) { }
   },
 
   clearSession() {
     try {
       localStorage.removeItem('jnpalabras_session');
-    } catch(e) {}
+    } catch (e) { }
   },
 
   // ── CANDIDATOS ────────────────────────────────────────────────
@@ -599,10 +599,10 @@ const DB = {
         db.candidatos.push(nuevo);
         return nuevo;
       }
-    } catch(e) {
+    } catch (e) {
       console.warn('Error creando candidato en API, guardando en memoria');
     }
-    
+
     // Fallback
     const db = this.get();
     const nuevo = { ...data, id: 'c-' + Date.now(), fecha_alta: new Date().toISOString().split('T')[0], consentimiento_gdpr: true };
@@ -629,7 +629,7 @@ const DB = {
         }
         return editado;
       }
-    } catch(e) {}
+    } catch (e) { }
     const db = this.get();
     const idx = db.candidatos.findIndex(c => c.id === id);
     if (idx !== -1) db.candidatos[idx] = { ...db.candidatos[idx], ...data };
@@ -645,7 +645,7 @@ const DB = {
         if (db.candidatos) db.candidatos = db.candidatos.filter(c => c.id !== id);
         return true;
       }
-    } catch(e) {}
+    } catch (e) { }
     const db = this.get();
     db.candidatos = db.candidatos.filter(c => c.id !== id);
     this.save(db);
@@ -815,7 +815,7 @@ const DB = {
         const v = vacantes[idx];
         if (!v.cualificacion || !v.salario_objetivo || !v.titulo_es || !v.lugar) {
           ['lugar', 'salario_objetivo', 'cualificacion', 'ofrecemos_es', 'ofrecemos_nota', 'tareas_es',
-           'requisitos_es', 'competencias_sociales', 'pdf_de', 'pdf_es', 'titulo_es', 'url_original', 'titulo']
+            'requisitos_es', 'competencias_sociales', 'pdf_de', 'pdf_es', 'titulo_es', 'url_original', 'titulo']
             .forEach(k => {
               if (!v[k] && official[k]) { v[k] = official[k]; changed = true; }
             });
@@ -1093,7 +1093,7 @@ const DB = {
             this.data = db;
             try {
               localStorage.setItem(DB_STORAGE_KEY, JSON.stringify(db));
-            } catch (e) {}
+            } catch (e) { }
             return remoteList;
           }
         }
@@ -1112,7 +1112,7 @@ const DB = {
   createEmpresa(data) {
     const db = this.get();
     if (!db.empresas) db.empresas = [];
-    
+
     const nueva = {
       id: data.id || ('c-' + Date.now()),
       id_usuario: data.id_usuario || null,
@@ -1128,8 +1128,8 @@ const DB = {
       sitio_web: data.sitio_web || '',
       numero_camas: parseInt(data.numero_camas || data.camas || 0, 10),
       etapa_b2b: data.etapa_b2b || 'Lead B2B Nuevo',
-      especialidades_requeridas: Array.isArray(data.especialidades_requeridas) 
-        ? data.especialidades_requeridas 
+      especialidades_requeridas: Array.isArray(data.especialidades_requeridas)
+        ? data.especialidades_requeridas
         : (data.especialidades_requeridas ? [data.especialidades_requeridas] : ['Enfermería General']),
       plazas_solicitadas: parseInt(data.plazas_solicitadas || data.plazas || 0, 10),
       nivel_aleman_solicitado: data.nivel_aleman_solicitado || 'B2',
@@ -1165,8 +1165,8 @@ const DB = {
     if (!db.empresas) db.empresas = [];
     const idx = db.empresas.findIndex(e => e.id === id || e.id_usuario === id);
     if (idx !== -1) {
-      db.empresas[idx] = { 
-        ...db.empresas[idx], 
+      db.empresas[idx] = {
+        ...db.empresas[idx],
         ...data,
         fecha_actualizacion: new Date().toISOString()
       };
@@ -1234,9 +1234,9 @@ const DB = {
         sitio_web: raw.sitio_web || raw['Sitio Web'] || '',
         numero_camas: parseInt(raw.numero_camas || raw.camas || raw['Camas'] || 0, 10),
         etapa_b2b: raw.etapa_b2b || raw['Etapa'] || 'Lead B2B Nuevo',
-        especialidades_requeridas: Array.isArray(raw.especialidades_requeridas) 
-          ? raw.especialidades_requeridas 
-          : (raw.especialidades_requeridas || raw['Especialidades'] ? String(raw.especialidades_requeridas || raw['Especialidades']).split(',').map(s=>s.trim()) : ['Enfermería General']),
+        especialidades_requeridas: Array.isArray(raw.especialidades_requeridas)
+          ? raw.especialidades_requeridas
+          : (raw.especialidades_requeridas || raw['Especialidades'] ? String(raw.especialidades_requeridas || raw['Especialidades']).split(',').map(s => s.trim()) : ['Enfermería General']),
         plazas_solicitadas: parseInt(raw.plazas_solicitadas || raw.plazas || raw['Vacantes'] || raw['Plazas'] || 0, 10),
         nivel_aleman_solicitado: raw.nivel_aleman_solicitado || raw['Nivel Alemán'] || 'B2',
         origen_lead: 'Importación Excel',
@@ -1436,7 +1436,7 @@ const DB = {
     const vac = db.vacantes.find(v => v.id === id_vacante);
     let score = 70;
     if (cand && vac) {
-      const nivelMap = { A1:1,A2:2,B1:3,B2:4,C1:5,C2:6,FSP:6 };
+      const nivelMap = { A1: 1, A2: 2, B1: 3, B2: 4, C1: 5, C2: 6, FSP: 6 };
       if ((nivelMap[cand.nivel_aleman] || 0) >= (nivelMap[vac.nivel_aleman] || 0)) score += 15;
       if (cand.especialidad === vac.especialidad) score += 15;
     }
@@ -1458,7 +1458,7 @@ const DB = {
   getComisionesBySocio(id_socio) { return (this.get().comisiones || []).filter(c => c.id_socio === id_socio); },
 
   // ── NOTAS ─────────────────────────────────────────────────────
-  getNotas(id_candidato) { return (this.get().notas || []).filter(n => n.id_candidato === id_candidato).sort((a,b) => new Date(b.fecha)-new Date(a.fecha)); },
+  getNotas(id_candidato) { return (this.get().notas || []).filter(n => n.id_candidato === id_candidato).sort((a, b) => new Date(b.fecha) - new Date(a.fecha)); },
 
   addNota(arg1, arg2) {
     const db = this.get();

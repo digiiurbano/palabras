@@ -505,7 +505,7 @@ function renderAppShell(view = null) {
               ${user.nombre.length > 22 ? user.nombre.split(' ').slice(0,2).join(' ') : user.nombre}
             </div>
             <div class="role-label" style="font-size:0.725rem; font-weight:600; color:#0284c7; display:flex; align-items:center; gap:3px;">
-              <span>${getRolIcon(State.activeRole)} ${State.activeRole}</span>
+              <span>${getRolIcon(State.activeRole)} ${(typeof i18n !== 'undefined' && i18n.getRoleLabel) ? i18n.getRoleLabel(State.activeRole) : State.activeRole}</span>
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
             </div>
           </div>
@@ -513,7 +513,7 @@ function renderAppShell(view = null) {
 
         <div id="custom-role-dropdown" class="custom-role-dropdown">
           <div style="font-size:0.65rem; font-weight:800; text-transform:uppercase; letter-spacing:0.05em; color:#94a3b8; padding:4px 8px 4px 8px;">
-            Cambiar Rol Activo
+            ${(typeof t === 'function' ? t('header_switch_role', 'Cambiar Rol Activo') : 'Cambiar Rol Activo')}
           </div>
           ${availableRoleOptions.map(r => `
             <div class="role-dropdown-item ${r.rol === State.activeRole ? 'active' : ''}" 
@@ -521,7 +521,7 @@ function renderAppShell(view = null) {
                  style="display:flex; align-items:center; justify-content:space-between; padding:7px 10px; border-radius:8px; cursor:pointer; font-size:0.8125rem; font-weight:600; color:${r.rol === State.activeRole ? '#0284c7' : '#334155'}; background:${r.rol === State.activeRole ? '#f0f9ff' : 'transparent'}; transition:all 0.15s ease;">
               <div style="display:flex; align-items:center; gap:8px;">
                 <span style="font-size:0.95rem;">${r.icon}</span>
-                <span>${r.rol}</span>
+                <span>${(typeof i18n !== 'undefined' && i18n.getRoleLabel) ? i18n.getRoleLabel(r.rol) : r.rol}</span>
               </div>
               ${r.rol === State.activeRole ? `<span style="font-weight:800; color:#0284c7;">✓</span>` : ''}
             </div>
@@ -529,8 +529,8 @@ function renderAppShell(view = null) {
         </div>
       </div>
       <div style="display:flex;gap:4px;">
-        <button onclick="editProfile()" class="btn btn-outline btn-sm">Editar Perfil</button>
-        <button onclick="handleLogout()" class="btn btn-outline btn-sm">Salir</button>
+        <button onclick="editProfile()" class="btn btn-outline btn-sm">${(typeof t === 'function' ? t('header_edit_profile', 'Editar Perfil') : 'Editar Perfil')}</button>
+        <button onclick="handleLogout()" class="btn btn-outline btn-sm">${(typeof t === 'function' ? t('header_logout', 'Salir') : 'Salir')}</button>
       </div>
     </div>
   `;
@@ -705,16 +705,21 @@ function renderSidebar(rol) {
     State.currentSidebar = firstItem;
   }
 
+  const roleLabel = (typeof i18n !== 'undefined' && i18n.getRoleLabel) ? i18n.getRoleLabel(rol) : rol;
+
   $('sidebar-content').innerHTML = `
     <div class="sidebar-section" style="margin-top: var(--space-4);">
-      <div class="sidebar-label" style="color: rgba(255,255,255,0.5);">${rol}</div>
-      ${items.map(item => `
-        <div class="sidebar-link ${State.currentSidebar === item.id ? 'active' : ''}"
-             onclick="navigateTo('${item.id}')">
-          <span class="sidebar-icon" style="display:inline-flex;align-items:center;">${item.icon}</span>
-          ${item.label}
-        </div>
-      `).join('')}
+      <div class="sidebar-label" style="color: rgba(255,255,255,0.5);">${roleLabel}</div>
+      ${items.map(item => {
+        const itemLabel = (typeof i18n !== 'undefined' && i18n.getMenuLabel) ? i18n.getMenuLabel(item.id, item.label) : item.label;
+        return `
+          <div class="sidebar-link ${State.currentSidebar === item.id ? 'active' : ''}"
+               onclick="navigateTo('${item.id}')">
+            <span class="sidebar-icon" style="display:inline-flex;align-items:center;">${item.icon}</span>
+            ${itemLabel}
+          </div>
+        `;
+      }).join('')}
     </div>
     
     <div style="margin-top:auto; display:flex; flex-direction:column;">
@@ -723,7 +728,7 @@ function renderSidebar(rol) {
         <div class="sidebar-profile-avatar" style="background:${getAvatarColor(user ? user.nombre : '')}">${user ? getInitials(user.nombre) : 'U'}</div>
         <div class="sidebar-profile-info">
           <span class="sidebar-profile-name">${user ? (user.nombre.includes('Admin') ? 'Admin JN' : user.nombre.split(' ')[0]) : 'Usuario'}</span>
-          <span class="sidebar-profile-role">${rol}</span>
+          <span class="sidebar-profile-role">${roleLabel}</span>
         </div>
       </div>
     </div>
@@ -1777,7 +1782,7 @@ function renderB2BKanbanHTML(empresas) {
           <div class="kanban-col" data-b2b-stage="${stage.id}" style="min-width:300px; width:300px; background:#f8fafc; border-top:3px solid ${stage.color}; border-radius:12px; padding:12px; display:flex; flex-direction:column; gap:10px;">
             <div class="kanban-col-header" style="display:flex; justify-content:space-between; align-items:center; padding-bottom:6px; border-bottom:1px solid #e2e8f0;">
               <div>
-                <span class="kanban-col-title" style="font-weight:700; color:var(--slate-800); font-size:0.85rem;">${stage.label}</span>
+                <span class="kanban-col-title" style="font-weight:700; color:var(--slate-800); font-size:0.85rem;">${(typeof i18n !== 'undefined' && i18n.getB2BStageLabel) ? i18n.getB2BStageLabel(stage.id, stage.label) : stage.label}</span>
                 <div style="font-size:0.7rem; color:var(--slate-500);">
                   ${stagePlazas > 0 ? `${stagePlazas} ${stagePlazas === 1 ? 'plaza acordada' : 'plazas acordadas'}` : `${stageEmpresas.length} ${stageEmpresas.length === 1 ? 'institución' : 'instituciones'}`}
                 </div>
@@ -3533,13 +3538,13 @@ function renderAsesorDashboard() {
     <!-- Cabecera Principal del Dashboard -->
     <div class="kanban-banner">
       <div>
-        <h1 class="kanban-banner-title">Dashboard Operativo del Asesor</h1>
-        <p class="kanban-banner-subtitle">Resumen ejecutivo de métricas, agenda del día, notificaciones operativas y notas</p>
+        <h1 class="kanban-banner-title">${t('dash_title', 'Dashboard Operativo del Asesor')}</h1>
+        <p class="kanban-banner-subtitle">${t('dash_sub', 'Resumen ejecutivo de métricas, agenda del día, notificaciones operativas y notas')}</p>
       </div>
       <div class="kanban-banner-actions">
         <button class="btn" style="background:var(--gold-500); color:var(--wine-900); font-weight:700; border:none; display:inline-flex; align-items:center; gap:8px;" onclick="renderDashboard(State.activeRole, 'asesor-kanban')">
           <span style="display:inline-flex; align-items:center;">${getIcon('users', { size: 16, color: 'var(--wine-900)' })}</span>
-          Ver Tablero de Candidatos & Pipeline
+          ${t('dash_btn_pipeline', 'Ver Tablero de Candidatos & Pipeline')}
         </button>
       </div>
     </div>
@@ -3552,7 +3557,7 @@ function renderAsesorDashboard() {
           ${getIcon('userPlus', { size: 22, color: '#2563eb' })}
         </div>
         <div class="asesor-kpi-info">
-          <span class="asesor-kpi-label">Nuevos Leads Asignados</span>
+          <span class="asesor-kpi-label">${t('kpi_leads', 'Nuevos Leads Asignados')}</span>
           <span class="asesor-kpi-value">${leadsCount}</span>
           <span class="asesor-kpi-trend positive" style="display:inline-flex; align-items:center; gap:4px;">
             <span style="display:inline-flex; align-items:center;">${getIcon('trendingUp', { size: 13, color: '#16a34a' })}</span>
@@ -3567,7 +3572,7 @@ function renderAsesorDashboard() {
           ${getIcon('calendar', { size: 22, color: '#d97706' })}
         </div>
         <div class="asesor-kpi-info">
-          <span class="asesor-kpi-label">Citas / Llamadas Hoy</span>
+          <span class="asesor-kpi-label">${t('kpi_calls', 'Citas / Llamadas Hoy')}</span>
           <span class="asesor-kpi-value">${callsTodayCount}</span>
           <span class="asesor-kpi-trend warning" style="display:inline-flex; align-items:center; gap:4px;">
             <span style="display:inline-flex; align-items:center;">${getIcon('clock', { size: 13, color: '#d97706' })}</span>
@@ -3582,7 +3587,7 @@ function renderAsesorDashboard() {
           ${getIcon('fileCheck', { size: 22, color: '#7c3aed' })}
         </div>
         <div class="asesor-kpi-info">
-          <span class="asesor-kpi-label">Expedientes por Validar</span>
+          <span class="asesor-kpi-label">${t('kpi_review', 'Expedientes por Validar')}</span>
           <span class="asesor-kpi-value">${expedientesPorRevisar}</span>
           <span class="asesor-kpi-trend info" style="display:inline-flex; align-items:center; gap:4px;">
             <span style="display:inline-flex; align-items:center;">${getIcon('alertTriangle', { size: 13, color: '#7c3aed' })}</span>
@@ -3597,7 +3602,7 @@ function renderAsesorDashboard() {
           ${getIcon('award', { size: 22, color: '#16a34a' })}
         </div>
         <div class="asesor-kpi-info">
-          <span class="asesor-kpi-label">Intermediaciones Completadas</span>
+          <span class="asesor-kpi-label">${t('kpi_completed', 'Intermediaciones Completadas')}</span>
           <span class="asesor-kpi-value">${completadosCount}</span>
           <span class="asesor-kpi-trend positive" style="display:inline-flex; align-items:center; gap:4px;">
             <span style="display:inline-flex; align-items:center;">${getIcon('check', { size: 13, color: '#16a34a' })}</span>
@@ -3626,11 +3631,12 @@ function renderAsesorDashboard() {
         ${PIPELINE_8_FASES.map((phase, idx) => {
           const count = allCandidatos.filter(c => normalizeCandidatePhase(c.estado_proceso) === phase.id).length;
           const pct = allCandidatos.length > 0 ? Math.round((count / allCandidatos.length) * 100) : 0;
+          const phaseLabel = (typeof i18n !== 'undefined' && i18n.getPipelinePhaseLabel) ? i18n.getPipelinePhaseLabel(phase.id, phase.label) : phase.label;
           return `
             <div class="funnel-phase-stat" style="border-left: 3px solid ${phase.color};">
               <div class="funnel-phase-title">
                 <span style="display:inline-flex; align-items:center;">${getIcon(phase.iconName, { size: 13, color: phase.color })}</span>
-                <span>${idx + 1}. ${phase.label}</span>
+                <span>${idx + 1}. ${phaseLabel}</span>
               </div>
               <div style="display:flex; align-items:baseline; justify-content:space-between;">
                 <span class="funnel-phase-number">${count}</span>
@@ -3650,25 +3656,25 @@ function renderAsesorDashboard() {
         <div class="dashboard-panel-header">
           <div class="dashboard-panel-title">
             <span style="display:inline-flex; align-items:center;">${getIcon('calendar', { size: 20, color: 'var(--wine-800)' })}</span>
-            <span>Mi Agenda y Tareas del Día</span>
-            <span class="agenda-badge-count">${pendingAgendaCount} pendientes</span>
+            <span>${t('dash_agenda_title', 'Mi Agenda y Tareas del Día')}</span>
+            <span class="agenda-badge-count">${pendingAgendaCount} ${t('filter_pending', 'pendientes').toLowerCase()}</span>
           </div>
 
           <button class="btn btn-sm btn-primary" onclick="addNewAgendaTask()" style="display:inline-flex; align-items:center; gap:4px;">
-            ${getIcon('edit', { size: 12 })} Nueva Tarea
+            ${getIcon('edit', { size: 12 })} ${t('btn_new_task', 'Nueva Tarea')}
           </button>
         </div>
 
         <div style="margin-bottom:12px;">
           <div class="agenda-filters">
             <button class="agenda-filter-btn ${_agendaFilter==='todas'?'active':''}" onclick="_agendaFilter='todas';renderDashboard(State.activeRole,'asesor-dashboard');">
-              Todas (${tasks.length})
+              ${t('filter_all', 'Todas')} (${tasks.length})
             </button>
             <button class="agenda-filter-btn ${_agendaFilter==='pendientes'?'active':''}" onclick="_agendaFilter='pendientes';renderDashboard(State.activeRole,'asesor-dashboard');">
-              Pendientes (${pendingAgendaCount})
+              ${t('filter_pending', 'Pendientes')} (${pendingAgendaCount})
             </button>
             <button class="agenda-filter-btn ${_agendaFilter==='completadas'?'active':''}" onclick="_agendaFilter='completadas';renderDashboard(State.activeRole,'asesor-dashboard');">
-              Completadas (${tasks.length - pendingAgendaCount})
+              ${t('filter_completed', 'Completadas')} (${tasks.length - pendingAgendaCount})
             </button>
           </div>
         </div>
@@ -3813,7 +3819,7 @@ function renderAsesorKanban() {
               <div class="kanban-8col-header" style="border-top: 3px solid ${col.color};">
                 <span class="kanban-8col-title">
                   <span style="display:inline-flex; align-items:center; margin-right:5px;">${getIcon(col.iconName, { size: 15, color: col.color })}</span>
-                  ${index + 1}. ${col.label}
+                  ${index + 1}. ${(typeof i18n !== 'undefined' && i18n.getPipelinePhaseLabel) ? i18n.getPipelinePhaseLabel(col.id, col.label) : col.label}
                 </span>
                 <span class="kanban-8col-count">${cards.length}</span>
               </div>
@@ -10431,6 +10437,12 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     }
   }
+
+  window.addEventListener('languageChanged', (e) => {
+    if (State.currentView === 'app' && State.currentUser) {
+      renderAppShell(State.currentSidebar);
+    }
+  });
 
   window.addEventListener('hashchange', () => {
     const hash = window.location.hash.replace('#', '').trim();

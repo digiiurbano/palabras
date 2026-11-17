@@ -210,7 +210,122 @@ const I18N_TRANSLATIONS = {
     gdpr_btn_all: 'Aceptar todo',
 
     // Toast & Alerts
-    lang_changed: 'Idioma cambiado a Español'
+    lang_changed: 'Idioma cambiado a Español',
+
+    // Dashboard & Platform (App Shell)
+    header_edit_profile: 'Editar Perfil',
+    header_logout: 'Salir',
+    header_switch_role: 'Cambiar Rol Activo',
+    header_notifs: 'Notificaciones',
+    header_mark_read: 'Todas marcadas como leídas',
+    header_no_notifs: 'No hay notificaciones pendientes',
+
+    // Roles
+    role_admin: 'Administrador',
+    role_super_asesor: 'Super Asesor',
+    role_asesor: 'Asesor',
+    role_profesor: 'Profesor',
+    role_candidato: 'Candidato',
+    role_empresa: 'Empresas & Clínicas',
+    role_socio: 'Socio',
+
+    // Menús
+    menu_admin_overview: 'Resumen General',
+    menu_admin_users: 'Gestión de Usuarios',
+    menu_admin_candidatos: 'Todos los Candidatos',
+    menu_admin_vacantes: 'Bolsa de Empleo (Stellenportal)',
+    menu_admin_empresas: 'Empresas / Clínicas',
+    menu_admin_comisiones: 'Control Comisiones',
+    menu_admin_cms: 'CMS Web Pública',
+    menu_super_leads: 'Bandeja de Leads',
+    menu_super_kanban: 'Kanban General',
+    menu_asesor_vacantes: 'Bolsa de Empleo (Stellenportal)',
+    menu_asesor_empresas: 'Empresas & Clínicas (B2B)',
+    menu_super_asesores: 'Equipo de Asesores',
+    menu_super_candidatos: 'Todos los Candidatos',
+    menu_super_matching: 'Matching IA',
+    menu_asesor_dashboard: 'Dashboard',
+    menu_asesor_kanban: 'Candidatos (Pipeline)',
+    menu_asesor_base_datos: 'Base de Datos & Expedientes',
+    menu_asesor_expedientes: 'Revisión de Expedientes',
+    menu_asesor_cv_builder: 'Hojas de Vida (CV) & Documentos',
+    menu_asesor_matching: 'Matching IA',
+    menu_asesor_notas: 'Notas de Seguimiento',
+    menu_prof_grupos: 'Mis Grupos',
+    menu_prof_califs: 'Calificaciones',
+    menu_prof_alertas: 'Alertas Rendimiento',
+    menu_prof_materiales: 'Materiales',
+    menu_cand_roadmap: 'Mi Hoja de Ruta',
+    menu_cand_cv: 'Mi Hoja de Vida (CV)',
+    menu_cand_documentos: 'Mis Documentos',
+    menu_cand_aula: 'Mi Aula Virtual',
+    menu_cand_ofertas: 'Ofertas y Entrevistas',
+    menu_emp_candidatos: 'Buscar Candidatos',
+    menu_emp_vacantes: 'Mis Vacantes',
+    menu_emp_entrevistas: 'Entrevistas',
+    menu_emp_feedback: 'Feedback',
+    menu_socio_registro: 'Registrar Candidato',
+    menu_socio_referidos: 'Mis Referidos',
+    menu_socio_comisiones: 'Mis Comisiones',
+    menu_socio_toolkit: 'Caja de Herramientas',
+
+    // Pipeline de Candidatos (8-9 Fases)
+    phase_cold_lead: 'Primer contacto / Cualificado (Cold Lead)',
+    phase_entrevista_1: 'Primera entrevista realizada',
+    phase_cierre: 'Entrevista de cierre programada',
+    phase_oferta: 'Oferta / Contrato de intermediación enviado',
+    phase_firmado: 'Contrato firmado (encargo recibido)',
+    phase_cv_enviado: 'CV del candidato enviado',
+    phase_entrevista_clinica: 'Entrevista programada / realizada',
+    phase_completado: 'Intermediación completada',
+    phase_perdido: 'Perdido',
+
+    // Pipeline B2B
+    b2b_lead_nuevo: 'Lead B2B Nuevo',
+    b2b_contacto: '1er Contacto / Llamada',
+    b2b_diagnostico: 'Diagnóstico de Demanda',
+    b2b_propuesta: 'Propuesta / Convenio',
+    b2b_firmado: 'Contrato Firmado',
+    b2b_busqueda: 'En Búsqueda Activa',
+    b2b_colocacion: 'Colocación / Éxito',
+    b2b_pausado: 'Pausado / Sin Demanda',
+
+    // Dashboard Operativo Asesor & Kanban
+    dash_title: 'Dashboard Operativo del Asesor',
+    dash_sub: 'Resumen ejecutivo de métricas, agenda del día, notificaciones operativas y notas',
+    dash_btn_pipeline: 'Ver Tablero de Candidatos & Pipeline',
+    kpi_leads: 'Nuevos Leads Asignados',
+    kpi_calls: 'Citas / Llamadas Hoy',
+    kpi_review: 'Expedientes por Revisar',
+    kpi_in_process: 'En Trámite (§ 81a / ZAV)',
+    kpi_completed: 'Intermediaciones Exitosas',
+    dash_agenda_title: 'Agenda & Tareas de Hoy',
+    dash_notes_title: 'Notas Recientes de Seguimiento',
+    dash_notifs_title: 'Notificaciones Operativas',
+    btn_new_task: '+ Nueva Tarea',
+    filter_all: 'Todas',
+    filter_pending: 'Pendientes',
+    filter_completed: 'Completadas',
+    filter_all_m: 'Todos',
+    filter_pending_m: 'Pendientes',
+    filter_completed_m: 'Completados',
+    common_search: 'Buscar...',
+    common_export_csv: 'Exportar CSV',
+    common_new_cand: '+ Nuevo Candidato',
+    common_new_emp: '+ Nueva Empresa',
+    common_new_vacante: '+ Nueva Vacante',
+    common_view: 'Ver',
+    common_edit: 'Editar',
+    common_pause: 'Pausar',
+    common_matching: 'Matching',
+    common_delete: 'Eliminar',
+    common_save: 'Guardar',
+    common_cancel: 'Cancelar',
+    common_close: 'Cerrar',
+    common_accept: 'Aceptar',
+    common_call: 'Llamar',
+    common_note: 'Nota',
+    common_request: 'Solicitud'
   },
 
   de: {
@@ -419,7 +534,122 @@ const I18N_TRANSLATIONS = {
     gdpr_btn_all: 'Alle akzeptieren',
 
     // Toast & Alerts
-    lang_changed: 'Sprache geändert auf Deutsch'
+    lang_changed: 'Sprache geändert auf Deutsch',
+
+    // Dashboard & Platform (App Shell)
+    header_edit_profile: 'Profil bearbeiten',
+    header_logout: 'Abmelden',
+    header_switch_role: 'Aktive Rolle wechseln',
+    header_notifs: 'Benachrichtigungen',
+    header_mark_read: 'Alle als gelesen markieren',
+    header_no_notifs: 'Keine ausstehenden Benachrichtigungen',
+
+    // Roles
+    role_admin: 'Administrator',
+    role_super_asesor: 'Leitender Berater',
+    role_asesor: 'Berater',
+    role_profesor: 'Dozent',
+    role_candidato: 'Kandidat',
+    role_empresa: 'Kliniken & Partner',
+    role_socio: 'Kooperationspartner',
+
+    // Menüs
+    menu_admin_overview: 'Gesamtübersicht',
+    menu_admin_users: 'Benutzerverwaltung',
+    menu_admin_candidatos: 'Alle Kandidaten',
+    menu_admin_vacantes: 'Stellenportal & Vakanzen',
+    menu_admin_empresas: 'Kliniken & Partner',
+    menu_admin_comisiones: 'Provisionskontrolle',
+    menu_admin_cms: 'Webseiten-CMS',
+    menu_super_leads: 'Lead-Eingang',
+    menu_super_kanban: 'Allgemeines Kanban',
+    menu_asesor_vacantes: 'Stellenportal & Vakanzen',
+    menu_asesor_empresas: 'Kliniken & Partner (B2B)',
+    menu_super_asesores: 'Beraterteam',
+    menu_super_candidatos: 'Alle Kandidaten',
+    menu_super_matching: 'KI-Matching',
+    menu_asesor_dashboard: 'Dashboard',
+    menu_asesor_kanban: 'Kandidaten (Pipeline)',
+    menu_asesor_base_datos: 'Datenbank & Akten',
+    menu_asesor_expedientes: 'Aktenprüfung',
+    menu_asesor_cv_builder: 'Lebensläufe (CV) & Dokumente',
+    menu_asesor_matching: 'KI-Matching',
+    menu_asesor_notas: 'Verlaufsnotizen',
+    menu_prof_grupos: 'Meine Kursgruppen',
+    menu_prof_califs: 'Noten & Prüfungen',
+    menu_prof_alertas: 'Leistungswarnungen',
+    menu_prof_materiales: 'Unterrichtsmaterialien',
+    menu_cand_roadmap: 'Mein Fahrplan',
+    menu_cand_cv: 'Mein Lebenslauf (CV)',
+    menu_cand_documentos: 'Meine Dokumente',
+    menu_cand_aula: 'Mein Klassenzimmer',
+    menu_cand_ofertas: 'Angebote & Vorstellungsgespräche',
+    menu_emp_candidatos: 'Kandidaten suchen',
+    menu_emp_vacantes: 'Meine Stellenanzeigen',
+    menu_emp_entrevistas: 'Vorstellungsgespräche',
+    menu_emp_feedback: 'Feedback & Bewertungen',
+    menu_socio_registro: 'Kandidat registrieren',
+    menu_socio_referidos: 'Meine Empfehlungen',
+    menu_socio_comisiones: 'Meine Provisionen',
+    menu_socio_toolkit: 'Werkzeugkiste',
+
+    // Pipeline de Candidatos (8-9 Fases)
+    phase_cold_lead: 'Erstkontakt / Qualifiziert (Cold Lead)',
+    phase_entrevista_1: 'Erstgespräch geführt',
+    phase_cierre: 'Abschlussgespräch geplant',
+    phase_oferta: 'Vermittlungsvertrag versendet',
+    phase_firmado: 'Vertrag unterzeichnet (Auftrag erteilt)',
+    phase_cv_enviado: 'Kandidaten-CV weitergeleitet',
+    phase_entrevista_clinica: 'Klinikgespräch geplant / geführt',
+    phase_completado: 'Vermittlung erfolgreich abgeschlossen',
+    phase_perdido: 'Verloren / Abgelehnt',
+
+    // Pipeline B2B
+    b2b_lead_nuevo: 'Neuer B2B-Lead',
+    b2b_contacto: '1. Kontakt / Telefonat',
+    b2b_diagnostico: 'Bedarfsanalyse',
+    b2b_propuesta: 'Angebot / Kooperationsvertrag',
+    b2b_firmado: 'Unterzeichneter Vertrag',
+    b2b_busqueda: 'Aktive Vermittlung',
+    b2b_colocacion: 'Erfolgreiche Platzierung',
+    b2b_pausado: 'Pausiert / Kein Bedarf',
+
+    // Dashboard Operativo Asesor & Kanban
+    dash_title: 'Operatives Berater-Dashboard',
+    dash_sub: 'Management-Zusammenfassung der Kennzahlen, Tagesagenda, operative Benachrichtigungen und Notizen',
+    dash_btn_pipeline: 'Kandidaten-Board & Pipeline ansehen',
+    kpi_leads: 'Zugewiesene neue Leads',
+    kpi_calls: 'Termine / Anrufe heute',
+    kpi_review: 'Zu prüfende Akten',
+    kpi_in_process: 'Im Verfahren (§ 81a / ZAV)',
+    kpi_completed: 'Erfolgreich vermittelt',
+    dash_agenda_title: 'Tagesagenda & Aufgaben',
+    dash_notes_title: 'Aktuelle Verlaufsnotizen',
+    dash_notifs_title: 'Operative Benachrichtigungen',
+    btn_new_task: '+ Neue Aufgabe',
+    filter_all: 'Alle',
+    filter_pending: 'Ausstehend',
+    filter_completed: 'Erledigt',
+    filter_all_m: 'Alle',
+    filter_pending_m: 'Ausstehend',
+    filter_completed_m: 'Erledigt',
+    common_search: 'Suchen...',
+    common_export_csv: 'CSV exportieren',
+    common_new_cand: '+ Neuer Kandidat',
+    common_new_emp: '+ Neues Unternehmen',
+    common_new_vacante: '+ Neue Stellenanzeige',
+    common_view: 'Ansehen',
+    common_edit: 'Bearbeiten',
+    common_pause: 'Pausieren',
+    common_matching: 'Matching',
+    common_delete: 'Löschen',
+    common_save: 'Speichern',
+    common_cancel: 'Abbrechen',
+    common_close: 'Schließen',
+    common_accept: 'Annehmen',
+    common_call: 'Anrufen',
+    common_note: 'Notiz',
+    common_request: 'Bewerbung'
   }
 };
 
@@ -575,6 +805,51 @@ class I18nManager {
     });
   }
 
+  getRoleLabel(rol) {
+    if (!rol) return '';
+    const norm = 'role_' + rol.toLowerCase().replace(/\s+/g, '_');
+    const val = this.t(norm);
+    return (val && val !== norm) ? val : rol;
+  }
+
+  getMenuLabel(menuId, fallback = '') {
+    if (!menuId) return fallback || '';
+    const key = 'menu_' + menuId.replace(/-/g, '_');
+    const val = this.t(key);
+    return (val && val !== key) ? val : (fallback || menuId);
+  }
+
+  getPipelinePhaseLabel(phaseId, fallback = '') {
+    const map = {
+      "Primer contacto / Cualificado (Cold Lead)": "phase_cold_lead",
+      "Primera entrevista realizada": "phase_entrevista_1",
+      "Entrevista de cierre programada": "phase_cierre",
+      "Oferta / Contrato de intermediación enviado": "phase_oferta",
+      "Contrato firmado (encargo recibido)": "phase_firmado",
+      "CV del candidato enviado": "phase_cv_enviado",
+      "Entrevista programada / realizada": "phase_entrevista_clinica",
+      "Intermediación completada": "phase_completado",
+      "Perdido": "phase_perdido"
+    };
+    const key = map[phaseId];
+    return key ? this.t(key) : (fallback || phaseId);
+  }
+
+  getB2BStageLabel(stageId, fallback = '') {
+    const map = {
+      'Lead B2B Nuevo': 'b2b_lead_nuevo',
+      '1er Contacto / Llamada': 'b2b_contacto',
+      'Diagnóstico de Demanda': 'b2b_diagnostico',
+      'Propuesta / Convenio': 'b2b_propuesta',
+      'Contrato Firmado': 'b2b_firmado',
+      'En Búsqueda Activa': 'b2b_busqueda',
+      'Colocación / Éxito': 'b2b_colocacion',
+      'Pausado / Sin Demanda': 'b2b_pausado'
+    };
+    const key = map[stageId];
+    return key ? this.t(key) : (fallback || stageId);
+  }
+
   renderLanguageSwitcherHTML(extraClass = '') {
     return `
       <div class="lang-dropdown ${extraClass}" role="group" aria-label="Selector de idioma">
@@ -600,6 +875,7 @@ class I18nManager {
 // Inicializar instancia global
 const i18n = new I18nManager();
 window.i18n = i18n;
+window.t = (key, fallback = '') => (typeof i18n !== 'undefined' ? (i18n.t(key) !== key ? i18n.t(key) : (fallback || key)) : (fallback || key));
 
 // Aplicar al cargar la página
 document.addEventListener('DOMContentLoaded', () => {
