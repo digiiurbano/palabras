@@ -5814,17 +5814,20 @@ function openCandidateDossierModal(id, initialTab = 'cv') {
   const c = DB.getCandidatoById(id);
   if (!c) return;
 
+  const cv = DB.getCV(c.id);
+  window._currentDossierCandId = c.id;
+  window._currentDossierCVMode = 'preview';
+
   const especialidad = c.especialidad && !c.especialidad.includes('Ver Test') ? c.especialidad : 'Enfermero Profesional';
   const subesp = c.subespecialidad || 'Cuidados Intensivos';
   const nivelAleman = c.nivel_aleman && !c.nivel_aleman.includes('Ver Test') ? c.nivel_aleman : 'B2';
   const ciudad = c.ciudad || 'Medellín';
   const pais = c.pais || 'Colombia';
-  const respuestas = c.respuestas_elegibilidad || {};
   const initials = getInitials(c.nombre);
 
   const modalHtml = `
     <div class="modal-overlay visible open" id="modal-candidate-dossier-dialog" role="dialog" aria-modal="true" style="z-index:9999;" onclick="if(event.target===this) closeModal('modal-candidate-dossier-dialog')">
-      <div class="modal modal-card" style="max-width:860px;width:95%;border-radius:24px;padding:0;overflow:hidden;max-height:90vh;display:flex;flex-direction:column;background:#ffffff;">
+      <div class="modal modal-card" style="max-width:960px;width:95%;border-radius:24px;padding:0;overflow:hidden;max-height:92vh;display:flex;flex-direction:column;background:#ffffff;">
         <!-- Header -->
         <div style="background:#801020;color:#ffffff;padding:20px 28px;display:flex;align-items:center;justify-content:space-between;">
           <div style="display:flex;align-items:center;gap:16px;">
@@ -5856,80 +5859,52 @@ function openCandidateDossierModal(id, initialTab = 'cv') {
         </div>
 
         <!-- Body / Content -->
-        <div style="flex:1;overflow-y:auto;padding:26px;" id="dossier-tab-content">
+        <div style="flex:1;overflow-y:auto;padding:24px;" id="dossier-tab-content">
           <!-- TAB 1: CV -->
           <div id="dossier-cv-pane" style="${initialTab === 'cv' ? 'display:block;' : 'display:none;'}">
-            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:18px;padding:20px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px;">
+            <!-- Barra superior del CV -->
+            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:18px;padding:16px 20px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px;">
               <div>
-                <div style="font-size:1.15rem;font-weight:800;color:#1e293b;">Curriculum Vitae Médico (Lebenslauf)</div>
-                <div style="font-size:0.85rem;color:#64748b;margin-top:2px;">Candidato Integrado al Programa de Inserción Médica en Alemania · JN Palabras</div>
+                <div style="font-size:1.1rem;font-weight:800;color:#1e293b;display:flex;align-items:center;gap:8px;">
+                  <span>Hoja de Vida Oficial (Deutscher Lebenslauf)</span>
+                  <span style="font-size:0.75rem;padding:3px 10px;border-radius:12px;background:#e0f2fe;color:#0369a1;font-weight:700;border:1px solid #bae6fd;">Plantilla ZAV / § 81a</span>
+                </div>
+                <div style="font-size:0.83rem;color:#64748b;margin-top:3px;">
+                  Visualiza la plantilla oficial alemana o edita sus secciones directamente para este candidato
+                </div>
               </div>
-              <button class="btn btn-outline btn-sm" onclick="window.print()" style="border-radius:12px;font-weight:700;display:flex;align-items:center;gap:6px;">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
-                Imprimir / Exportar CV
-              </button>
+              
+              <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                <!-- Botones Switch: Ver Plantilla / Crear / Modificar -->
+                <div style="display:inline-flex;background:#e2e8f0;padding:4px;border-radius:12px;gap:4px;">
+                  <button type="button" id="btn-dossier-mode-preview" onclick="switchDossierCVMode('${c.id}', 'preview')" style="border-radius:9px;padding:7px 16px;font-weight:700;font-size:0.82rem;background:#801020;color:#ffffff;border:none;cursor:pointer;transition:all 0.2s ease;">
+                    👁️ Ver Plantilla Oficial
+                  </button>
+                  <button type="button" id="btn-dossier-mode-edit" onclick="switchDossierCVMode('${c.id}', 'edit')" style="border-radius:9px;padding:7px 16px;font-weight:700;font-size:0.82rem;background:transparent;color:#475569;border:none;cursor:pointer;transition:all 0.2s ease;">
+                    ✏️ Crear / Modificar
+                  </button>
+                </div>
+
+                <button type="button" class="btn btn-outline btn-sm" onclick="printLebenslauf()" style="border-radius:12px;font-weight:700;display:flex;align-items:center;gap:6px;">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                  Imprimir / PDF
+                </button>
+                <button type="button" class="btn btn-outline btn-sm" onclick="closeModal('modal-candidate-dossier-dialog');openCVForCandidate('${c.id}')" title="Abrir en Gestor Avanzado" style="border-radius:12px;font-weight:700;display:flex;align-items:center;gap:6px;">
+                  ⚙️ Gestor Avanzado
+                </button>
+              </div>
             </div>
 
-            <!-- CV Sections -->
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
-              <!-- Columna 1 -->
-              <div style="display:flex;flex-direction:column;gap:16px;">
-                <div style="background:#ffffff;border:1px solid #f1f5f9;border-radius:16px;padding:18px;box-shadow:0 2px 8px rgba(0,0,0,0.03);">
-                  <div style="font-size:0.8rem;font-weight:800;letter-spacing:1px;color:#801020;text-transform:uppercase;margin-bottom:12px;">1. Datos Personales y Contacto</div>
-                  <div style="display:grid;grid-template-columns:120px 1fr;gap:8px;font-size:0.875rem;">
-                    <span style="color:#64748b;font-weight:600;">Nombre:</span> <span style="font-weight:700;color:#1e293b;">${c.nombre}</span>
-                    <span style="color:#64748b;font-weight:600;">Edad:</span> <span>${c.edad || '32'} años</span>
-                    <span style="color:#64748b;font-weight:600;">Nacionalidad:</span> <span>${pais}</span>
-                    <span style="color:#64748b;font-weight:600;">Ubicación:</span> <span>${ciudad}, ${pais}</span>
-                    <span style="color:#64748b;font-weight:600;">Correo:</span> <span>${c.correo || 'candidato@jnpalabras.com'}</span>
-                    <span style="color:#64748b;font-weight:600;">Teléfono:</span> <span>${c.telefono || '+593 998306638'}</span>
-                  </div>
-                </div>
-
-                <div style="background:#ffffff;border:1px solid #f1f5f9;border-radius:16px;padding:18px;box-shadow:0 2px 8px rgba(0,0,0,0.03);">
-                  <div style="font-size:0.8rem;font-weight:800;letter-spacing:1px;color:#801020;text-transform:uppercase;margin-bottom:12px;">2. Competencias Lingüísticas</div>
-                  <div style="display:flex;flex-direction:column;gap:8px;font-size:0.875rem;">
-                    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:#f8fafc;border-radius:10px;">
-                      <span style="font-weight:700;color:#1e293b;">🇩🇪 Idioma Alemán</span>
-                      <span class="badge badge-info" style="font-weight:700;">Nivel ${nivelAleman} (Certificado en trámite)</span>
-                    </div>
-                    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:#f8fafc;border-radius:10px;">
-                      <span style="font-weight:700;color:#1e293b;">🇪🇸 Idioma Español</span>
-                      <span class="badge badge-success" style="font-weight:700;">Nativo / Materno</span>
-                    </div>
-                  </div>
-                </div>
+            <!-- CONTENEDOR 1: PREVISUALIZACIÓN DE PLANTILLA OFICIAL -->
+            <div id="dossier-cv-preview-box" style="display:block;">
+              <div class="jn-cv-preview-container" style="background:#334155;padding:26px 12px;border-radius:18px;box-shadow:inset 0 2px 10px rgba(0,0,0,0.25);">
+                ${renderLebenslaufOfficial(cv)}
               </div>
+            </div>
 
-              <!-- Columna 2 -->
-              <div style="display:flex;flex-direction:column;gap:16px;">
-                <div style="background:#ffffff;border:1px solid #f1f5f9;border-radius:16px;padding:18px;box-shadow:0 2px 8px rgba(0,0,0,0.03);">
-                  <div style="font-size:0.8rem;font-weight:800;letter-spacing:1px;color:#801020;text-transform:uppercase;margin-bottom:12px;">3. Formación y Experiencia Clínica</div>
-                  <div style="display:flex;flex-direction:column;gap:10px;font-size:0.875rem;">
-                    <div>
-                      <div style="font-weight:700;color:#1e293b;">Título Universitario: ${especialidad}</div>
-                      <div style="font-size:0.8rem;color:#64748b;">Área Clínica de Enfoque: ${subesp}</div>
-                    </div>
-                    <div>
-                      <div style="font-weight:700;color:#1e293b;">Años de Experiencia: ${c.anos_exp !== undefined ? c.anos_exp : '4'} años</div>
-                      <div style="font-size:0.8rem;color:#64748b;">Estado de Homologación: <strong style="color:#801020;">${c.estado_homologacion || 'En Trámite'}</strong></div>
-                    </div>
-                    <div style="padding:10px;background:#fdf2f4;border-radius:10px;font-size:0.8rem;color:#801020;">
-                      <strong>Objetivo en Alemania:</strong> Homologación profesional definitiva (Approbation / Anerkennung) y colocación en Hospital Universitario o Clínica en Baden-Württemberg / Heidelberg.
-                    </div>
-                  </div>
-                </div>
-
-                <div style="background:#ffffff;border:1px solid #f1f5f9;border-radius:16px;padding:18px;box-shadow:0 2px 8px rgba(0,0,0,0.03);">
-                  <div style="font-size:0.8rem;font-weight:800;letter-spacing:1px;color:#801020;text-transform:uppercase;margin-bottom:12px;">4. Datos del Formulario de Aplicación</div>
-                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:0.8rem;">
-                    <div><span style="color:#64748b;">Título convalidable:</span> <strong style="color:#1e293b;">${respuestas.degree_check || 'Sí, titulado'}</strong></div>
-                    <div><span style="color:#64748b;">Sector:</span> <strong style="color:#1e293b;">${respuestas.sector || 'Salud / Medicina'}</strong></div>
-                    <div><span style="color:#64748b;">Nivel estudios:</span> <strong style="color:#1e293b;">${respuestas.education_level || 'Licenciatura'}</strong></div>
-                    <div><span style="color:#64748b;">Puntaje obtenido:</span> <strong style="color:#16a34a;">${c.puntaje_elegibilidad || '26'} / 30 pts</strong></div>
-                  </div>
-                </div>
-              </div>
+            <!-- CONTENEDOR 2: FORMULARIO CREAR / MODIFICAR -->
+            <div id="dossier-cv-edit-box" style="display:none;">
+              ${renderCVForm(c.id, cv, true)}
             </div>
           </div>
 
@@ -6000,6 +5975,61 @@ function switchDossierTab(tab) {
     if (docsPane) docsPane.style.display = 'block';
     if (cvBtn) cvBtn.classList.remove('active');
     if (docsBtn) docsBtn.classList.add('active');
+  }
+}
+
+function switchDossierCVMode(candId, mode) {
+  window._currentDossierCandId = candId;
+  window._currentDossierCVMode = mode;
+  const prevBox = $('dossier-cv-preview-box');
+  const editBox = $('dossier-cv-edit-box');
+  const btnPrev = $('btn-dossier-mode-preview');
+  const btnEdit = $('btn-dossier-mode-edit');
+
+  if (mode === 'edit') {
+    if (prevBox) prevBox.style.display = 'none';
+    if (editBox) {
+      editBox.style.display = 'block';
+      const cv = DB.getCV(candId);
+      editBox.innerHTML = renderCVForm(candId, State.cvDraft || cv, true);
+    }
+    if (btnPrev) {
+      btnPrev.style.background = 'transparent';
+      btnPrev.style.color = '#475569';
+      btnPrev.style.boxShadow = 'none';
+    }
+    if (btnEdit) {
+      btnEdit.style.background = '#801020';
+      btnEdit.style.color = '#ffffff';
+      btnEdit.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
+    }
+  } else {
+    // Mode is preview
+    if (editBox && editBox.style.display !== 'none' && $('cv-form')) {
+      const updated = collectCVFormData();
+      DB.saveCV(candId, updated);
+      State.cvDraft = null;
+    }
+    if (editBox) editBox.style.display = 'none';
+    if (prevBox) {
+      prevBox.style.display = 'block';
+      const cv = DB.getCV(candId);
+      prevBox.innerHTML = `
+        <div class="jn-cv-preview-container" style="background:#334155;padding:26px 12px;border-radius:18px;box-shadow:inset 0 2px 10px rgba(0,0,0,0.25);">
+          ${renderLebenslaufOfficial(cv)}
+        </div>
+      `;
+    }
+    if (btnPrev) {
+      btnPrev.style.background = '#801020';
+      btnPrev.style.color = '#ffffff';
+      btnPrev.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
+    }
+    if (btnEdit) {
+      btnEdit.style.background = 'transparent';
+      btnEdit.style.color = '#475569';
+      btnEdit.style.boxShadow = 'none';
+    }
   }
 }
 
@@ -6713,7 +6743,7 @@ function renderCVForm(candId, cv, isAsesor) {
 
       <!-- BOTONES DE ACCIÓN INFERIORES -->
       <div style="display:flex;justify-content:flex-end;gap:12px;margin-top:24px;">
-        <button type="button" class="btn btn-outline" onclick="switchCVTab('preview')">👁️ Previsualizar Plantilla</button>
+        <button type="button" class="btn btn-outline" onclick="if($('dossier-cv-edit-box')){switchDossierCVMode('${candId}', 'preview');}else{switchCVTab('preview');}">👁️ Previsualizar Plantilla</button>
         <button type="submit" class="btn btn-primary">💾 Guardar Hoja de Vida</button>
       </div>
 
@@ -6882,6 +6912,11 @@ function saveCVForm(candId, notify = true) {
     if (notify) {
       showToast('Hoja de Vida Guardada', 'La información del candidato ha sido actualizada y sincronizada en su expediente.', 'success');
     }
+    if ($('dossier-cv-edit-box') && $('dossier-cv-preview-box')) {
+      State.cvDraft = null;
+      switchDossierCVMode(candId, 'preview');
+      return;
+    }
   }
 }
 
@@ -6934,37 +6969,61 @@ function handleCvPhotoUpload(input) {
 function addWerdegangItem() {
   State.cvDraft = collectCVFormData();
   State.cvDraft.werdegang.push({ zeitraum: '', titel: '', beschreibung: '' });
-  renderDashboard(State.activeRole);
+  if ($('dossier-cv-edit-box')) {
+    $('dossier-cv-edit-box').innerHTML = renderCVForm(window._currentDossierCandId, State.cvDraft, true);
+  } else {
+    renderDashboard(State.activeRole);
+  }
 }
 
 function removeWerdegangItem(index) {
   State.cvDraft = collectCVFormData();
   State.cvDraft.werdegang.splice(index, 1);
-  renderDashboard(State.activeRole);
+  if ($('dossier-cv-edit-box')) {
+    $('dossier-cv-edit-box').innerHTML = renderCVForm(window._currentDossierCandId, State.cvDraft, true);
+  } else {
+    renderDashboard(State.activeRole);
+  }
 }
 
 function addAusbildungItem() {
   State.cvDraft = collectCVFormData();
   State.cvDraft.ausbildung.push({ zeitraum: '', beschreibung: '' });
-  renderDashboard(State.activeRole);
+  if ($('dossier-cv-edit-box')) {
+    $('dossier-cv-edit-box').innerHTML = renderCVForm(window._currentDossierCandId, State.cvDraft, true);
+  } else {
+    renderDashboard(State.activeRole);
+  }
 }
 
 function removeAusbildungItem(index) {
   State.cvDraft = collectCVFormData();
   State.cvDraft.ausbildung.splice(index, 1);
-  renderDashboard(State.activeRole);
+  if ($('dossier-cv-edit-box')) {
+    $('dossier-cv-edit-box').innerHTML = renderCVForm(window._currentDossierCandId, State.cvDraft, true);
+  } else {
+    renderDashboard(State.activeRole);
+  }
 }
 
 function addSprachenItem() {
   State.cvDraft = collectCVFormData();
   State.cvDraft.sprachen.push({ sprache: '', niveau: '' });
-  renderDashboard(State.activeRole);
+  if ($('dossier-cv-edit-box')) {
+    $('dossier-cv-edit-box').innerHTML = renderCVForm(window._currentDossierCandId, State.cvDraft, true);
+  } else {
+    renderDashboard(State.activeRole);
+  }
 }
 
 function removeSprachenItem(index) {
   State.cvDraft = collectCVFormData();
   State.cvDraft.sprachen.splice(index, 1);
-  renderDashboard(State.activeRole);
+  if ($('dossier-cv-edit-box')) {
+    $('dossier-cv-edit-box').innerHTML = renderCVForm(window._currentDossierCandId, State.cvDraft, true);
+  } else {
+    renderDashboard(State.activeRole);
+  }
 }
 
 // ──────────────────────────────────────────────────────────────────
@@ -10764,6 +10823,7 @@ window.saveScheduledInterview = saveScheduledInterview;
 window.openEditCandidateModal = openEditCandidateModal;
 window.saveCandidateProfileEdit = saveCandidateProfileEdit;
 window.switchDossierTab = switchDossierTab;
+window.switchDossierCVMode = switchDossierCVMode;
 window.quickAddCandidateNote = quickAddCandidateNote;
 window.quickSendMessage = quickSendMessage;
 window.quickScheduleInterview = quickScheduleInterview;

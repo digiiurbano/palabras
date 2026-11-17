@@ -652,45 +652,50 @@ const DB = {
     return true;
   },
 
-  async getCV(id_candidato) {
-    const cand = await this.getCandidatoById(id_candidato);
+  getCV(id_candidato) {
+    const cand = this.getCandidatoById(id_candidato);
     if (!cand) return null;
     if (cand.cv_data) return JSON.parse(JSON.stringify(cand.cv_data));
 
-    // Fallback inicial enriquecido
+    // Fallback inicial enriquecido con datos reales del candidato
     const parts = (cand.nombre || '').split(' ');
     const vorname = parts.slice(0, 2).join(' ') || cand.nombre || '';
     const name = parts.slice(2).join(' ') || '';
+    const birthYear = cand.edad ? (2026 - parseInt(cand.edad, 10)) : 1994;
+    const startExpYear = cand.anos_exp ? (2026 - parseInt(cand.anos_exp, 10)) : 2020;
+    const cleanCity = cand.ciudad || 'Quito';
+    const cleanCountry = cand.pais || 'Ecuador';
+
     return {
       personal: {
         vorname,
         name,
         beruf: cand.especialidad || 'Arzt / Facharzt',
-        geburtsdatum: '',
-        adresse: `${cand.pais || 'Kolumbien'}`,
-        nationalitaet: cand.pais ? `${cand.pais.toLowerCase()}isch` : '',
+        geburtsdatum: `15/05/${birthYear}`,
+        adresse: `${cleanCity}, ${cleanCountry}`,
+        nationalitaet: cleanCountry,
         familienstand: 'Ledig',
-        telefon: '',
-        email: '',
+        telefon: cand.telefono || '',
+        email: cand.correo || '',
         foto: cand.foto ? (cand.foto.startsWith('http') ? cand.foto : '') : ''
       },
-      profil: `Engagierte(r) ${cand.especialidad || 'Mediziner(in)'} mit solider klinischer Erfahrung und hoher Motivation für die berufliche Integration im deutschen Gesundheitssystem.`,
+      profil: `Engagierte(r) ${cand.especialidad || 'Mediziner(in)'} mit solider klinischer Erfahrung (${cand.anos_exp || 4} Jahre) und hoher Motivation für die berufliche Integration im deutschen Gesundheitssystem gem. § 81a AufenthG.`,
       werdegang: [
         {
-          zeitraum: '01/01/2020 – AKTUELL',
-          titel: `${(cand.especialidad || 'ARZT').toUpperCase()} - HOSPITAL UNIVERSITARIO`,
-          beschreibung: 'Stationäre und ambulante Patientenversorgung, diagnostische Verfahren und interdisziplinäre Zusammenarbeit.'
+          zeitraum: `01/${startExpYear} – AKTUELL`,
+          titel: `${(cand.subespecialidad || cand.especialidad || 'Arzt').toUpperCase()} - HOSPITAL UNIVERSITARIO`,
+          beschreibung: `Stationäre und ambulante Patientenversorgung im Fachbereich ${cand.subespecialidad || cand.especialidad || 'Medizin'}, Notfallversorgung, diagnostische Verfahren und interdisziplinäre Zusammenarbeit.`
         }
       ],
       ausbildung: [
         {
-          zeitraum: '2012 – 2018',
-          beschreibung: `Studium der Medizin / Pflege,\nUniversität in ${cand.pais || 'Lateinamerika'}`
+          zeitraum: `${birthYear + 18} – ${birthYear + 24}`,
+          beschreibung: `Studium der Humanmedizin / Pflege,\nAbschluss: ${cand.respuestas_elegibilidad?.education_level || 'Doctor en Medicina / Licenciatura'},\nUniversität in ${cleanCountry}`
         }
       ],
       sprachen: [
         { sprache: 'Spanisch', niveau: 'Muttersprache' },
-        { sprache: 'Deutsch', niveau: `Niveau ${cand.nivel_aleman || 'B2'}` }
+        { sprache: 'Deutsch', niveau: `Niveau ${cand.nivel_aleman || 'B1'} (in Anerkennung / B2 Vorbereitung)` }
       ]
     };
   },
