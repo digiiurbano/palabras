@@ -5467,7 +5467,7 @@ h1, h2, h3, h4, .public-hero-title, .public-section-title {
   }
 }
 
-/* Ítems del menú (Deutsch, English, Español, Português) */
+/* Ítems del menú (Deutsch, Español) */
 .lang-dropdown-item {
   display: flex;
   align-items: center;
