@@ -1126,7 +1126,7 @@ const DB = {
       especialidades_requeridas: Array.isArray(data.especialidades_requeridas) 
         ? data.especialidades_requeridas 
         : (data.especialidades_requeridas ? [data.especialidades_requeridas] : ['Enfermería General']),
-      plazas_solicitadas: parseInt(data.plazas_solicitadas || data.plazas || 1, 10),
+      plazas_solicitadas: parseInt(data.plazas_solicitadas || data.plazas || 0, 10),
       nivel_aleman_solicitado: data.nivel_aleman_solicitado || 'B2',
       origen_lead: data.origen_lead || 'Formulario Web Hospitales',
       urgencia: data.urgencia || 'Corto plazo (1-3 meses)',
@@ -1232,7 +1232,7 @@ const DB = {
         especialidades_requeridas: Array.isArray(raw.especialidades_requeridas) 
           ? raw.especialidades_requeridas 
           : (raw.especialidades_requeridas || raw['Especialidades'] ? String(raw.especialidades_requeridas || raw['Especialidades']).split(',').map(s=>s.trim()) : ['Enfermería General']),
-        plazas_solicitadas: parseInt(raw.plazas_solicitadas || raw.plazas || raw['Vacantes'] || raw['Plazas'] || 1, 10),
+        plazas_solicitadas: parseInt(raw.plazas_solicitadas || raw.plazas || raw['Vacantes'] || raw['Plazas'] || 0, 10),
         nivel_aleman_solicitado: raw.nivel_aleman_solicitado || raw['Nivel Alemán'] || 'B2',
         origen_lead: 'Importación Excel',
         urgencia: raw.urgencia || raw['Urgencia'] || 'Corto plazo (1-3 meses)',

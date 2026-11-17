@@ -1653,10 +1653,11 @@ function renderAsesorEmpresas() {
     return matchSearch && matchRegion && matchEtapa;
   });
 
-  // Métricas
+  // Métricas reales
   const totalClinicas = allEmpresas.length;
   const leadsNuevos = allEmpresas.filter(e => (e.etapa_b2b || '').includes('Nuevo')).length;
-  const totalVacantes = allEmpresas.reduce((acc, e) => acc + (parseInt(e.plazas_solicitadas || e.plazas || 1, 10) || 0), 0);
+  const totalVacantes = allEmpresas.reduce((acc, e) => acc + (parseInt(e.plazas_solicitadas || e.plazas || 0, 10) || 0), 0);
+  const clinicasConDemanda = allEmpresas.filter(e => (parseInt(e.plazas_solicitadas || e.plazas || 0, 10) > 0)).length;
   const contratosActivos = allEmpresas.filter(e => (e.etapa_b2b || '').includes('Contrato') || (e.etapa_b2b || '').includes('Convenio')).length;
 
   const regiones = Array.from(new Set(allEmpresas.map(e => e.region_alemania || e.region).filter(Boolean)));
@@ -1698,7 +1699,7 @@ function renderAsesorEmpresas() {
           <span class="kpi-icon" style="background:rgba(114,47,55,0.1); color:var(--wine-800);">${getIcon('briefcase')}</span>
         </div>
         <div class="kpi-value">${totalClinicas}</div>
-        <div class="kpi-change up"><span>Instituciones en Cartera</span></div>
+        <div class="kpi-change up"><span>Instituciones en Base de Datos</span></div>
       </div>
 
       <div class="kpi-card" style="border-left:4px solid #2563eb;">
@@ -1712,11 +1713,11 @@ function renderAsesorEmpresas() {
 
       <div class="kpi-card" style="border-left:4px solid var(--gold-600);">
         <div class="kpi-header">
-          <span class="kpi-title">Vacantes / Demanda Médica</span>
+          <span class="kpi-title">Vacantes Acordadas (Post-Reunión)</span>
           <span class="kpi-icon" style="background:rgba(217,119,6,0.1); color:var(--gold-600);">${getIcon('users')}</span>
         </div>
         <div class="kpi-value" style="color:var(--gold-600);">${totalVacantes}</div>
-        <div class="kpi-change up"><span>Plazas de Enfermería & Medicina</span></div>
+        <div class="kpi-change up"><span>${clinicasConDemanda > 0 ? `${clinicasConDemanda} clínicas con demanda acordada` : 'Se definen tras reunión de diagnóstico'}</span></div>
       </div>
 
       <div class="kpi-card" style="border-left:4px solid #10b981;">
@@ -1768,7 +1769,7 @@ function renderB2BKanbanHTML(empresas) {
     <div class="kanban-board" id="b2b-kanban-board" style="display:flex; gap:16px; overflow-x:auto; padding-bottom:20px; align-items:flex-start;">
       ${B2B_PIPELINE_STAGES.map(stage => {
         const stageEmpresas = empresas.filter(e => (e.etapa_b2b || 'Lead B2B Nuevo') === stage.id);
-        const stagePlazas = stageEmpresas.reduce((acc, e) => acc + (parseInt(e.plazas_solicitadas || e.plazas || 1, 10) || 0), 0);
+        const stagePlazas = stageEmpresas.reduce((acc, e) => acc + (parseInt(e.plazas_solicitadas || e.plazas || 0, 10) || 0), 0);
         const visibleEmpresas = stageEmpresas.slice(0, KANBAN_MAX_PER_STAGE);
         const hasMore = stageEmpresas.length > KANBAN_MAX_PER_STAGE;
 
@@ -1777,7 +1778,9 @@ function renderB2BKanbanHTML(empresas) {
             <div class="kanban-col-header" style="display:flex; justify-content:space-between; align-items:center; padding-bottom:6px; border-bottom:1px solid #e2e8f0;">
               <div>
                 <span class="kanban-col-title" style="font-weight:700; color:var(--slate-800); font-size:0.85rem;">${stage.label}</span>
-                <div style="font-size:0.7rem; color:var(--slate-500);">${stagePlazas} plazas demandadas</div>
+                <div style="font-size:0.7rem; color:var(--slate-500);">
+                  ${stagePlazas > 0 ? `${stagePlazas} ${stagePlazas === 1 ? 'plaza acordada' : 'plazas acordadas'}` : `${stageEmpresas.length} ${stageEmpresas.length === 1 ? 'institución' : 'instituciones'}`}
+                </div>
               </div>
               <span class="kanban-col-count" style="background:${stage.color}; color:#fff; font-size:0.75rem; border-radius:10px; padding:2px 8px; width:auto; height:auto;">
                 ${stageEmpresas.length}
@@ -1810,20 +1813,22 @@ function renderB2BKanbanHTML(empresas) {
 
 function renderB2BCardHTML(e) {
   const specs = Array.isArray(e.especialidades_requeridas) ? e.especialidades_requeridas : [e.especialidades_requeridas || 'Salud'];
-  const plazas = parseInt(e.plazas_solicitadas || e.plazas || 1, 10);
+  const plazas = parseInt(e.plazas_solicitadas || e.plazas || 0, 10);
   const nombreLimpio = e.nombre_clinica || e.nombre || 'Clínica';
   const contactoLimpio = e.contacto_nombre || e.contacto || 'Contacto Principal';
   const telLimpio = (e.telefono || '').replace(/[^0-9+]/g, '');
 
   return `
     <div class="kanban-card b2b-card" draggable="true" data-empresa-id="${e.id}" style="background:#fff; border-radius:10px; padding:12px; border:1px solid #e2e8f0; box-shadow:0 1px 3px rgba(0,0,0,0.06); cursor:pointer;" onclick="openEmpresaDetailModal('${e.id}')">
-      <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
         <span class="badge" style="background:rgba(114,47,55,0.08); color:var(--wine-900); font-size:0.7rem; font-weight:700;">
           ${e.tipo_centro || e.tipo || 'Klinikum'}
         </span>
-        <span style="font-size:0.75rem; font-weight:800; color:var(--gold-600); background:#fffbeb; padding:2px 6px; border-radius:4px; border:1px solid #fef3c7;">
-          🩺 ${plazas} vacantes
-        </span>
+        ${plazas > 0 ? `
+          <span style="font-size:0.72rem; font-weight:800; color:var(--gold-600); background:#fffbeb; padding:2px 6px; border-radius:4px; border:1px solid #fef3c7;">
+            🩺 ${plazas} ${plazas === 1 ? 'vacante' : 'vacantes'}
+          </span>
+        ` : ''}
       </div>
 
       <div style="font-weight:700; color:var(--slate-900); font-size:0.9rem; margin-bottom:4px; line-height:1.2;">
@@ -1952,7 +1957,7 @@ function renderB2BTableHTML(empresas) {
               <tr><td colspan="8" style="text-align:center; padding:30px; color:#64748b;">No se encontraron empresas con los filtros aplicados.</td></tr>
             ` : pagedEmpresas.map(e => {
               const specs = Array.isArray(e.especialidades_requeridas) ? e.especialidades_requeridas.join(', ') : (e.especialidades_requeridas || 'Salud');
-              const plazas = parseInt(e.plazas_solicitadas || e.plazas || 1, 10);
+              const plazas = parseInt(e.plazas_solicitadas || e.plazas || 0, 10);
               const etapa = e.etapa_b2b || 'Lead B2B Nuevo';
               const contactCount = Array.isArray(e.contactos) && e.contactos.length > 1 ? ` <span style="background:rgba(37,99,235,0.1); color:#2563eb; font-size:0.7rem; font-weight:700; padding:1px 5px; border-radius:4px;">+${e.contactos.length - 1} contactos</span>` : '';
 
@@ -1960,7 +1965,7 @@ function renderB2BTableHTML(empresas) {
                 <tr>
                   <td>
                     <div style="font-weight:700; color:var(--slate-900);">${e.nombre_clinica || e.nombre}</div>
-                    <div style="font-size:0.75rem; color:var(--slate-500);">${e.tipo_centro || e.tipo || 'Klinikum'} · ${e.numero_camas || e.camas || 0} camas</div>
+                    <div style="font-size:0.75rem; color:var(--slate-500);">${e.tipo_centro || e.tipo || 'Klinikum'}</div>
                   </td>
                   <td>
                     <div>${e.ciudad || 'Alemania'}</div>
@@ -1975,7 +1980,11 @@ function renderB2BTableHTML(empresas) {
                     </div>
                   </td>
                   <td>
-                    <div style="font-weight:700; color:var(--gold-600);">🩺 ${plazas} vacantes</div>
+                    ${plazas > 0 ? `
+                      <div style="font-weight:700; color:var(--gold-600);">🩺 ${plazas} ${plazas === 1 ? 'vacante' : 'vacantes'}</div>
+                    ` : `
+                      <div style="font-size:0.75rem; color:#94a3b8; font-style:italic;">Por definir en reunión</div>
+                    `}
                     <div style="font-size:0.75rem; color:var(--slate-600); max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${specs}</div>
                   </td>
                   <td><span class="badge badge-info">${e.nivel_aleman_solicitado || 'B2'}</span></td>
@@ -2239,6 +2248,13 @@ function saveB2BCRMInteraction() {
     proxima_cita: proximaCita || null
   });
 
+  const vacantesStr = $('b2b-log-plazas')?.value?.trim();
+  const updateData = { etapa_b2b: nuevaEtapa };
+  if (vacantesStr !== '' && vacantesStr !== undefined && !isNaN(parseInt(vacantesStr, 10))) {
+    updateData.plazas_solicitadas = parseInt(vacantesStr, 10);
+  }
+  DB.updateEmpresa(_currentB2BCRMEmpresaId, updateData);
+
   if (proximaCita) {
     const emp = DB.getEmpresaById(_currentB2BCRMEmpresaId);
     const tasks = getAdvisorAgendaTasks();
@@ -2373,12 +2389,16 @@ function ensureB2BModalsInDOM() {
               </div>
             </div>
 
-            <div class="grid grid-2" style="gap:10px;">
+            <div class="grid grid-3" style="gap:10px;">
               <div class="form-group">
                 <label class="form-label" style="font-size:0.75rem;">Avanzar Etapa Pipeline</label>
                 <select class="form-select" id="b2b-log-etapa" style="font-size:0.8rem;">
                   ${B2B_PIPELINE_STAGES.map(s => `<option value="${s.id}">${s.label}</option>`).join('')}
                 </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label" style="font-size:0.75rem;">Vacantes Acordadas (Opcional)</label>
+                <input class="form-input" type="number" id="b2b-log-plazas" placeholder="Solo si se acordó nº real" min="0" style="font-size:0.8rem;">
               </div>
               <div class="form-group">
                 <label class="form-label" style="font-size:0.75rem;">Próxima Cita / Seguimiento</label>
@@ -2513,8 +2533,8 @@ function ensureB2BModalsInDOM() {
 
             <div class="grid grid-2" style="gap:12px;">
               <div class="form-group">
-                <label class="form-label">Plazas / Vacantes Solicitadas</label>
-                <input class="form-input" type="number" id="mef-plazas" value="5" min="1">
+                <label class="form-label">Plazas / Vacantes Acordadas (0 si aún no hay reunión)</label>
+                <input class="form-input" type="number" id="mef-plazas" value="0" min="0" placeholder="0 = por definir">
               </div>
               <div class="form-group">
                 <label class="form-label">Etapa B2B Inicial</label>
@@ -2557,7 +2577,7 @@ function openEmpresaDetailModal(id) {
 
   $('med-title').innerHTML = `🏥 ${emp.nombre_clinica || emp.nombre}`;
   const specs = Array.isArray(emp.especialidades_requeridas) ? emp.especialidades_requeridas.join(', ') : (emp.especialidades_requeridas || 'Salud');
-  const plazas = parseInt(emp.plazas_solicitadas || emp.plazas || 1, 10);
+  const plazas = parseInt(emp.plazas_solicitadas || emp.plazas || 0, 10);
 
   $('med-body').innerHTML = `
     <div style="display:flex; flex-direction:column; gap:16px;">
@@ -2582,7 +2602,11 @@ function openEmpresaDetailModal(id) {
 
         <div style="background:#fff; border:1px solid #e2e8f0; padding:12px; border-radius:8px;">
           <div style="font-size:0.75rem; color:#64748b; font-weight:700; text-transform:uppercase;">Demanda Sanitaria</div>
-          <div style="font-weight:800; color:var(--gold-600); font-size:1.1rem; margin-top:4px;">🩺 ${plazas} Plazas Requeridas</div>
+          ${plazas > 0 ? `
+            <div style="font-weight:800; color:var(--gold-600); font-size:1.1rem; margin-top:4px;">🩺 ${plazas} Plazas Acordadas</div>
+          ` : `
+            <div style="font-weight:600; color:#64748b; font-size:0.95rem; margin-top:4px;">🩺 Pendiente de reunión de diagnóstico</div>
+          `}
           <div style="font-size:0.8rem; color:var(--slate-700); margin-top:2px;"><strong>Especialidades:</strong> ${specs}</div>
           <div style="font-size:0.8rem; color:var(--slate-600); margin-top:2px;"><strong>Nivel Alemán:</strong> ${emp.nivel_aleman_solicitado || 'B2'}</div>
           <div style="font-size:0.8rem; color:var(--slate-600); margin-top:2px;"><strong>Alojamiento:</strong> ${emp.alojamiento || 'En gestión'}</div>
@@ -2664,7 +2688,7 @@ function openNewEmpresaModal() {
   $('mef-cargo').value = 'Dirección de Recursos Humanos';
   $('mef-correo').value = '';
   $('mef-telefono').value = '';
-  $('mef-plazas').value = '5';
+  $('mef-plazas').value = '0';
   $('mef-etapa').value = 'Lead B2B Nuevo';
   $('mef-specs').value = 'Enfermería UCI, Quirófano';
   $('mef-alojamiento').value = 'Dispone de residencia para personal';
@@ -2691,7 +2715,7 @@ function openEditEmpresaModal(id) {
   $('mef-cargo').value = emp.contacto_cargo || 'Dirección de Recursos Humanos';
   $('mef-correo').value = emp.correo_contacto || emp.correo || '';
   $('mef-telefono').value = emp.telefono || '';
-  $('mef-plazas').value = emp.plazas_solicitadas || emp.plazas || 5;
+  $('mef-plazas').value = emp.plazas_solicitadas || 0;
   $('mef-etapa').value = emp.etapa_b2b || 'Lead B2B Nuevo';
   $('mef-specs').value = Array.isArray(emp.especialidades_requeridas) ? emp.especialidades_requeridas.join(', ') : (emp.especialidades_requeridas || '');
   $('mef-alojamiento').value = emp.alojamiento || '';
