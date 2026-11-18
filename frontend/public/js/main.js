@@ -329,7 +329,7 @@ async function handleLogin(e) {
       showToast('Bienvenido/a', `¡Hola ${user.nombre.split(' ')[0]}! Has iniciado sesión como ${State.activeRole}.`, 'success');
       showApp();
     } else {
-      showToast('Error de acceso', 'Correo o contraseña incorrectos. Contraseña estándar: JNPalabrasSuper2026!', 'error');
+      showToast('Error de acceso', 'Correo o contraseña incorrectos. Por favor, verifica tus datos de acceso.', 'error');
       $('login-email').style.borderColor = 'var(--danger)';
       $('login-pass').style.borderColor = 'var(--danger)';
     }
