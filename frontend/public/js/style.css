@@ -4577,9 +4577,10 @@ h1, h2, h3, h4, .public-hero-title, .public-section-title {
    PLANTILLA ESTÁNDAR: PERFIL DEL CANDIDATO (EXACT MOCKUP)
    ══════════════════════════════════════════════════════════ */
 .candidate-profile-page {
-  padding: 10px 0 40px 0;
-  max-width: 1320px;
-  margin: 0 auto;
+  padding: 0 0 24px 0;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   font-family: var(--font-sans);
 }
 
@@ -4588,9 +4589,9 @@ h1, h2, h3, h4, .public-hero-title, .public-section-title {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 28px;
+  margin-bottom: 16px;
   flex-wrap: wrap;
-  gap: 16px;
+  gap: 12px;
 }
 .candidate-topbar-left {
   display: flex;
@@ -4616,7 +4617,7 @@ h1, h2, h3, h4, .public-hero-title, .public-section-title {
   transform: translateX(-2px);
 }
 .candidate-topbar-title {
-  font-size: 1.6rem;
+  font-size: 1.4rem;
   font-weight: 800;
   color: #1e293b;
   margin: 0;
@@ -4625,16 +4626,17 @@ h1, h2, h3, h4, .public-hero-title, .public-section-title {
 .candidate-topbar-actions {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 .btn-pill-outline {
   border: 1px solid #cbd5e1;
   background: #ffffff;
   color: #334155;
   font-weight: 700;
-  font-size: 0.8125rem;
-  letter-spacing: 0.6px;
-  padding: 11px 26px;
+  font-size: 0.78rem;
+  letter-spacing: 0.5px;
+  padding: 8px 18px;
   border-radius: 9999px;
   cursor: pointer;
   transition: all 0.2s;
@@ -4651,44 +4653,52 @@ h1, h2, h3, h4, .public-hero-title, .public-section-title {
   background: #7a1020;
   color: #ffffff;
   font-weight: 700;
-  font-size: 0.8125rem;
-  letter-spacing: 0.6px;
-  padding: 11px 26px;
+  font-size: 0.78rem;
+  letter-spacing: 0.5px;
+  padding: 8px 20px;
   border-radius: 9999px;
   cursor: pointer;
   transition: all 0.2s;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  box-shadow: 0 4px 14px rgba(122, 16, 32, 0.25);
+  box-shadow: 0 4px 12px rgba(122, 16, 32, 0.2);
 }
 .btn-pill-primary:hover {
   background: #630c19;
   transform: translateY(-1px);
-  box-shadow: 0 6px 18px rgba(122, 16, 32, 0.35);
+  box-shadow: 0 6px 16px rgba(122, 16, 32, 0.3);
 }
 
 /* 2-Column Grid */
 .candidate-profile-grid {
   display: grid;
-  grid-template-columns: 1fr 380px;
-  gap: 28px;
+  grid-template-columns: minmax(0, 1fr) minmax(250px, 310px);
+  gap: 18px;
   align-items: start;
+  width: 100%;
+  box-sizing: border-box;
 }
-@media (max-width: 1080px) {
+.candidate-profile-grid > div {
+  min-width: 0;
+  box-sizing: border-box;
+}
+@media (max-width: 1100px) {
   .candidate-profile-grid {
     grid-template-columns: 1fr;
+    gap: 16px;
   }
 }
 
 /* Card Base */
 .candidate-standard-card {
   background: #ffffff;
-  border-radius: 24px;
-  padding: 28px 32px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.02), 0 1px 3px rgba(0,0,0,0.03);
+  border-radius: 20px;
+  padding: 20px 24px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.02), 0 1px 3px rgba(0,0,0,0.03);
   border: 1px solid #f1f5f9;
-  margin-bottom: 24px;
+  margin-bottom: 16px;
+  box-sizing: border-box;
 }
 
 /* Section Title */
@@ -4704,14 +4714,15 @@ h1, h2, h3, h4, .public-hero-title, .public-section-title {
 /* 1. Hero Card */
 .candidate-hero-card {
   background: #ffffff;
-  border-radius: 28px;
-  padding: 32px;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
+  border-radius: 20px;
+  padding: 20px 24px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.03);
   border: 1px solid rgba(0, 0, 0, 0.04);
   display: flex;
   align-items: center;
-  gap: 28px;
-  margin-bottom: 24px;
+  gap: 20px;
+  margin-bottom: 16px;
+  box-sizing: border-box;
 }
 @media (max-width: 640px) {
   .candidate-hero-card {
@@ -4720,9 +4731,9 @@ h1, h2, h3, h4, .public-hero-title, .public-section-title {
   }
 }
 .candidate-avatar-wrap {
-  width: 110px;
-  height: 110px;
-  border-radius: 28px;
+  width: 84px;
+  height: 84px;
+  border-radius: 22px;
   background: #f1f5f9;
   position: relative;
   display: flex;
@@ -4733,14 +4744,14 @@ h1, h2, h3, h4, .public-hero-title, .public-section-title {
   overflow: visible;
 }
 .candidate-status-dot {
-  width: 22px;
-  height: 22px;
+  width: 18px;
+  height: 18px;
   background: #10b981;
-  border: 3.5px solid #ffffff;
+  border: 3px solid #ffffff;
   border-radius: 50%;
   position: absolute;
-  bottom: 0px;
-  right: 0px;
+  bottom: -2px;
+  right: -2px;
   box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);
 }
 .candidate-hero-info {
@@ -4752,10 +4763,10 @@ h1, h2, h3, h4, .public-hero-title, .public-section-title {
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 .candidate-hero-name {
-  font-size: 2rem;
+  font-size: 1.6rem;
   font-weight: 800;
   color: #1e293b;
   line-height: 1.15;
@@ -4983,36 +4994,38 @@ h1, h2, h3, h4, .public-hero-title, .public-section-title {
 /* 4. Columna Derecha: Acciones Rápidas */
 .candidate-actions-box {
   background: #3c121e;
-  border-radius: 28px;
-  padding: 30px;
+  border-radius: 20px;
+  padding: 20px;
   color: #ffffff;
-  box-shadow: 0 10px 30px rgba(60, 18, 30, 0.25);
-  margin-bottom: 24px;
+  box-shadow: 0 8px 24px rgba(60, 18, 30, 0.22);
+  margin-bottom: 16px;
+  box-sizing: border-box;
 }
 .candidate-actions-title {
-  font-size: 0.8125rem;
+  font-size: 0.75rem;
   font-weight: 800;
   color: #ffffff;
   text-transform: uppercase;
   letter-spacing: 0.12em;
-  margin-bottom: 22px;
+  margin-bottom: 14px;
 }
 .candidate-action-btn-item {
   width: 100%;
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 15px 20px;
+  gap: 10px;
+  padding: 10px 14px;
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 16px;
+  border-radius: 12px;
   color: #ffffff;
   font-weight: 600;
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   cursor: pointer;
   transition: all 0.2s ease;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
   text-decoration: none;
+  box-sizing: border-box;
 }
 .candidate-action-btn-item:last-child {
   margin-bottom: 0;

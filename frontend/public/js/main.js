@@ -1432,11 +1432,19 @@ function filterTable(input, tbodyId) {
 function renderAdminCandidatos() {
   const candidatos = DB.getCandidatos();
   return `
-    <div class="page-header">
-      <div><h1 class="page-title">Todos los Candidatos</h1><p class="page-subtitle">Vista global del pipeline</p></div>
+    <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+      <div>
+        <h1 class="page-title">Todos los Candidatos</h1>
+        <p class="page-subtitle">Vista global del pipeline</p>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <button class="btn btn-outline btn-sm" onclick="confirmClearDemoCandidates()" style="border-color:#fecdd3;color:#dc2626;background:#fff5f5;font-weight:700;border-radius:10px;display:inline-flex;align-items:center;gap:6px;" title="Eliminar todos los candidatos demo de prueba y dejar la base limpia para producción">
+          🗑️ Limpiar Candidatos Demo
+        </button>
+      </div>
     </div>
     <div class="card">
-      <div class="card-header">
+      <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
         <div class="search-bar" style="max-width:300px;">
           <span class="search-bar-icon">🔍</span>
           <input class="form-input" placeholder="Buscar candidato..." oninput="filterTable(this,'cand-table-body')">
@@ -1445,17 +1453,46 @@ function renderAdminCandidatos() {
       </div>
       <div class="data-table-wrapper">
         <table class="data-table">
-          <thead><tr><th>Candidato</th><th>País</th><th>Especialidad</th><th>Alemán</th><th>Puntaje</th><th>Estado Proceso</th><th>Homologación</th></tr></thead>
+          <thead>
+            <tr>
+              <th>Candidato</th>
+              <th>País</th>
+              <th>Especialidad</th>
+              <th>Alemán</th>
+              <th>Puntaje</th>
+              <th>Estado Proceso</th>
+              <th>Homologación</th>
+              <th style="text-align:right;">Acciones</th>
+            </tr>
+          </thead>
           <tbody id="cand-table-body">
-            ${candidatos.map(c => `
+            ${candidatos.length === 0 ? `
+              <tr>
+                <td colspan="8" style="text-align:center;padding:40px 20px;color:var(--slate-500);">
+                  <div style="font-size:1.6rem;margin-bottom:8px;">👥</div>
+                  <div style="font-weight:700;color:var(--slate-700);font-size:1rem;">No hay candidatos registrados</div>
+                  <div style="font-size:0.85rem;margin-top:4px;">Los nuevos postulantes aparecerán aquí en tiempo real cuando completen el formulario o test en la web.</div>
+                </td>
+              </tr>
+            ` : candidatos.map(c => `
               <tr style="cursor:pointer;" onclick="openCandidateDetail('${c.id}')">
-                <td><div class="td-avatar"><div class="avatar" style="background:${getAvatarColor(c.nombre)}">${getInitials(c.nombre)}</div><div class="td-name">${c.nombre}</div></div></td>
-                <td><span style="font-size:1rem;">${countryFlag(c.pais)}</span> ${c.pais}</td>
-                <td>${c.especialidad}</td>
-                <td><span class="badge badge-info">${c.nivel_aleman}</span></td>
+                <td><div class="td-avatar"><div class="avatar" style="background:${getAvatarColor(c.nombre)}">${getInitials(c.nombre)}</div><div class="td-name">${escapeHtml(c.nombre)}</div></div></td>
+                <td><span style="font-size:1rem;">${countryFlag(c.pais)}</span> ${escapeHtml(c.pais)}</td>
+                <td>${escapeHtml(c.especialidad)}</td>
+                <td><span class="badge badge-info">${escapeHtml(c.nivel_aleman)}</span></td>
                 <td><strong style="color:var(--gold-600);">${c.puntaje_elegibilidad ?? 'N/A'}</strong></td>
-                <td><span class="badge" style="background:${getEstadoColor(c.estado_proceso)}22;color:${getEstadoColor(c.estado_proceso)}">${c.estado_proceso}</span></td>
-                <td><span class="badge ${c.estado_homologacion==='Aprobado'?'badge-success':c.estado_homologacion==='Rechazado'?'badge-danger':'badge-warning'}">${c.estado_homologacion}</span></td>
+                <td><span class="badge" style="background:${getEstadoColor(c.estado_proceso)}22;color:${getEstadoColor(c.estado_proceso)}">${escapeHtml(c.estado_proceso)}</span></td>
+                <td><span class="badge ${c.estado_homologacion==='Aprobado'?'badge-success':c.estado_homologacion==='Rechazado'?'badge-danger':'badge-warning'}">${escapeHtml(c.estado_homologacion)}</span></td>
+                <td style="text-align:right;" onclick="event.stopPropagation()">
+                  <div style="display:inline-flex;align-items:center;gap:6px;">
+                    <button class="btn btn-outline btn-xs" onclick="openCandidateDetail('${c.id}')" style="border-radius:8px;padding:4px 8px;font-weight:600;" title="Ver perfil del candidato">
+                      Ver
+                    </button>
+                    <button class="btn btn-outline btn-xs" onclick="deleteCandidateConfirm('${c.id}', '${escapeHtml(c.nombre)}')" style="border-radius:8px;padding:4px 8px;font-weight:600;color:#dc2626;border-color:#fecdd3;background:#fff5f5;" title="Eliminar candidato">
+                      🗑️
+                    </button>
+                  </div>
+                </td>
               </tr>
             `).join('')}
           </tbody>
@@ -4798,11 +4835,17 @@ function renderCandidateProfileHTML(c) {
           <h1 class="candidate-profile-title">Perfil del Candidato</h1>
         </div>
         <div class="candidate-topbar-actions">
+          <button class="btn-pill-outline" onclick="openCandidateDossierModal('${c.id}', 'docs')" style="color:#801020;border-color:#fecdd3;background:#fff5f5;" title="Ver toda la documentación del expediente">
+            📁 VER DOCUMENTACIÓN
+          </button>
           <button class="btn-pill-outline" onclick="exportCandidateProfilePDF('${c.id}')" title="Descargar o imprimir perfil en PDF">
             EXPORTAR PDF
           </button>
           <button class="btn-pill-primary" onclick="openEditCandidateModal('${c.id}')" title="Editar datos del candidato">
             EDITAR PERFIL
+          </button>
+          <button class="btn-pill-outline" onclick="deleteCandidateConfirm('${c.id}', '${escapeHtml(c.nombre)}')" style="color:#dc2626;border-color:#fecdd3;background:#ffffff;" title="Eliminar este candidato del sistema">
+            🗑️ ELIMINAR
           </button>
         </div>
       </div>
@@ -4958,12 +5001,18 @@ function renderCandidateProfileHTML(c) {
 
           <!-- Tarjeta de Documentación Requerida (Grid Dinámica Verídica) -->
           <div class="candidate-standard-card">
-            <div class="candidate-docs-header">
+            <div class="candidate-docs-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
               <div class="candidate-card-header-wine" style="margin-bottom:0;">DOCUMENTACIÓN REQUERIDA</div>
-              <button class="candidate-upload-link" onclick="openUploadDocModal('${c.id}')">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-                SUBIR NUEVO
-              </button>
+              <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                <button class="btn btn-outline btn-sm" onclick="openCandidateDossierModal('${c.id}', 'docs')" style="border-radius:10px;font-weight:700;display:inline-flex;align-items:center;gap:6px;color:#801020;border-color:#801020;background:#ffffff;padding:5px 14px;font-size:0.8rem;" title="Abrir expediente completo para ver, validar o eliminar todos los documentos">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+                  Ver Toda la Documentación
+                </button>
+                <button class="candidate-upload-link" onclick="openUploadDocModal('${c.id}')">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                  SUBIR NUEVO
+                </button>
+              </div>
             </div>
 
             <div class="candidate-docs-grid">
@@ -5030,6 +5079,10 @@ function renderCandidateProfileHTML(c) {
             <button class="candidate-action-btn-item" onclick="openCandidateDossierModal('${c.id}')">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
               <span>Ver Expediente Completo</span>
+            </button>
+            <button class="candidate-action-btn-item" onclick="deleteCandidateConfirm('${c.id}', '${escapeHtml(c.nombre)}')" style="background:rgba(239,68,68,0.15);border-color:rgba(239,68,68,0.3);color:#fca5a5;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+              <span>Eliminar Candidato</span>
             </button>
           </div>
 
@@ -11701,6 +11754,43 @@ window.quickScheduleInterview = quickScheduleInterview;
 window.closeCandidateProfile = closeCandidateProfile;
 window.exportCandidateProfilePDF = exportCandidateProfilePDF;
 window.openCandidateDetail = openCandidateDetail;
+
+async function deleteCandidateConfirm(candId, candName) {
+  const confirmed = confirm(`¿Estás seguro de que deseas eliminar permanentemente a "${candName || 'este candidato'}" del sistema?`);
+  if (!confirmed) return;
+
+  await DB.deleteCandidato(candId);
+  showToast('Candidato Eliminado', `"${candName || 'El candidato'}" ha sido eliminado del sistema.`, 'info');
+
+  if (State.viewingCandidateId === candId) {
+    State.viewingCandidateId = null;
+    closeCandidateProfile();
+  } else {
+    const role = State.activeRole || 'Super Asesor';
+    const sidebar = State.currentSidebar || 'super-candidatos';
+    renderDashboard(role, sidebar);
+  }
+}
+
+async function confirmClearDemoCandidates() {
+  const confirmed = confirm("¿Estás seguro de que deseas eliminar todos los candidatos de prueba (demo)?\n\nEsta acción dejará la base de datos limpia para comenzar a trabajar en producción únicamente con datos reales recibidos desde el sitio web.");
+  if (!confirmed) return;
+
+  const count = DB.clearDemoCandidatos ? DB.clearDemoCandidatos() : 0;
+  showToast('Candidatos Demo Eliminados', `Se han eliminado los registros de prueba. La plataforma está lista para producción con datos reales.`, 'success', 6000);
+
+  if (State.viewingCandidateId) {
+    State.viewingCandidateId = null;
+    closeCandidateProfile();
+  } else {
+    const role = State.activeRole || 'Super Asesor';
+    const sidebar = State.currentSidebar || 'super-candidatos';
+    renderDashboard(role, sidebar);
+  }
+}
+
+window.deleteCandidateConfirm = deleteCandidateConfirm;
+window.confirmClearDemoCandidates = confirmClearDemoCandidates;
 
 // B2B & CRM Window Exports
 window.renderAsesorEmpresas = renderAsesorEmpresas;
