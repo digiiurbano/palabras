@@ -1446,11 +1446,6 @@ function renderAdminCandidatos() {
         <h1 class="page-title">${t('prof_all_candidates_title', 'Todos los Candidatos')}</h1>
         <p class="page-subtitle">${t('prof_all_candidates_sub', 'Vista global del pipeline')}</p>
       </div>
-      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-        <button class="btn btn-outline btn-sm" onclick="confirmClearDemoCandidates()" style="border-color:#fecdd3;color:#dc2626;background:#fff5f5;font-weight:700;border-radius:10px;display:inline-flex;align-items:center;gap:6px;" title="Eliminar todos los candidatos demo de prueba y dejar la base limpia para producción">
-          ${t('prof_clear_demo_btn', '🗑️ Limpiar Candidatos Demo')}
-        </button>
-      </div>
     </div>
     <div class="card">
       <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
