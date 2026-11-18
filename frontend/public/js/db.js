@@ -776,8 +776,18 @@ const DB = {
 
   addDocumento(data) {
     const db = this.get();
-    const nuevo = { ...data, id: 'd-' + Date.now(), fecha: new Date().toISOString().split('T')[0], estado: 'Pendiente', comentario: '' };
+    if (!db.documentos) db.documentos = [];
+    const nuevo = { ...data, id: data.id || ('d-' + Date.now()), fecha: data.fecha || new Date().toISOString().split('T')[0], estado: data.estado || 'Pendiente', comentario: data.comentario || '' };
     db.documentos.push(nuevo);
+    if (data.id_candidato) {
+      const cand = (db.candidatos || []).find(c => c.id === data.id_candidato);
+      if (cand) {
+        if (cand._documentos_eliminados) {
+          cand._documentos_eliminados = cand._documentos_eliminados.filter(delId => delId !== nuevo.id && (!data.nombre || !delId.includes(data.nombre)));
+        }
+        cand.documentos_subidos = db.documentos.filter(d => d.id_candidato === data.id_candidato).length;
+      }
+    }
     this.addNotificacion({
       id_usuario_dest: 'u-asesor-001',
       tipo: 'Nuevo_Candidato',
@@ -786,6 +796,51 @@ const DB = {
     }, db);
     this.save(db);
     return nuevo;
+  },
+
+  deleteDocumento(id, id_candidato) {
+    const db = this.get();
+    if (!db.documentos) db.documentos = [];
+    db.documentos = db.documentos.filter(d => d.id !== id);
+
+    if (id_candidato) {
+      const cand = (db.candidatos || []).find(c => c.id === id_candidato);
+      if (cand) {
+        if (!cand._documentos_eliminados) cand._documentos_eliminados = [];
+        if (!cand._documentos_eliminados.includes(id)) {
+          cand._documentos_eliminados.push(id);
+        }
+        cand.documentos_subidos = db.documentos.filter(d => d.id_candidato === id_candidato).length;
+      }
+    }
+    this.save(db);
+    return true;
+  },
+
+  getDocumentoById(id) {
+    const db = this.get();
+    return (db.documentos || []).find(d => d.id === id);
+  },
+
+  setDocumentoEstado(id_candidato, docId, nuevoEstado) {
+    const db = this.get();
+    if (!db.documentos) db.documentos = [];
+    const doc = db.documentos.find(d => d.id === docId && (!id_candidato || d.id_candidato === id_candidato));
+    if (doc) {
+      doc.estado = nuevoEstado;
+    }
+    if (id_candidato) {
+      const cand = (db.candidatos || []).find(c => c.id === id_candidato);
+      if (cand) {
+        if (!cand._documentos_status) cand._documentos_status = {};
+        cand._documentos_status[docId] = nuevoEstado;
+        if (nuevoEstado === 'Validado' || nuevoEstado === 'Certificado') {
+          cand.documentos_validados = Math.max(cand.documentos_validados || 0, 1);
+        }
+      }
+    }
+    this.save(db);
+    return true;
   },
 
   // ── VACANTES & STELLENPORTAL ──────────────────────────────────

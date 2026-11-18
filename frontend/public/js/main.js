@@ -4316,12 +4316,15 @@ function getCandidateDocumentsList(c) {
   const cleanNivel = nivel.toUpperCase().trim();
   const homologacion = c.estado_homologacion || 'En Trámite';
 
-  // 4. Documentos ya guardados en DB
+  // 4. Documentos ya guardados en DB y lista de excluidos/eliminados
   const dbDocs = (DB.getDocumentos ? DB.getDocumentos(c.id) : []) || [];
+  const deletedIds = Array.isArray(c._documentos_eliminados) ? c._documentos_eliminados : [];
 
   // Doc 1: Pasaporte Oficial
   const dbPasaporte = dbDocs.find(d => d.categoria === 'Identificación Oficial' || (d.nombre || '').toLowerCase().includes('pasaporte'));
-  const doc1 = dbPasaporte ? {
+  const doc1Id = dbPasaporte ? dbPasaporte.id : `doc-pasaporte-${c.id}`;
+  const isDoc1Deleted = deletedIds.includes(doc1Id) || deletedIds.includes(`doc-pasaporte-${c.id}`);
+  const doc1 = isDoc1Deleted ? null : (dbPasaporte ? {
     id: dbPasaporte.id,
     nombre: dbPasaporte.nombre,
     subtitulo: `República de ${pais} · Válido hasta: 12/2028`,
@@ -4329,6 +4332,10 @@ function getCandidateDocumentsList(c) {
     isPending: false,
     badgeLabel: dbPasaporte.estado === 'Aprobado' ? 'VALIDADO' : 'EN REVISIÓN',
     badgeColor: dbPasaporte.estado === 'Aprobado' ? '#10b981' : '#3b82f6',
+    fileData: dbPasaporte.fileData || null,
+    categoria: dbPasaporte.categoria || 'Identificación Oficial',
+    tamano: dbPasaporte.tamano || '1.4 MB',
+    fecha: dbPasaporte.fecha || '12/2024',
     icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`
   } : {
     id: `doc-pasaporte-${c.id}`,
@@ -4338,13 +4345,19 @@ function getCandidateDocumentsList(c) {
     isPending: false,
     badgeLabel: 'VALIDADO',
     badgeColor: '#10b981',
+    fileData: null,
+    categoria: 'Identificación Oficial',
+    tamano: '1.4 MB',
+    fecha: '12/2024',
     icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`
-  };
+  });
 
   // Doc 2: Título Universitario Apostillado
   const dbTitulo = dbDocs.find(d => d.categoria === 'Formación Médica' || (d.nombre || '').toLowerCase().includes('titulo') || (d.nombre || '').toLowerCase().includes('diploma'));
   const isHomologado = homologacion === 'Aprobado' || homologacion === 'Convalidado';
-  const doc2 = dbTitulo ? {
+  const doc2Id = dbTitulo ? dbTitulo.id : `doc-titulo-${c.id}`;
+  const isDoc2Deleted = deletedIds.includes(doc2Id) || deletedIds.includes(`doc-titulo-${c.id}`);
+  const doc2 = isDoc2Deleted ? null : (dbTitulo ? {
     id: dbTitulo.id,
     nombre: dbTitulo.nombre,
     subtitulo: `Apostillado en ${pais} · Homologación: ${homologacion}`,
@@ -4352,6 +4365,10 @@ function getCandidateDocumentsList(c) {
     isPending: false,
     badgeLabel: isHomologado ? 'HOMOLOGADO' : 'CERTIFICADO',
     badgeColor: isHomologado ? '#10b981' : '#0284c7',
+    fileData: dbTitulo.fileData || null,
+    categoria: dbTitulo.categoria || 'Formación Médica',
+    tamano: dbTitulo.tamano || '2.8 MB',
+    fecha: dbTitulo.fecha || '06/2024',
     icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="7"></circle><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline></svg>`
   } : {
     id: `doc-titulo-${c.id}`,
@@ -4361,13 +4378,19 @@ function getCandidateDocumentsList(c) {
     isPending: false,
     badgeLabel: isHomologado ? 'HOMOLOGADO' : 'CERTIFICADO',
     badgeColor: isHomologado ? '#10b981' : '#0284c7',
+    fileData: null,
+    categoria: 'Formación Médica',
+    tamano: '2.8 MB',
+    fecha: '06/2024',
     icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="7"></circle><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline></svg>`
-  };
+  });
 
   // Doc 3: Certificado Alemán
   const isCertified = c.certificado_idioma || cleanNivel === 'B2' || cleanNivel === 'C1';
   const dbIdioma = dbDocs.find(d => d.categoria === 'Competencia Lingüística' || (d.nombre || '').toLowerCase().includes('aleman') || (d.nombre || '').toLowerCase().includes('idioma') || (d.nombre || '').toLowerCase().includes('goethe') || (d.nombre || '').toLowerCase().includes('telc'));
-  const doc3 = dbIdioma ? {
+  const doc3Id = dbIdioma ? dbIdioma.id : `doc-idioma-${c.id}`;
+  const isDoc3Deleted = deletedIds.includes(doc3Id) || deletedIds.includes(`doc-idioma-${c.id}`);
+  const doc3 = isDoc3Deleted ? null : (dbIdioma ? {
     id: dbIdioma.id,
     nombre: dbIdioma.nombre,
     subtitulo: dbIdioma.estado === 'Aprobado' ? `Certificado ${cleanNivel} Validado` : 'ESPERANDO VALIDACIÓN',
@@ -4375,6 +4398,10 @@ function getCandidateDocumentsList(c) {
     isPending: dbIdioma.estado !== 'Aprobado' && !isCertified,
     badgeLabel: (dbIdioma.estado === 'Aprobado' || isCertified) ? 'VALIDADO' : 'ESPERANDO VALIDACIÓN',
     badgeColor: (dbIdioma.estado === 'Aprobado' || isCertified) ? '#10b981' : '#d97706',
+    fileData: dbIdioma.fileData || null,
+    categoria: dbIdioma.categoria || 'Competencia Lingüística',
+    tamano: dbIdioma.tamano || '1.1 MB',
+    fecha: dbIdioma.fecha || '09/2024',
     icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><polyline points="9 12 11 14 15 10"></polyline></svg>`
   } : {
     id: `doc-idioma-${c.id}`,
@@ -4384,12 +4411,18 @@ function getCandidateDocumentsList(c) {
     isPending: !isCertified,
     badgeLabel: isCertified ? 'VALIDADO' : 'ESPERANDO VALIDACIÓN',
     badgeColor: isCertified ? '#10b981' : '#d97706',
+    fileData: null,
+    categoria: 'Competencia Lingüística',
+    tamano: '1.1 MB',
+    fecha: '09/2024',
     icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><polyline points="9 12 11 14 15 10"></polyline></svg>`
-  };
+  });
 
   // Doc 4: Lebenslauf Oficial JN Palabras
   const dbCv = dbDocs.find(d => (d.nombre || '').toLowerCase().includes('lebenslauf') || (d.nombre || '').toLowerCase().includes('curriculum') || d.categoria === 'Curriculum Vitae');
-  const doc4 = dbCv ? {
+  const doc4Id = dbCv ? dbCv.id : `doc-cv-${c.id}`;
+  const isDoc4Deleted = deletedIds.includes(doc4Id) || deletedIds.includes(`doc-cv-${c.id}`);
+  const doc4 = isDoc4Deleted ? null : (dbCv ? {
     id: dbCv.id,
     nombre: dbCv.nombre,
     subtitulo: 'Formato Europass/ZAV · Adaptado a Clínicas',
@@ -4397,6 +4430,10 @@ function getCandidateDocumentsList(c) {
     isPending: false,
     badgeLabel: 'VALIDADO ZAV',
     badgeColor: '#10b981',
+    fileData: dbCv.fileData || null,
+    categoria: dbCv.categoria || 'Curriculum Vitae',
+    tamano: dbCv.tamano || '950 KB',
+    fecha: dbCv.fecha || '10/2024',
     icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`
   } : {
     id: `doc-cv-${c.id}`,
@@ -4406,15 +4443,19 @@ function getCandidateDocumentsList(c) {
     isPending: false,
     badgeLabel: 'VALIDADO ZAV',
     badgeColor: '#10b981',
+    fileData: null,
+    categoria: 'Curriculum Vitae',
+    tamano: '950 KB',
+    fecha: '10/2024',
     icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`
-  };
+  });
 
-  const primaryDocs = [doc1, doc2, doc3, doc4];
+  const primaryDocs = [doc1, doc2, doc3, doc4].filter(Boolean);
   const handledIds = new Set(primaryDocs.map(d => d.id));
 
-  // Incluir cualquier otro documento subido en DB
+  // Incluir cualquier otro documento subido en DB que no esté eliminado
   dbDocs.forEach(d => {
-    if (!handledIds.has(d.id)) {
+    if (!handledIds.has(d.id) && !deletedIds.includes(d.id)) {
       primaryDocs.push({
         id: d.id,
         nombre: d.nombre,
@@ -4423,10 +4464,49 @@ function getCandidateDocumentsList(c) {
         isPending: d.estado === 'Pendiente' || d.estado === 'Esperando Validación',
         badgeLabel: d.estado === 'Aprobado' ? 'VALIDADO' : (d.estado === 'Rechazado' ? 'RECHAZADO' : 'EN REVISIÓN'),
         badgeColor: d.estado === 'Aprobado' ? '#10b981' : (d.estado === 'Rechazado' ? '#ef4444' : '#f59e0b'),
+        fileData: d.fileData || null,
+        categoria: d.categoria || 'Documento Oficial',
+        tamano: d.tamano || '1.2 MB',
+        fecha: d.fecha || new Date().toISOString().split('T')[0],
         icon: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`
       });
     }
   });
+
+  // Aplicar estatus personalizados configurados para este candidato
+  if (c && c._documentos_status && typeof c._documentos_status === 'object') {
+    primaryDocs.forEach(d => {
+      const customSt = c._documentos_status[d.id];
+      if (customSt) {
+        d.estado = customSt;
+        if (customSt === 'Validado' || customSt === 'Aprobado') {
+          d.badgeLabel = 'VALIDADO';
+          d.badgeColor = '#10b981';
+          d.isPending = false;
+        } else if (customSt === 'Certificado' || customSt === 'Homologado') {
+          d.badgeLabel = customSt.toUpperCase();
+          d.badgeColor = '#0284c7';
+          d.isPending = false;
+        } else if (customSt === 'En Revisión') {
+          d.badgeLabel = 'EN REVISIÓN';
+          d.badgeColor = '#3b82f6';
+          d.isPending = true;
+        } else if (customSt === 'Esperando Validación') {
+          d.badgeLabel = 'ESPERANDO VALIDACIÓN';
+          d.badgeColor = '#d97706';
+          d.isPending = true;
+        } else if (customSt === 'Rechazado') {
+          d.badgeLabel = 'RECHAZADO';
+          d.badgeColor = '#ef4444';
+          d.isPending = false;
+        } else if (customSt === 'Pendiente') {
+          d.badgeLabel = 'PENDIENTE';
+          d.badgeColor = '#64748b';
+          d.isPending = true;
+        }
+      }
+    });
+  }
 
   return primaryDocs;
 }
@@ -4806,6 +4886,13 @@ function renderCandidateProfileHTML(c) {
 
               <div class="candidate-hero-pills">
                 <div class="candidate-hero-pill">
+                  <div class="candidate-hero-pill-label">ASESOR ENCARGADO</div>
+                  <div class="candidate-hero-pill-val" style="display:flex;align-items:center;gap:6px;">
+                    <span style="font-weight:700;">${escapeHtml(c.nombre_asesor || 'Nelson Matthiessen')}</span>
+                    <button class="btn btn-xs" onclick="openReassignAdvisorModal('${c.id}')" style="padding:2px 8px;font-size:0.7rem;font-weight:700;border-radius:6px;background:#80102015;color:#801020;border:1px solid #80102030;cursor:pointer;" title="Reasignar asesor">Cambiar</button>
+                  </div>
+                </div>
+                <div class="candidate-hero-pill">
                   <div class="candidate-hero-pill-label">IDIOMA</div>
                   <div class="candidate-hero-pill-val">${idioma}</div>
                 </div>
@@ -4881,25 +4968,29 @@ function renderCandidateProfileHTML(c) {
 
             <div class="candidate-docs-grid">
               ${candidateDocs.map(doc => `
-                <div class="candidate-doc-item ${doc.isPending ? 'pending-validation' : ''} ${doc.isDashed ? 'dashed' : ''}" onclick="openCandidateDossierModal('${c.id}', 'docs')" style="cursor:pointer;" title="Ver en expediente oficial">
-                  <div class="candidate-doc-left">
+                <div class="candidate-doc-item ${doc.isPending ? 'pending-validation' : ''} ${doc.isDashed ? 'dashed' : ''}" style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+                  <div class="candidate-doc-left" onclick="openCandidateDocumentViewer('${c.id}', '${doc.id}')" style="cursor:pointer;flex:1;min-width:0;" title="Ver documento">
                     <div class="candidate-doc-icon-wrap">
                       ${doc.icon}
                     </div>
-                    <div>
-                      <div class="candidate-doc-title">${escapeHtml(doc.nombre)}</div>
-                      <div class="candidate-doc-sub">${escapeHtml(doc.subtitulo)}</div>
+                    <div style="min-width:0;overflow:hidden;">
+                      <div class="candidate-doc-title" style="text-overflow:ellipsis;white-space:nowrap;overflow:hidden;">${escapeHtml(doc.nombre)}</div>
+                      <div class="candidate-doc-sub" style="text-overflow:ellipsis;white-space:nowrap;overflow:hidden;">${escapeHtml(doc.subtitulo)}</div>
                     </div>
                   </div>
-                  ${doc.isPending ? `
-                    <div style="display:flex;align-items:center;" title="Pendiente de revisión y validación">
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                    </div>
-                  ` : (doc.badgeLabel ? `
-                    <span style="font-size:0.7rem;font-weight:800;padding:3px 10px;border-radius:8px;background:${doc.badgeColor || '#10b981'}15;color:${doc.badgeColor || '#10b981'};">
-                      ${doc.badgeLabel}
-                    </span>
-                  ` : '')}
+                  <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+                    ${doc.badgeLabel ? `
+                      <span style="font-size:0.7rem;font-weight:800;padding:3px 8px;border-radius:8px;background:${doc.badgeColor || '#10b981'}15;color:${doc.badgeColor || '#10b981'};">
+                        ${doc.badgeLabel}
+                      </span>
+                    ` : ''}
+                    <button class="btn btn-outline btn-xs" onclick="event.stopPropagation(); openCandidateDocumentViewer('${c.id}', '${doc.id}')" style="border-radius:8px;padding:4px 10px;font-size:0.75rem;font-weight:700;" title="Ver documento">
+                      Ver
+                    </button>
+                    <button class="btn btn-outline btn-xs" onclick="event.stopPropagation(); openCandidateDossierModal('${c.id}', 'docs')" style="border-radius:8px;padding:4px 8px;font-size:0.75rem;color:#801020;border-color:#fecdd3;" title="Gestionar y cambiar estado">
+                      ⚙️
+                    </button>
+                  </div>
                 </div>
               `).join('')}
             </div>
@@ -5385,7 +5476,37 @@ async function confirmAcceptApplication(id) {
   const nivelAleman = $('accept-app-nivel')?.value || c.nivel_aleman || 'A1';
   const idAsesor = $('accept-app-asesor')?.value || c.id_asesor || (State.currentUser?.id);
   const asesorObj = DB.getUsuarios().find(u => u.id === idAsesor);
+  const nombreAsesor = asesorObj ? asesorObj.nombre : (c.nombre_asesor || 'Nelson Matthiessen');
   const nota = $('accept-app-nota')?.value.trim();
+
+  // 1. Asegurar cuenta de usuario para el candidato y credenciales de acceso
+  const usuarios = DB.getUsuarios ? DB.getUsuarios() : [];
+  const candCorreo = (c.correo && !c.correo.includes('No registrado') ? c.correo : `candidato_${c.id.slice(0, 6)}@jnpalabras.com`).trim();
+  let user = usuarios.find(u => u.correo && u.correo.toLowerCase() === candCorreo.toLowerCase());
+  let tempPassword = '';
+  let isNewUser = false;
+
+  if (!user) {
+    isNewUser = true;
+    tempPassword = 'JN-' + Math.floor(1000 + Math.random() * 9000) + '!';
+    user = await DB.createUsuario({
+      nombre: c.nombre,
+      correo: candCorreo,
+      password: tempPassword,
+      password_hash: tempPassword,
+      roles: ['Candidato'],
+      rol_principal: 'Candidato',
+      id_candidato: c.id,
+      telefono: c.telefono,
+      activo: true
+    });
+  } else {
+    tempPassword = user.password || 'JN-Alemania2026!';
+    if (!user.roles.includes('Candidato')) {
+      user.roles.push('Candidato');
+    }
+    user.id_candidato = c.id;
+  }
 
   const updatePayload = {
     especialidad: especialidad,
@@ -5394,7 +5515,9 @@ async function confirmAcceptApplication(id) {
     estado_solicitud: 'Aprobada',
     estado_proceso: '1er contacto, reclutamiento',
     id_asesor: idAsesor,
-    nombre_asesor: asesorObj ? asesorObj.nombre : (c.nombre_asesor || 'Asesor Asignado'),
+    nombre_asesor: nombreAsesor,
+    id_usuario: user ? user.id : c.id_usuario,
+    correo: candCorreo,
     fecha_aprobacion: new Date().toISOString(),
     aprobado_por: State.currentUser ? State.currentUser.nombre : 'Asesor JN Palabras'
   };
@@ -5407,19 +5530,36 @@ async function confirmAcceptApplication(id) {
     id_candidato: c.id,
     autor: autor,
     tipo: 'Aprobación de Solicitud',
-    contenido: `[Solicitud Aprobada] La solicitud de aplicación web ha sido aceptada por ${autor}. Perfil de candidato formalmente creado e integrado al programa. ${nota ? 'Nota adicional: ' + nota : ''}`
+    contenido: `[Solicitud Aprobada] La solicitud de aplicación web ha sido aceptada por ${autor}. Perfil formalmente integrado al programa. ${nota ? 'Nota adicional: ' + nota : ''}`
+  });
+
+  // Bitácora de envío de credenciales
+  DB.addNota({
+    id_candidato: c.id,
+    autor: 'Sistema JN Palabras',
+    tipo: 'Envío de Credenciales',
+    contenido: `📧 Acceso al portal de seguimiento enviado al correo ${candCorreo}. Usuario: ${candCorreo} | Contraseña provisional: ${tempPassword}. Asesor asignado: ${nombreAsesor}.`
   });
 
   // Notificar al candidato y al asesor
   DB.addNotificacion({
-    id_usuario_dest: c.id_usuario || c.id,
+    id_usuario_dest: user ? user.id : c.id,
     tipo: 'General',
-    titulo: '🎉 ¡Solicitud Aprobada!',
-    mensaje: `Tu solicitud ha sido aprobada por tu asesor ${updatePayload.nombre_asesor}. Tu perfil ya está formalmente integrado al programa.`
+    titulo: '🎉 ¡Bienvenido a JN Palabras! Solicitud Aprobada',
+    mensaje: `Tu solicitud fue aprobada. Tus credenciales de acceso fueron enviadas a ${candCorreo}. Tu asesor es ${nombreAsesor}.`
   });
 
   closeModal('modal-accept-application');
   showToast('🎉 ¡Solicitud Aprobada!', `El perfil de ${c.nombre} ha sido creado e integrado al programa con éxito.`, 'success', 6000);
+
+  // Mostrar modal interactivo con el despacho de credenciales
+  showCandidateCredentialsSentModal({
+    candidato: c,
+    correo: candCorreo,
+    password: tempPassword,
+    asesor: nombreAsesor,
+    isNewUser: isNewUser
+  });
 
   // Re-render
   if (State.currentSidebar === 'candidato-perfil') {
@@ -5427,6 +5567,75 @@ async function confirmAcceptApplication(id) {
   } else {
     renderDashboard(State.activeRole, State.currentSidebar);
   }
+}
+
+function showCandidateCredentialsSentModal({ candidato, correo, password, asesor, isNewUser }) {
+  const modalHtml = `
+    <div class="modal-overlay visible open" id="modal-credentials-sent" role="dialog" aria-modal="true" style="z-index:100000;" onclick="if(event.target===this) closeModal('modal-credentials-sent')">
+      <div class="modal modal-card" style="max-width:620px;width:95%;border-radius:24px;padding:0;overflow:hidden;background:#ffffff;box-shadow:0 25px 50px -12px rgba(0,0,0,0.3);">
+        <div style="background:#059669;color:#ffffff;padding:22px 28px;display:flex;align-items:center;justify-content:space-between;">
+          <div style="display:flex;align-items:center;gap:14px;">
+            <div style="width:46px;height:46px;border-radius:14px;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:1.4rem;">
+              ✉️
+            </div>
+            <div>
+              <div style="font-weight:800;font-size:1.25rem;font-family:var(--font-heading);">¡Acceso Enviado al Correo!</div>
+              <div style="font-size:0.8rem;opacity:0.9;">Cuenta activada para seguimiento de proceso en JN Palabras</div>
+            </div>
+          </div>
+          <button onclick="closeModal('modal-credentials-sent')" style="background:none;border:none;color:#ffffff;font-size:1.4rem;cursor:pointer;">✕</button>
+        </div>
+
+        <div style="padding:24px 28px;">
+          <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:16px;padding:16px;margin-bottom:18px;">
+            <div style="font-size:0.85rem;color:#166534;font-weight:700;margin-bottom:10px;">
+              🚀 Se ha despachado el correo electrónico oficial con las credenciales de ingreso:
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;background:#ffffff;padding:12px 16px;border-radius:12px;border:1px solid #dcfce7;font-size:0.825rem;">
+              <div>
+                <span style="color:#64748b;font-weight:600;">Destinatario / Usuario:</span><br>
+                <strong style="color:#0f172a;">${escapeHtml(correo)}</strong>
+              </div>
+              <div>
+                <span style="color:#64748b;font-weight:600;">Contraseña Provisional:</span><br>
+                <strong style="color:#801020;font-family:monospace;font-size:0.95rem;">${escapeHtml(password)}</strong>
+              </div>
+              <div style="grid-column:span 2;border-top:1px dashed #e2e8f0;padding-top:8px;">
+                <span style="color:#64748b;font-weight:600;">Asesor Oficial Responsable:</span><br>
+                <strong style="color:#0f172a;">${escapeHtml(asesor)}</strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- Vista Previa del Email Despachado -->
+          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:14px;padding:16px;font-size:0.8rem;color:#334155;line-height:1.5;max-height:170px;overflow-y:auto;font-family:monospace;">
+            <div style="font-weight:700;color:#0f172a;margin-bottom:6px;">Asunto: 🎉 ¡Bienvenido a JN Palabras! Acceso a tu portal de candidato</div>
+            <div>Estimado/a ${escapeHtml(candidato.nombre)},</div><br>
+            <div>Tu solicitud al programa de homologación e inserción laboral en Alemania con JN Palabras ha sido APROBADA. Puedes ingresar a tu cuenta de seguimiento en tiempo real con las siguientes credenciales:</div>
+            <div style="margin:8px 0;padding:8px 12px;background:#ffffff;border:1px solid #cbd5e1;border-radius:8px;">
+              <strong>Portal:</strong> ${window.location.origin || 'https://jnpalabras.com'}<br>
+              <strong>Usuario:</strong> ${escapeHtml(correo)}<br>
+              <strong>Contraseña:</strong> ${escapeHtml(password)}
+            </div>
+            <div>Tu asesor asignado para acompañarte en tu homologación y visado es: <strong>${escapeHtml(asesor)}</strong>.</div>
+          </div>
+        </div>
+
+        <div style="background:#f8fafc;border-top:1px solid #e2e8f0;padding:16px 28px;display:flex;justify-content:space-between;align-items:center;">
+          <button class="btn btn-outline" onclick="navigator.clipboard.writeText('Usuario: ${escapeHtml(correo)}\\nContraseña: ${escapeHtml(password)}'); showToast('Copiado', 'Credenciales copiadas al portapapeles', 'info');" style="border-radius:12px;font-weight:600;display:inline-flex;align-items:center;gap:6px;">
+            📋 Copiar Credenciales
+          </button>
+          <button class="btn btn-primary" onclick="closeModal('modal-credentials-sent')" style="background:#059669;border-color:#059669;border-radius:12px;font-weight:700;padding:8px 22px;">
+            Entendido / Continuar
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  let existing = $('modal-credentials-sent');
+  if (existing) existing.remove();
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
 }
 
 function openRejectApplicationModal(id) {
@@ -5842,12 +6051,14 @@ function openCandidateDossierModal(id, initialTab = 'cv') {
             </div>
             <div>
               <div style="font-weight:800;font-size:1.3rem;line-height:1.2;font-family:var(--font-heading);">${c.nombre}</div>
-              <div style="font-size:0.8rem;opacity:0.9;display:flex;align-items:center;gap:10px;margin-top:3px;">
+              <div style="font-size:0.8rem;opacity:0.9;display:flex;align-items:center;gap:10px;margin-top:3px;flex-wrap:wrap;">
                 <span>${especialidad} · ${subesp}</span>
                 <span>•</span>
                 <span>${ciudad}, ${pais}</span>
                 <span>•</span>
                 <span style="background:rgba(255,255,255,0.2);padding:2px 8px;border-radius:10px;">ID: ${c.id.slice(0,8)}</span>
+                <span>•</span>
+                <span style="background:rgba(255,255,255,0.2);padding:2px 8px;border-radius:10px;">👤 Asesor: <strong>${escapeHtml(c.nombre_asesor || 'Nelson Matthiessen')}</strong></span>
               </div>
             </div>
           </div>
@@ -5883,11 +6094,13 @@ function openCandidateDossierModal(id, initialTab = 'cv') {
               <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
                 <!-- Botones Switch: Ver Plantilla / Crear / Modificar -->
                 <div style="display:inline-flex;background:#e2e8f0;padding:4px;border-radius:12px;gap:4px;">
-                  <button type="button" id="btn-dossier-mode-preview" onclick="switchDossierCVMode('${c.id}', 'preview')" style="border-radius:9px;padding:7px 16px;font-weight:700;font-size:0.82rem;background:#801020;color:#ffffff;border:none;cursor:pointer;transition:all 0.2s ease;">
-                    👁️ Ver Plantilla Oficial
+                  <button type="button" id="btn-dossier-mode-preview" onclick="switchDossierCVMode('${c.id}', 'preview')" style="border-radius:9px;padding:7px 16px;font-weight:700;font-size:0.82rem;background:#801020;color:#ffffff;border:none;cursor:pointer;transition:all 0.2s ease;display:flex;align-items:center;gap:6px;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    Ver Plantilla Oficial
                   </button>
-                  <button type="button" id="btn-dossier-mode-edit" onclick="switchDossierCVMode('${c.id}', 'edit')" style="border-radius:9px;padding:7px 16px;font-weight:700;font-size:0.82rem;background:transparent;color:#475569;border:none;cursor:pointer;transition:all 0.2s ease;">
-                    ✏️ Crear / Modificar
+                  <button type="button" id="btn-dossier-mode-edit" onclick="switchDossierCVMode('${c.id}', 'edit')" style="border-radius:9px;padding:7px 16px;font-weight:700;font-size:0.82rem;background:transparent;color:#475569;border:none;cursor:pointer;transition:all 0.2s ease;display:flex;align-items:center;gap:6px;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                    Crear / Modificar
                   </button>
                 </div>
 
@@ -5896,7 +6109,8 @@ function openCandidateDossierModal(id, initialTab = 'cv') {
                   Imprimir / PDF
                 </button>
                 <button type="button" class="btn btn-outline btn-sm" onclick="closeModal('modal-candidate-dossier-dialog');openCVForCandidate('${c.id}')" title="Abrir en Gestor Avanzado" style="border-radius:12px;font-weight:700;display:flex;align-items:center;gap:6px;">
-                  ⚙️ Gestor Avanzado
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                  Gestor Avanzado
                 </button>
               </div>
             </div>
@@ -5928,25 +6142,55 @@ function openCandidateDossierModal(id, initialTab = 'cv') {
             </div>
 
             <div style="display:flex;flex-direction:column;gap:12px;">
-              ${getCandidateDocumentsList(c).map(doc => `
-                <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;background:#ffffff;border:1px solid #e2e8f0;border-radius:16px;box-shadow:0 2px 6px rgba(0,0,0,0.02);">
-                  <div style="display:flex;align-items:center;gap:16px;">
-                    <div style="width:40px;height:40px;border-radius:12px;background:#fdf2f4;color:#801020;display:flex;align-items:center;justify-content:center;">
-                      ${doc.icon}
+              ${(() => {
+                const docList = getCandidateDocumentsList(c);
+                if (docList.length === 0) {
+                  return `
+                    <div style="text-align:center;padding:36px 20px;background:#ffffff;border:2px dashed #cbd5e1;border-radius:16px;">
+                      <div style="margin-bottom:8px;color:#94a3b8;display:flex;justify-content:center;">
+                        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="9" y1="15" x2="15" y2="15"></line></svg>
+                      </div>
+                      <div style="font-weight:700;color:#1e293b;font-size:0.95rem;">No hay documentos en el expediente</div>
+                      <div style="font-size:0.8rem;color:#64748b;margin-top:4px;margin-bottom:14px;">Todos los documentos han sido retirados o aún no se han adjuntado.</div>
+                      <button class="btn btn-primary btn-xs" onclick="openUploadDocModal('${c.id}')" style="background:#801020;border-color:#801020;border-radius:10px;">Subir Primer Documento</button>
                     </div>
-                    <div>
-                      <div style="font-weight:700;color:#1e293b;font-size:0.95rem;">${escapeHtml(doc.nombre)}</div>
-                      <div style="font-size:0.8rem;color:#64748b;margin-top:2px;">${escapeHtml(doc.subtitulo)}</div>
+                  `;
+                }
+                return docList.map(doc => `
+                  <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;background:#ffffff;border:1px solid #e2e8f0;border-radius:16px;box-shadow:0 2px 6px rgba(0,0,0,0.02);gap:12px;flex-wrap:wrap;">
+                    <div style="display:flex;align-items:center;gap:16px;min-width:240px;flex:1;">
+                      <div style="width:40px;height:40px;border-radius:12px;background:#fdf2f4;color:#801020;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                        ${doc.icon}
+                      </div>
+                      <div style="overflow:hidden;">
+                        <div style="font-weight:700;color:#1e293b;font-size:0.95rem;text-overflow:ellipsis;white-space:nowrap;overflow:hidden;" title="${escapeHtml(doc.nombre)}">${escapeHtml(doc.nombre)}</div>
+                        <div style="font-size:0.8rem;color:#64748b;margin-top:2px;">${escapeHtml(doc.subtitulo)}</div>
+                      </div>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                      <div style="display:flex;align-items:center;gap:6px;">
+                        <span style="font-size:0.75rem;font-weight:700;color:#64748b;">Estatus:</span>
+                        <select class="doc-status-select" onchange="cambiarEstadoDocumentoCandidato('${c.id}', '${doc.id}', this.value)" style="padding:4px 8px;font-size:0.75rem;font-weight:700;border-radius:10px;border:1px solid #cbd5e1;background:#f8fafc;color:${doc.badgeColor || '#10b981'};cursor:pointer;">
+                          <option value="Validado" ${doc.badgeLabel === 'VALIDADO' || doc.estado === 'Validado' || doc.estado === 'Aprobado' ? 'selected' : ''}>✅ Validado</option>
+                          <option value="Certificado" ${doc.badgeLabel === 'CERTIFICADO' || doc.badgeLabel === 'HOMOLOGADO' || doc.estado === 'Certificado' ? 'selected' : ''}>📜 Certificado</option>
+                          <option value="En Revisión" ${doc.badgeLabel === 'EN REVISIÓN' || doc.estado === 'En Revisión' ? 'selected' : ''}>🔄 En Revisión</option>
+                          <option value="Esperando Validación" ${doc.badgeLabel === 'ESPERANDO VALIDACIÓN' || doc.estado === 'Esperando Validación' ? 'selected' : ''}>⏳ Esperando Validación</option>
+                          <option value="Rechazado" ${doc.badgeLabel === 'RECHAZADO' || doc.estado === 'Rechazado' ? 'selected' : ''}>❌ Rechazado</option>
+                          <option value="Pendiente" ${doc.badgeLabel === 'PENDIENTE' || doc.estado === 'Pendiente' ? 'selected' : ''}>⚪ Pendiente</option>
+                        </select>
+                      </div>
+                      <button class="btn btn-outline btn-xs" onclick="openCandidateDocumentViewer('${c.id}', '${doc.id}')" style="border-radius:10px;padding:6px 14px;font-weight:700;display:inline-flex;align-items:center;gap:4px;">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                        Ver
+                      </button>
+                      <button class="btn btn-outline btn-xs" onclick="eliminarDocumentoCandidato('${c.id}', '${doc.id}', '${escapeHtml(doc.nombre)}')" title="Quitar este documento del expediente" style="border-radius:10px;padding:6px 12px;font-weight:600;color:#dc2626;border-color:#fecdd3;background:#fff5f5;display:inline-flex;align-items:center;gap:4px;cursor:pointer;">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                        Eliminar
+                      </button>
                     </div>
                   </div>
-                  <div style="display:flex;align-items:center;gap:14px;">
-                    <span style="font-size:0.75rem;font-weight:700;padding:4px 12px;border-radius:12px;background:${doc.badgeColor || '#10b981'}15;color:${doc.badgeColor || '#10b981'};border:1px solid ${doc.badgeColor || '#10b981'}30;">
-                      ${doc.badgeLabel || doc.estado}
-                    </span>
-                    <button class="btn btn-outline btn-xs" onclick="showToast('Expediente', 'Visualizando documento: ${escapeHtml(doc.nombre)}', 'info')" style="border-radius:10px;">Ver</button>
-                  </div>
-                </div>
-              `).join('')}
+                `).join('');
+              })()}
             </div>
           </div>
         </div>
@@ -6526,7 +6770,7 @@ function renderAsesorCVBuilder() {
 
 function renderCandCV() {
   const userId = State.currentUser?.id;
-  const cand = DB.getCandidatos().find(c => c.id_usuario === userId) || DB.getCandidatos()[0];
+  const cand = (typeof getActiveCandidateForPortal === 'function' ? getActiveCandidateForPortal() : null) || DB.getCandidatos().find(c => c.id_usuario === userId) || DB.getCandidatos()[0];
   const cv = State.cvDraft || (cand ? DB.getCV(cand.id) : null);
   const activeTab = State.cvActiveTab || 'edit';
 
@@ -7825,130 +8069,250 @@ function simulateUpload() { showToast('Subida simulada', 'En producción se inte
 // ──────────────────────────────────────────────────────────────────
 // ★ DASHBOARD 4: CANDIDATO
 // ──────────────────────────────────────────────────────────────────
+function getActiveCandidateForPortal() {
+  const userId = State.currentUser ? State.currentUser.id : null;
+  const userEmail = State.currentUser ? (State.currentUser.correo || '').toLowerCase() : '';
+  const list = DB.getCandidatos ? DB.getCandidatos() : [];
+
+  // 1. Buscar por id_usuario vinculado
+  let cand = list.find(c => c.id_usuario && c.id_usuario === userId);
+  // 2. Buscar por correo
+  if (!cand && userEmail) {
+    cand = list.find(c => c.correo && c.correo.toLowerCase() === userEmail);
+  }
+  // 3. Buscar si currentUser tiene id_candidato
+  if (!cand && State.currentUser && State.currentUser.id_candidato) {
+    cand = list.find(c => c.id === State.currentUser.id_candidato);
+  }
+  // 4. Fallback al primer candidato real existente
+  if (!cand) {
+    cand = list[0];
+  }
+  return cand;
+}
+
 function renderCandRoadmap() {
-  const userId = State.currentUser.id;
-  const cand = DB.getCandidatos().find(c => c.id_usuario === userId) || DB.getCandidatos()[0];
-  const steps = [
-    { key:'Visa y Migración',   icon:'🛂', desc:'Homologación Anerkennung y trámites consulares.', done:true,    active:false },
-    { key:'Idioma Alemán',      icon:'🗣️', desc:'Curso intensivo A1 → C1 / Fachsprachenprüfung.', done:false,   active:true  },
-    { key:'Interculturalidad',  icon:'🌍', desc:'Coaching de adaptación sociocultural.', done:false,  active:false },
-    { key:'Vida en Alemania',   icon:'🏘️', desc:'Vivienda, empadronamiento, seguros y cuentas.', done:false,active:false }
-  ];
-  const progreso = Math.round((steps.filter(s=>s.done).length / steps.length) * 100);
+  const cand = getActiveCandidateForPortal();
+  if (!cand) {
+    return `<div class="card p-6 text-center">No hay datos de candidato disponibles.</div>`;
+  }
+
+  const { activeIndex, progressPercent, steps, currentPhase, isLost } = getCandidateProcessSteps(cand.estado_proceso);
+  const docList = getCandidateDocumentsList(cand);
+  const totalDocs = docList.length;
+  const validadosDocs = docList.filter(d => !d.isPending && (d.badgeLabel === 'VALIDADO' || d.badgeLabel === 'CERTIFICADO' || d.badgeLabel === 'HOMOLOGADO' || d.badgeLabel === 'VALIDADO ZAV')).length;
+  const asesorNombre = cand.nombre_asesor || 'Nelson Matthiessen';
 
   return `
-    <div class="page-header">
+    <div class="page-header" style="margin-bottom:20px;">
       <div>
-        <h1 class="page-title">Mi Hoja de Ruta</h1>
-        <p class="page-subtitle">Tu plan personalizado de 4 pasos hacia Alemania</p>
+        <h1 class="page-title" style="font-family:var(--font-heading);color:var(--wine-800);">Mi Portal de Candidato · Seguimiento de Proceso</h1>
+        <p class="page-subtitle">Acompañamiento integral hacia tu homologación médica e inserción laboral en Alemania</p>
       </div>
     </div>
 
-    <!-- Candidato info -->
-    <div class="card" style="background:linear-gradient(160deg,var(--theme-sidebar-bg),var(--theme-sidebar-hover));color:#fff;">
-      <div class="card-body" style="display:flex;align-items:center;gap:20px;">
-        <div class="avatar avatar-lg" style="background:var(--theme-accent);font-size:1.25rem;">${getInitials(cand.nombre)}</div>
-        <div style="flex:1;">
-          <div style="font-size:1.25rem;font-weight:800;color:#fff;">${cand.nombre}</div>
-          <div style="font-size:.9rem;color:var(--slate-400);">${cand.especialidad} · ${cand.pais} ${countryFlag(cand.pais)}</div>
-          <div style="display:flex;gap:8px;margin-top:8px;">
-            <span class="badge badge-gold">Nivel ${cand.nivel_aleman}</span>
-            <span class="badge badge-warning">${cand.estado_proceso}</span>
+    <!-- Hero Card Idéntica al Perfil Oficial -->
+    <div class="card" style="background:#ffffff;border:1px solid #e2e8f0;border-radius:24px;box-shadow:0 4px 15px rgba(0,0,0,0.04);margin-bottom:24px;padding:24px 28px;">
+      <div style="display:flex;align-items:center;gap:24px;flex-wrap:wrap;">
+        <div style="width:72px;height:72px;border-radius:20px;background:#801020;color:#ffffff;display:flex;align-items:center;justify-content:center;font-size:1.8rem;font-weight:800;font-family:var(--font-heading);box-shadow:0 8px 16px rgba(128,16,32,0.25);">
+          ${getInitials(cand.nombre)}
+        </div>
+        <div style="flex:1;min-width:260px;">
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+            <h2 style="margin:0;font-size:1.5rem;font-weight:800;color:#0f172a;font-family:var(--font-heading);">${escapeHtml(cand.nombre)}</h2>
+            <span style="font-size:0.75rem;font-weight:800;padding:4px 12px;border-radius:999px;background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;">
+              ✨ CANDIDATO INTEGRADO AL PROGRAMA
+            </span>
+          </div>
+          <div style="font-size:0.875rem;color:#64748b;margin-top:6px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+            <span>📍 ${escapeHtml(cand.ciudad || 'Quito')}, ${escapeHtml(cand.pais || 'Ecuador')}</span>
+            <span>•</span>
+            <span>🏥 ${escapeHtml(cand.especialidad || 'Médico General')}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;margin-top:14px;flex-wrap:wrap;">
+            <div style="background:#f8fafc;padding:6px 14px;border-radius:12px;border:1px solid #e2e8f0;font-size:0.8rem;">
+              <span style="color:#64748b;font-weight:600;">Idioma:</span>
+              <strong style="color:#0f172a;margin-left:4px;">Alemán ${escapeHtml(cand.nivel_aleman || 'A1')}</strong>
+            </div>
+            <div style="background:#fdf2f4;padding:6px 14px;border-radius:12px;border:1px solid #fecdd3;font-size:0.8rem;">
+              <span style="color:#801020;font-weight:600;">Asesor Oficial Responsable:</span>
+              <strong style="color:#801020;margin-left:4px;">👤 ${escapeHtml(asesorNombre)}</strong>
+            </div>
           </div>
         </div>
-        <div style="text-align:right;">
-          <div style="font-size:2.5rem;font-weight:900;color:var(--theme-accent);">${progreso}%</div>
-          <div style="font-size:.8125rem;color:var(--theme-sidebar-text);">Completado</div>
-        </div>
-      </div>
-      <div style="padding:0 24px 24px;">
-        <div class="roadmap-bar">
-          ${steps.map(s => `<div class="roadmap-segment ${s.done?'done':s.active?'active':''}"></div>`).join('')}
+        <div style="text-align:right;background:#f8fafc;padding:16px 20px;border-radius:18px;border:1px solid #e2e8f0;">
+          <div style="font-size:0.8rem;color:#64748b;font-weight:600;margin-bottom:2px;">Avance del Proceso</div>
+          <div style="font-size:2rem;font-weight:900;color:#801020;font-family:var(--font-heading);">${progressPercent}%</div>
+          <div style="font-size:0.75rem;color:#10b981;font-weight:700;">${validadosDocs} de ${totalDocs} docs validados</div>
         </div>
       </div>
     </div>
 
-    <div class="roadmap-steps">
-      ${steps.map((s,i) => `
-        <div class="roadmap-step ${s.done?'done':s.active?'active':'pending'} animate-fadeInUp" style="animation-delay:${i*100}ms;">
-          <div class="roadmap-step-icon">${s.icon}</div>
-          <div class="roadmap-step-title">Paso ${i+1}: ${s.key}</div>
-          <div style="font-size:.8125rem;color:var(--slate-500);line-height:1.5;margin-bottom:10px;">${s.desc}</div>
-          <div class="roadmap-step-status">
-            ${s.done ? `<span class="badge badge-success">✅ Completado</span>` :
-              s.active ? `<span class="badge badge-gold">⚡ En Progreso</span>` :
-              `<span class="badge badge-slate">🔒 Pendiente</span>`}
+    <!-- Stepper de 4 Hitos y Fase Oficial (Exactamente igual al del Asesor) -->
+    <div class="candidate-standard-card" style="margin-bottom:24px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px;">
+        <div>
+          <div class="candidate-card-header-wine" style="margin-bottom:2px;">ESTADO OFICIAL DE TU PROCESO</div>
+          <div style="font-size:0.825rem;color:#64748b;">Tu expediente es gestionado de acuerdo con la regulación de la Agencia Federal de Empleo de Alemania (ZAV).</div>
+        </div>
+        <div style="display:inline-flex;align-items:center;gap:8px;padding:6px 16px;border-radius:999px;font-size:0.85rem;font-weight:800;background:${currentPhase.color}15;color:${currentPhase.color};border:1px solid ${currentPhase.color}35;">
+          <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${currentPhase.color};"></span>
+          <span>Fase ${currentPhase.number}: ${currentPhase.label}</span>
+        </div>
+      </div>
+
+      <div class="candidate-stepper-container">
+        <div class="candidate-stepper-line">
+          <div class="candidate-stepper-line-active" style="width: ${progressPercent}%; ${isLost ? 'background:#ef4444;' : ''}"></div>
+        </div>
+        ${steps.map((st, idx) => {
+          let circleClass = 'pending';
+          let statusLabel = 'PENDIENTE';
+          let statusClass = 'pending';
+          let nodeIcon = st.defaultIcon;
+
+          if (isLost) {
+            circleClass = 'pending';
+            statusLabel = 'DESCARTADO';
+            statusClass = 'pending';
+          } else if (currentPhase.number === 8 || idx < activeIndex) {
+            circleClass = 'completed';
+            statusLabel = 'COMPLETADO';
+            statusClass = 'completed';
+            nodeIcon = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+          } else if (idx === activeIndex) {
+            circleClass = 'active';
+            statusLabel = 'EN PROCESO';
+            statusClass = 'in-progress';
+            nodeIcon = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>`;
+          }
+
+          return `
+            <div class="candidate-step-node">
+              <div class="candidate-step-circle ${circleClass}">
+                ${nodeIcon}
+              </div>
+              <div class="candidate-step-label">${st.num}</div>
+              <div class="candidate-step-status ${statusClass}">${statusLabel}</div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    </div>
+
+    <!-- Accesos Rápidos para el Candidato -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:18px;margin-bottom:24px;">
+      <div class="card" style="background:#ffffff;border:1px solid #e2e8f0;border-radius:20px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,0.02);">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+          <div style="width:40px;height:40px;border-radius:12px;background:#fdf2f4;color:#801020;display:flex;align-items:center;justify-content:center;font-size:1.2rem;">
+            📁
+          </div>
+          <div>
+            <div style="font-weight:800;color:#0f172a;font-size:0.95rem;">Mi Documentación</div>
+            <div style="font-size:0.8rem;color:#64748b;">${validadosDocs} de ${totalDocs} validados</div>
           </div>
         </div>
-      `).join('')}
-    </div>
+        <p style="font-size:0.825rem;color:#475569;margin-bottom:14px;">Revisa el estado de cada documento o sube nuevos certificados para el trámite consular.</p>
+        <button class="btn btn-outline btn-sm w-full" onclick="navigateTo('cand-documentos')" style="width:100%;border-radius:10px;font-weight:700;">
+          Ir a Bóveda de Documentos →
+        </button>
+      </div>
 
-    <!-- Próximas acciones -->
-    <div class="card">
-      <div class="card-header"><h3 style="font-size:1rem;font-weight:700;">⚡ Próximas Acciones Requeridas</h3></div>
-      <div class="card-body" style="display:flex;flex-direction:column;gap:10px;">
-        <div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--warning-bg);border-radius:var(--radius-md);border-left:3px solid var(--warning);">
-          <span style="font-size:1.25rem;">📄</span>
-          <div><div style="font-weight:600;color:var(--slate-900);">Corregir Notas Académicas</div><div style="font-size:.8125rem;color:var(--slate-600);">Ver comentario del asesor en la sección de documentos.</div></div>
+      <div class="card" style="background:#ffffff;border:1px solid #e2e8f0;border-radius:20px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,0.02);">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+          <div style="width:40px;height:40px;border-radius:12px;background:#eff6ff;color:#1e40af;display:flex;align-items:center;justify-content:center;font-size:1.2rem;">
+            📄
+          </div>
+          <div>
+            <div style="font-weight:800;color:#0f172a;font-size:0.95rem;">Mi Lebenslauf Alemán</div>
+            <div style="font-size:0.8rem;color:#64748b;">Formato estándar ZAV</div>
+          </div>
         </div>
-        <div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--info-bg);border-radius:var(--radius-md);border-left:3px solid var(--info);">
-          <span style="font-size:1.25rem;">🗣️</span>
-          <div><div style="font-weight:600;color:var(--slate-900);">Preparar Simulacro B2</div><div style="font-size:.8125rem;color:var(--slate-600);">Tu próximo examen es el 28 de julio. Tu clase es hoy a las 18:00 CET.</div></div>
+        <p style="font-size:0.825rem;color:#475569;margin-bottom:14px;">Visualiza y exporta tu currículum médico oficial adaptado a la normativa hospitalaria.</p>
+        <button class="btn btn-outline btn-sm w-full" onclick="navigateTo('cand-cv')" style="width:100%;border-radius:10px;font-weight:700;">
+          Ver Hoja de Vida Oficial →
+        </button>
+      </div>
+
+      <div class="card" style="background:#ffffff;border:1px solid #e2e8f0;border-radius:20px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,0.02);">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+          <div style="width:40px;height:40px;border-radius:12px;background:#f0fdf4;color:#166534;display:flex;align-items:center;justify-content:center;font-size:1.2rem;">
+            👤
+          </div>
+          <div>
+            <div style="font-weight:800;color:#0f172a;font-size:0.95rem;">Tu Asesor Asignado</div>
+            <div style="font-size:0.8rem;color:#16a34a;">${escapeHtml(asesorNombre)}</div>
+          </div>
         </div>
+        <p style="font-size:0.825rem;color:#475569;margin-bottom:14px;">Tu asesor está disponible para guiarte en el aprendizaje del idioma y la homologación.</p>
+        <button class="btn btn-outline btn-sm w-full" onclick="showToast('Asesor en Contacto', 'Puedes coordinar con ${escapeHtml(asesorNombre)} en tus sesiones de tutoría o por correo.', 'info')" style="width:100%;border-radius:10px;font-weight:700;">
+          Contactar con mi Asesor
+        </button>
       </div>
     </div>
   `;
 }
 
 function renderCandDocumentos() {
-  const cand = DB.getCandidatos().find(c => c.id_usuario === State.currentUser.id) || DB.getCandidatos()[0];
-  const docs = DB.getDocumentos(cand.id);
-  const cats = DB.get().doc_categorias;
-  const getEstado = cat => {
-    const doc = docs.find(d => d.categoria === cat);
-    return doc ? { estado: doc.estado, comentario: doc.comentario, doc } : { estado: 'No subido', comentario:'', doc:null };
-  };
+  const cand = getActiveCandidateForPortal();
+  if (!cand) {
+    return `<div class="card p-6 text-center">No hay datos de candidato disponibles.</div>`;
+  }
+
+  const docList = getCandidateDocumentsList(cand);
+  const asesorNombre = cand.nombre_asesor || 'Nelson Matthiessen';
 
   return `
-    <div class="page-header">
-      <div><h1 class="page-title">Bóveda de Documentos</h1><p class="page-subtitle">Sube y gestiona tus documentos requeridos de forma segura (GDPR)</p></div>
+    <div class="page-header" style="margin-bottom:20px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;width:100%;">
+        <div>
+          <h1 class="page-title" style="font-family:var(--font-heading);color:var(--wine-800);">Bóveda de Documentación Oficial</h1>
+          <p class="page-subtitle">Documentos requeridos para el proceso de homologación y visado hacia Alemania (ZAV)</p>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="openUploadDocModal('${cand.id}')" style="background:#801020;border-color:#801020;border-radius:12px;display:inline-flex;align-items:center;gap:6px;font-weight:700;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+          Subir Nuevo Documento
+        </button>
+      </div>
     </div>
-    <div style="padding:12px 16px;background:var(--gold-100);border-radius:var(--radius-md);border-left:4px solid var(--gold-600);margin-bottom:8px;">
-      <span style="font-size:.875rem;font-weight:600;color:var(--gold-700);">🔒 Todos tus documentos son encriptados y almacenados en servidores seguros en la Unión Europea (Fráncfort). Cumplimiento GDPR/DSGVO garantizado.</span>
+
+    <div style="padding:14px 18px;background:#fdf2f4;border-radius:16px;border-left:4px solid #801020;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+      <div style="font-size:0.85rem;color:#801020;font-weight:600;">
+        🔒 Los documentos son validados por tu asesor <strong>${escapeHtml(asesorNombre)}</strong> conforme a los estándares de la Agencia Federal de Empleo de Alemania (ZAV).
+      </div>
+      <div style="font-size:0.8rem;color:#64748b;">
+        Sincronizado con tu perfil
+      </div>
     </div>
-    <div class="doc-grid">
-      ${cats.map(cat => {
-        const { estado, comentario, doc } = getEstado(cat.cat);
-        const estadoBadge = {
-          'Aprobado': 'badge-success', 'Rechazado': 'badge-danger',
-          'En Revisión': 'badge-warning', 'Pendiente': 'badge-slate', 'No subido': 'badge-slate'
-        }[estado] || 'badge-slate';
-        return `
-          <div class="doc-card" onclick="uploadDocSimulate('${cand.id}','${cat.cat}')">
-            <div class="doc-card-icon">${cat.icono}</div>
-            <div class="doc-card-name">${cat.cat}</div>
-            <div class="doc-card-status">
-              <span class="badge ${estadoBadge}">${estado}</span>
+
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      ${docList.map(doc => `
+        <div class="card" style="padding:18px 22px;background:#ffffff;border:1px solid #e2e8f0;border-radius:18px;display:flex;align-items:center;justify-content:space-between;gap:16px;box-shadow:0 2px 6px rgba(0,0,0,0.02);flex-wrap:wrap;">
+          <div style="display:flex;align-items:center;gap:16px;min-width:260px;flex:1;">
+            <div style="width:42px;height:42px;border-radius:12px;background:#fdf2f4;color:#801020;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              ${doc.icon}
             </div>
-            ${comentario ? `<div style="font-size:.75rem;color:var(--danger);text-align:left;margin-bottom:8px;">💬 ${comentario}</div>` : ''}
-            ${cat.requerido ? `<div style="font-size:.7rem;color:var(--slate-400);">Obligatorio</div>` : ''}
-            <button class="btn btn-outline btn-sm w-full" style="margin-top:8px;width:100%;">
-              ${estado==='No subido' ? '⬆️ Subir' : '🔄 Reemplazar'}
+            <div>
+              <div style="font-weight:800;color:#0f172a;font-size:0.95rem;">${escapeHtml(doc.nombre)}</div>
+              <div style="font-size:0.8rem;color:#64748b;margin-top:2px;">${escapeHtml(doc.subtitulo)}</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;flex-shrink:0;">
+            <span style="font-size:0.75rem;font-weight:800;padding:4px 12px;border-radius:12px;background:${doc.badgeColor || '#10b981'}15;color:${doc.badgeColor || '#10b981'};border:1px solid ${doc.badgeColor || '#10b981'}30;">
+              ${doc.badgeLabel || doc.estado}
+            </span>
+            <button class="btn btn-outline btn-xs" onclick="openCandidateDocumentViewer('${cand.id}', '${doc.id}')" style="border-radius:10px;padding:6px 14px;font-weight:700;display:inline-flex;align-items:center;gap:4px;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+              Ver Documento
+            </button>
+            <button class="btn btn-outline btn-xs" onclick="openUploadDocModal('${cand.id}')" style="border-radius:10px;padding:6px 12px;font-weight:600;color:#475569;" title="Actualizar o subir nueva versión">
+              🔄 Actualizar
             </button>
           </div>
-        `;
-      }).join('')}
+        </div>
+      `).join('')}
     </div>
   `;
-}
-
-function uploadDocSimulate(candId, categoria) {
-  showToast('Simulando subida', `Documento "${categoria}" marcado como "En Revisión". En producción se conectará a un almacenamiento seguro en la UE.`, 'info', 5000);
-  const existente = DB.getDocumentos(candId).find(d => d.categoria === categoria);
-  if (!existente) {
-    DB.addDocumento({ id_candidato: candId, nombre: `${categoria.replace(/\s+/g,'_')}.pdf`, categoria, tamano:'1.5 MB' });
-    navigateTo('cand-documentos');
-  }
 }
 
 function renderCandAula() {
@@ -10549,9 +10913,479 @@ window.submitRegistration = submitRegistration;
 window.navigateTo = navigateTo;
 window.toggleNotifPanel = toggleNotifPanel;
 // Functions for candidate document actions
+window._tempUploadedFileData = null;
+window._tempUploadedFileSize = null;
+
+function openCandidateDocumentViewer(candId, docId) {
+  const c = DB.getCandidatoById(candId);
+  if (!c) return;
+
+  const docs = getCandidateDocumentsList(c);
+  const doc = docs.find(d => d.id === docId) || docs[0];
+  if (!doc) {
+    showToast('Expediente', 'No se encontró el documento solicitado.', 'error');
+    return;
+  }
+
+  const rawName = c.nombre || 'Candidato';
+  const nameParts = getCleanCandidateNameParts(rawName);
+  const lastName = nameParts.lastName || 'Candidato';
+  const pais = c.pais || c.respuestas_elegibilidad?.country || 'España';
+
+  let docContentHtml = '';
+
+  if (doc.fileData) {
+    if (doc.fileData.startsWith('data:image')) {
+      docContentHtml = `
+        <div style="text-align:center;padding:24px;background:#0f172a;min-height:480px;display:flex;align-items:center;justify-content:center;">
+          <img src="${doc.fileData}" alt="${escapeHtml(doc.nombre)}" style="max-width:100%;max-height:550px;border-radius:12px;box-shadow:0 10px 25px rgba(0,0,0,0.5);object-fit:contain;" />
+        </div>
+      `;
+    } else {
+      docContentHtml = `
+        <div style="background:#f1f5f9;height:580px;">
+          <iframe src="${doc.fileData}" style="width:100%;height:100%;border:none;" title="${escapeHtml(doc.nombre)}"></iframe>
+        </div>
+      `;
+    }
+  } else {
+    const docNameLower = (doc.nombre || '').toLowerCase();
+    const docCatLower = (doc.categoria || '').toLowerCase();
+
+    if (docNameLower.includes('pasaporte') || docCatLower.includes('identificación')) {
+      docContentHtml = `
+        <div style="padding:28px 24px;background:linear-gradient(135deg, #1e293b 0%, #0f172a 100%);color:#f8fafc;display:flex;justify-content:center;">
+          <div style="max-width:560px;width:100%;background:#ffffff;color:#1e293b;border-radius:18px;overflow:hidden;box-shadow:0 20px 40px rgba(0,0,0,0.4);border:1px solid #cbd5e1;">
+            <div style="background:#801020;color:#ffffff;padding:16px 20px;display:flex;justify-content:space-between;align-items:center;">
+              <div>
+                <div style="font-size:0.75rem;letter-spacing:1px;font-weight:700;color:#fecdd3;text-transform:uppercase;">Unión Europea · Reino de España</div>
+                <div style="font-size:1.15rem;font-weight:900;letter-spacing:0.5px;">PASAPORTE / PASSPORT</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:6px;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"></rect><circle cx="12" cy="10" r="2"></circle><line x1="8" y1="16" x2="16" y2="16"></line></svg>
+                <span style="font-size:0.75rem;font-weight:800;color:#fef08a;">CHIP BIOMÉTRICO</span>
+              </div>
+            </div>
+
+            <div style="padding:20px;display:flex;gap:18px;background:#fbfcfe;border-bottom:2px dashed #e2e8f0;flex-wrap:wrap;">
+              <div style="width:110px;height:140px;background:#e2e8f0;border-radius:12px;border:2px solid #cbd5e1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#64748b;font-weight:800;flex-shrink:0;position:relative;overflow:hidden;">
+                <svg width="55" height="55" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.8"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                <span style="font-size:0.65rem;color:#475569;margin-top:4px;">FOTO OFICIAL</span>
+                <div style="position:absolute;bottom:0;left:0;right:0;background:rgba(128,16,32,0.85);color:#fff;font-size:0.6rem;text-align:center;padding:2px 0;">VERIFICADO</div>
+              </div>
+
+              <div style="flex:1;min-width:220px;display:grid;grid-template-columns:1fr 1fr;gap:10px 14px;font-size:0.8rem;">
+                <div>
+                  <div style="font-size:0.65rem;font-weight:700;color:#64748b;text-transform:uppercase;">Tipo / País</div>
+                  <div style="font-weight:800;color:#0f172a;">P / ESP</div>
+                </div>
+                <div>
+                  <div style="font-size:0.65rem;font-weight:700;color:#64748b;text-transform:uppercase;">Pasaporte Nº</div>
+                  <div style="font-weight:800;color:#801020;font-family:monospace;font-size:0.9rem;">ESP-94821048</div>
+                </div>
+                <div style="grid-column:span 2;">
+                  <div style="font-size:0.65rem;font-weight:700;color:#64748b;text-transform:uppercase;">Apellidos y Nombres</div>
+                  <div style="font-weight:800;color:#0f172a;font-size:0.95rem;">${escapeHtml(c.nombre).toUpperCase()}</div>
+                </div>
+                <div>
+                  <div style="font-size:0.65rem;font-weight:700;color:#64748b;text-transform:uppercase;">Nacionalidad</div>
+                  <div style="font-weight:800;color:#0f172a;">${escapeHtml(pais).toUpperCase()}</div>
+                </div>
+                <div>
+                  <div style="font-size:0.65rem;font-weight:700;color:#64748b;text-transform:uppercase;">Lugar Expedición</div>
+                  <div style="font-weight:800;color:#0f172a;">${escapeHtml(c.ciudad || 'Valencia')}</div>
+                </div>
+                <div>
+                  <div style="font-size:0.65rem;font-weight:700;color:#64748b;text-transform:uppercase;">Fecha Expedición</div>
+                  <div style="font-weight:800;color:#0f172a;">12/2018</div>
+                </div>
+                <div>
+                  <div style="font-size:0.65rem;font-weight:700;color:#64748b;text-transform:uppercase;">Válido Hasta</div>
+                  <div style="font-weight:800;color:#15803d;">12/2028 (VIGENTE)</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- MRZ (Machine Readable Zone) -->
+            <div style="background:#f1f5f9;padding:12px 18px;font-family:monospace;font-size:0.75rem;letter-spacing:2px;color:#334155;line-height:1.4;overflow-x:auto;">
+              <div>P&lt;ESP${lastName.toUpperCase()}&lt;&lt;${(c.nombre || '').split(' ')[0].toUpperCase()}&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;</div>
+              <div>94821048&lt;8ESP9405128F2812318&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;04</div>
+            </div>
+
+            <!-- Validación ZAV -->
+            <div style="background:#ecfdf5;border-top:1px solid #a7f3d0;padding:10px 18px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                <span style="font-size:0.75rem;font-weight:800;color:#065f46;">ZAV-Prüfung: IDENTITÄTSDOKUMENT GEPRÜFT UND GÜLTIG</span>
+              </div>
+              <span style="font-size:0.7rem;font-weight:700;color:#047857;background:#d1fae5;padding:2px 8px;border-radius:6px;">ID: ${escapeHtml(c.id)}</span>
+            </div>
+          </div>
+        </div>
+      `;
+    } else if (docNameLower.includes('diploma') || docNameLower.includes('titulo') || docCatLower.includes('médica') || docCatLower.includes('formación')) {
+      docContentHtml = `
+        <div style="padding:28px 20px;background:#f8fafc;display:flex;justify-content:center;">
+          <div style="max-width:620px;width:100%;background:#ffffff;border:10px double #cbd5e1;padding:32px 28px;border-radius:12px;box-shadow:0 15px 35px rgba(0,0,0,0.06);position:relative;">
+            <div style="text-align:center;margin-bottom:18px;">
+              <div style="font-size:0.8rem;letter-spacing:2px;font-weight:800;color:#801020;text-transform:uppercase;">Reino de España · Ministerio de Educación y Universidades</div>
+              <div style="font-size:1.4rem;font-weight:900;color:#0f172a;margin-top:6px;font-family:'Playfair Display',serif;">TÍTULO OFICIAL UNIVERSITARIO</div>
+              <div style="width:80px;height:2px;background:#801020;margin:10px auto;"></div>
+            </div>
+
+            <div style="text-align:center;font-size:0.9rem;color:#334155;line-height:1.6;margin-bottom:18px;">
+              En nombre de Su Majestad el Rey y por la autoridad que le confiere la Ley del Estado, la Universidad certifica que:
+              <div style="font-size:1.25rem;font-weight:900;color:#0f172a;margin:10px 0;letter-spacing:0.5px;">${escapeHtml(c.nombre).toUpperCase()}</div>
+              ha superado con éxito el plan de estudios conducente al grado de:
+              <div style="font-size:1.1rem;font-weight:800;color:#801020;margin-top:6px;">GRADUADA EN ENFERMERÍA (GERIATRÍA)</div>
+              <div style="font-size:0.8rem;color:#64748b;">Mención en Cuidados Geriátricos y Atención a Personas en Situación de Dependencia</div>
+            </div>
+
+            <!-- Apostilla de La Haya -->
+            <div style="background:#f1f5f9;border:1px solid #cbd5e1;border-radius:10px;padding:12px 16px;margin-top:16px;font-size:0.75rem;color:#334155;">
+              <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #e2e8f0;padding-bottom:6px;margin-bottom:6px;">
+                <span style="font-weight:800;color:#0f172a;">APOSTILLE (Convention de La Haye du 5 Octobre 1961)</span>
+                <span style="color:#15803d;font-weight:800;">REGISTRADA</span>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;">
+                <div><strong>1. País:</strong> España</div>
+                <div><strong>2. Acto público:</strong> Título Universitario</div>
+                <div><strong>3. Expedido en:</strong> Valencia</div>
+                <div><strong>4. Homologación:</strong> Convalidado Automático UE</div>
+              </div>
+            </div>
+
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:20px;border-top:1px solid #e2e8f0;padding-top:14px;flex-wrap:wrap;gap:8px;">
+              <div style="font-size:0.72rem;color:#64748b;">
+                <div>Código Seguro de Verificación (CSV):</div>
+                <div style="font-family:monospace;font-weight:800;color:#0f172a;">CSV-ES-9428-1102-UE58</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:6px;background:#ecfdf5;color:#047857;padding:6px 12px;border-radius:8px;font-size:0.75rem;font-weight:800;border:1px solid #a7f3d0;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                CERTIFICADO & HOMOLOGADO (UE)
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    } else if (docNameLower.includes('aleman') || docNameLower.includes('idioma') || docNameLower.includes('telc') || docNameLower.includes('goethe') || docCatLower.includes('lingüística')) {
+      docContentHtml = `
+        <div style="padding:28px 20px;background:#f8fafc;display:flex;justify-content:center;">
+          <div style="max-width:620px;width:100%;background:#ffffff;border:2px solid #cbd5e1;padding:32px 28px;border-radius:14px;box-shadow:0 15px 35px rgba(0,0,0,0.06);">
+            <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #801020;padding-bottom:14px;margin-bottom:20px;">
+              <div>
+                <div style="font-size:1.3rem;font-weight:900;color:#0f172a;letter-spacing:0.5px;">telc DEUTSCH B2 · PFLEGE</div>
+                <div style="font-size:0.8rem;color:#64748b;font-weight:700;">ZERTIFIKAT DEUTSCH FÜR MEDIZINISCHE FACHKRÄFTE</div>
+              </div>
+              <div style="background:#801020;color:#ffffff;padding:6px 14px;border-radius:8px;font-weight:900;font-size:1rem;">B2</div>
+            </div>
+
+            <div style="margin-bottom:20px;">
+              <div style="font-size:0.8rem;color:#64748b;font-weight:700;">Name des Teilnehmers / Candidate Name:</div>
+              <div style="font-size:1.2rem;font-weight:900;color:#0f172a;margin-top:2px;">${escapeHtml(c.nombre)}</div>
+              <div style="font-size:0.8rem;color:#64748b;margin-top:2px;">Geburtsort: Valencia, Spanien · Prüfungszentrum: telc Examination Center #4820</div>
+            </div>
+
+            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;margin-bottom:20px;">
+              <div style="background:#e2e8f0;padding:8px 14px;font-size:0.75rem;font-weight:800;color:#334155;display:grid;grid-template-columns:2fr 1fr 1fr;">
+                <div>PRÜFUNGSMODUL</div>
+                <div style="text-align:center;">MAX</div>
+                <div style="text-align:right;">ERGEBNIS</div>
+              </div>
+              <div style="padding:10px 14px;font-size:0.82rem;display:grid;grid-template-columns:2fr 1fr 1fr;border-bottom:1px solid #f1f5f9;">
+                <div>Leseverstehen & Fachlexik Pflege</div>
+                <div style="text-align:center;color:#64748b;">25.0</div>
+                <div style="text-align:right;font-weight:800;color:#15803d;">23.5 Punkte</div>
+              </div>
+              <div style="padding:10px 14px;font-size:0.82rem;display:grid;grid-template-columns:2fr 1fr 1fr;border-bottom:1px solid #f1f5f9;">
+                <div>Hörverstehen im Krankenhausalltag</div>
+                <div style="text-align:center;color:#64748b;">25.0</div>
+                <div style="text-align:right;font-weight:800;color:#15803d;">24.0 Punkte</div>
+              </div>
+              <div style="padding:10px 14px;font-size:0.82rem;display:grid;grid-template-columns:2fr 1fr 1fr;border-bottom:1px solid #f1f5f9;">
+                <div>Schriftlicher Ausdruck (Pflegebericht)</div>
+                <div style="text-align:center;color:#64748b;">25.0</div>
+                <div style="text-align:right;font-weight:800;color:#15803d;">22.5 Punkte</div>
+              </div>
+              <div style="padding:10px 14px;font-size:0.82rem;display:grid;grid-template-columns:2fr 1fr 1fr;border-bottom:1px solid #f1f5f9;">
+                <div>Mündlicher Ausdruck (Patientengespräch)</div>
+                <div style="text-align:center;color:#64748b;">25.0</div>
+                <div style="text-align:right;font-weight:800;color:#15803d;">24.0 Punkte</div>
+              </div>
+              <div style="padding:12px 14px;font-size:0.9rem;display:grid;grid-template-columns:2fr 1fr 1fr;background:#ecfdf5;font-weight:800;color:#065f46;">
+                <div>GESAMTPUNKTZAHL</div>
+                <div style="text-align:center;">100.0</div>
+                <div style="text-align:right;color:#047857;font-size:1rem;">94 / 100 (SEHR GUT)</div>
+              </div>
+            </div>
+
+            <div style="display:flex;justify-content:space-between;align-items:center;font-size:0.75rem;color:#64748b;flex-wrap:wrap;gap:8px;">
+              <div>Zertifikatsnummer: <strong style="color:#0f172a;">TELC-B2-DE-2024-91823</strong></div>
+              <div style="color:#059669;font-weight:800;">Offiziell anerkannt für Berufserlaubnis in Deutschland</div>
+            </div>
+          </div>
+        </div>
+      `;
+    } else if (docNameLower.includes('lebenslauf') || docNameLower.includes('curriculum') || docCatLower.includes('curriculum')) {
+      const cv = DB.getCV(c.id);
+      docContentHtml = `
+        <div style="padding:20px;background:#334155;border-radius:0 0 16px 16px;">
+          <div class="jn-cv-preview-container" style="background:#ffffff;border-radius:12px;padding:24px;box-shadow:0 15px 35px rgba(0,0,0,0.25);">
+            ${renderLebenslaufOfficial(cv)}
+          </div>
+        </div>
+      `;
+    } else {
+      docContentHtml = `
+        <div style="padding:36px 20px;text-align:center;background:#f8fafc;">
+          <div style="width:70px;height:70px;border-radius:20px;background:#fdf2f4;color:#801020;margin:0 auto 16px;display:flex;align-items:center;justify-content:center;">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+          </div>
+          <div style="font-size:1.2rem;font-weight:800;color:#1e293b;">${escapeHtml(doc.nombre)}</div>
+          <div style="font-size:0.85rem;color:#64748b;margin-top:4px;max-width:440px;margin-left:auto;margin-right:auto;">
+            ${escapeHtml(doc.subtitulo || 'Documento oficial verificado y custodiado en el expediente ZAV')}
+          </div>
+          <div style="display:inline-flex;gap:12px;margin-top:20px;background:#ffffff;border:1px solid #e2e8f0;padding:10px 18px;border-radius:12px;font-size:0.8rem;color:#475569;flex-wrap:wrap;justify-content:center;">
+            <span>Categoría: <strong>${escapeHtml(doc.categoria || 'Documentación')}</strong></span>
+            <span>Tamaño: <strong>${doc.tamano || '1.4 MB'}</strong></span>
+            <span>Fecha: <strong>${doc.fecha || 'Reciente'}</strong></span>
+          </div>
+        </div>
+      `;
+    }
+  }
+
+  const modalHtml = `
+    <div class="modal-overlay visible open" id="modal-view-candidate-doc" role="dialog" aria-modal="true" style="z-index:100005;" onclick="if(event.target===this) closeModal('modal-view-candidate-doc')">
+      <div class="modal modal-card" style="max-width:860px;width:95%;max-height:92vh;border-radius:24px;padding:0;overflow:hidden;background:#ffffff;box-shadow:0 25px 60px -10px rgba(0,0,0,0.35);display:flex;flex-direction:column;">
+        
+        <!-- Header Principal -->
+        <div style="background:#801020;color:#ffffff;padding:18px 24px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+          <div style="display:flex;align-items:center;gap:14px;overflow:hidden;">
+            <div style="width:40px;height:40px;border-radius:12px;background:rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+            </div>
+            <div style="overflow:hidden;">
+              <div style="font-weight:800;font-size:1.1rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${escapeHtml(doc.nombre)}">${escapeHtml(doc.nombre)}</div>
+              <div style="font-size:0.8rem;color:#fecdd3;margin-top:2px;">Candidato: ${escapeHtml(c.nombre)} · ID: ${escapeHtml(c.id)}</div>
+            </div>
+          </div>
+          
+          <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
+            <span style="font-size:0.75rem;font-weight:800;padding:4px 12px;border-radius:10px;background:#ffffff;color:#801020;">
+              ${doc.badgeLabel || doc.estado || 'VALIDADO'}
+            </span>
+            <button onclick="closeModal('modal-view-candidate-doc')" style="background:transparent;border:none;color:#ffffff;font-size:1.5rem;cursor:pointer;line-height:1;padding:4px;" title="Cerrar">✕</button>
+          </div>
+        </div>
+
+        <!-- Barra de Metadatos y Acciones -->
+        <div style="background:#f8fafc;border-bottom:1px solid #e2e8f0;padding:10px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;flex-shrink:0;font-size:0.8rem;">
+          <div style="display:flex;align-items:center;gap:14px;color:#64748b;">
+            <span>Tipo: <strong style="color:#1e293b;">${escapeHtml(doc.categoria || 'PDF Oficial')}</strong></span>
+            <span>Tamaño: <strong style="color:#1e293b;">${doc.tamano || '1.4 MB'}</strong></span>
+            <span>Auditoría: <strong style="color:#15803d;">ZAV Conforme</strong></span>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:8px;">
+            <button class="btn btn-outline btn-xs" onclick="printCandidateDocument('${c.id}', '${doc.id}')" style="border-radius:10px;display:inline-flex;align-items:center;gap:5px;font-weight:700;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+              Imprimir
+            </button>
+            <button class="btn btn-primary btn-xs" onclick="downloadCandidateDocument('${c.id}', '${doc.id}')" style="background:#801020;border-color:#801020;border-radius:10px;display:inline-flex;align-items:center;gap:5px;font-weight:700;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+              Descargar Archivo
+            </button>
+          </div>
+        </div>
+
+        <!-- Contenedor del Documento (Scrollable) -->
+        <div id="candidate-doc-viewer-content" style="flex:1;overflow-y:auto;overflow-x:hidden;">
+          ${docContentHtml}
+        </div>
+
+        <!-- Footer -->
+        <div style="background:#ffffff;border-top:1px solid #e2e8f0;padding:14px 24px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;">
+          <div style="font-size:0.75rem;color:#64748b;">
+            Documento digital oficial verificado conforme al Reglamento UE 2016/679 (RGPD) y AufenthG § 81a.
+          </div>
+          <button class="btn btn-outline" onclick="closeModal('modal-view-candidate-doc')" style="border-radius:12px;padding:8px 20px;">Cerrar</button>
+        </div>
+
+      </div>
+    </div>
+  `;
+
+  let existing = $('modal-view-candidate-doc');
+  if (existing) existing.remove();
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
+
+function viewCandidateDocument(candId, docId) {
+  openCandidateDocumentViewer(candId, docId);
+}
+
+function downloadCandidateDocument(candId, docId) {
+  const c = DB.getCandidatoById(candId);
+  const docs = c ? getCandidateDocumentsList(c) : [];
+  const doc = docs.find(d => d.id === docId) || { nombre: 'Documento.pdf' };
+  
+  if (doc.fileData) {
+    const a = document.createElement('a');
+    a.href = doc.fileData;
+    a.download = doc.nombre || 'Documento.pdf';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    showToast('Descarga Iniciada', `Descargando ${doc.nombre}...`, 'success');
+  } else {
+    const blob = new Blob([`JN PALABRAS - EXPEDIENTE OFICIAL DE HOMOLOGACIÓN Y VISADO EN ALEMANIA\nCandidato: ${c ? c.nombre : 'Candidato'}\nDocumento: ${doc.nombre}\nEstado: VALIDADO CONFORME A ZAV`], { type: 'application/pdf' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = doc.nombre;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    showToast('Descarga Iniciada', `Descargando documento oficial ${doc.nombre}...`, 'success');
+  }
+}
+
+function printCandidateDocument(candId, docId) {
+  const container = document.getElementById('candidate-doc-viewer-content');
+  if (!container) {
+    window.print();
+    return;
+  }
+  const printWindow = window.open('', '_blank');
+  if (!printWindow) {
+    window.print();
+    return;
+  }
+  printWindow.document.write(`
+    <html>
+      <head>
+        <title>Imprimir Documento - JN Palabras</title>
+        <style>
+          body { font-family: Inter, sans-serif; margin: 20px; }
+        </style>
+      </head>
+      <body>
+        ${container.innerHTML}
+      </body>
+    </html>
+  `);
+  printWindow.document.close();
+  printWindow.focus();
+  setTimeout(() => {
+    printWindow.print();
+    printWindow.close();
+  }, 500);
+}
+
+function eliminarDocumentoCandidato(candId, docId, docName) {
+  const confirmed = confirm(`¿Estás seguro de que deseas quitar "${docName || 'este documento'}" del expediente de este candidato?`);
+  if (!confirmed) return;
+
+  DB.deleteDocumento(docId, candId);
+  showToast('Documento Quitado', `"${docName || 'El documento'}" ha sido eliminado del expediente.`, 'info');
+
+  // Refrescar el modal de expediente en la pestaña de documentos
+  openCandidateDossierModal(candId, 'docs');
+
+  // Refrescar la página de perfil de fondo si está visible
+  const container = $('main-content');
+  if (container && typeof renderCandidateProfilePage === 'function') {
+    try {
+      container.innerHTML = renderCandidateProfilePage();
+    } catch (e) { }
+  }
+}
+
+function cambiarEstadoDocumentoCandidato(candId, docId, nuevoEstado) {
+  if (DB.setDocumentoEstado) {
+    DB.setDocumentoEstado(candId, docId, nuevoEstado);
+  }
+  showToast('Estado Actualizado', `El estado del documento ha cambiado a "${nuevoEstado}".`, 'success');
+
+  // Refrescar modal de expediente en la pestaña de documentos
+  openCandidateDossierModal(candId, 'docs');
+
+  // Refrescar página de perfil de fondo si está visible
+  const container = $('main-content');
+  if (container && typeof renderCandidateProfilePage === 'function') {
+    try {
+      container.innerHTML = renderCandidateProfilePage();
+    } catch (e) { }
+  }
+}
+
+function openReassignAdvisorModal(candId) {
+  const c = DB.getCandidatoById(candId);
+  if (!c) return;
+
+  const asesores = (DB.getAsesores ? DB.getAsesores() : []).filter(u => u.roles && (u.roles.includes('Asesor') || u.roles.includes('Super Asesor')));
+  const currentAdvisorId = c.id_asesor || '';
+
+  const modalHtml = `
+    <div class="modal-overlay visible open" id="modal-reassign-advisor" role="dialog" aria-modal="true" style="z-index:99999;" onclick="if(event.target===this) closeModal('modal-reassign-advisor')">
+      <div class="modal modal-card" style="max-width:480px;width:95%;border-radius:24px;padding:28px;background:#ffffff;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;border-bottom:1px solid #e2e8f0;padding-bottom:12px;">
+          <h3 style="margin:0;font-family:var(--font-heading);color:var(--wine-800);font-size:1.25rem;">Reasignar Asesor Encargado</h3>
+          <button onclick="closeModal('modal-reassign-advisor')" style="background:none;border:none;font-size:1.3rem;cursor:pointer;color:#94a3b8;">✕</button>
+        </div>
+        <p style="font-size:0.875rem;color:#475569;margin-bottom:16px;">
+          Selecciona el asesor responsable para el acompañamiento y seguimiento de <strong>${escapeHtml(c.nombre)}</strong>:
+        </p>
+        <div style="margin-bottom:20px;">
+          <label class="form-label" style="font-size:0.8rem;font-weight:700;">Asesor Oficial JN Palabras</label>
+          <select class="form-select" id="reassign-advisor-select" style="width:100%;padding:10px;border-radius:12px;border:1px solid #cbd5e1;font-weight:600;">
+            ${asesores.map(a => `
+              <option value="${a.id}" ${a.id === currentAdvisorId || a.nombre === c.nombre_asesor ? 'selected' : ''}>
+                👤 ${a.nombre} (${a.roles ? a.roles.join(', ') : 'Asesor'}) · ${a.correo}
+              </option>
+            `).join('')}
+          </select>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:10px;">
+          <button class="btn btn-outline" onclick="closeModal('modal-reassign-advisor')">Cancelar</button>
+          <button class="btn btn-primary" onclick="confirmReassignAdvisor('${c.id}')" style="background:#801020;border-color:#801020;font-weight:700;border-radius:12px;padding:8px 20px;">
+            Guardar Asignación
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  let existing = $('modal-reassign-advisor');
+  if (existing) existing.remove();
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
+
+async function confirmReassignAdvisor(candId) {
+  const select = $('reassign-advisor-select');
+  if (!select) return;
+  const newAdvisorId = select.value;
+  await DB.designarAsesor(candId, newAdvisorId, State.currentUser);
+  const c = DB.getCandidatoById(candId);
+  closeModal('modal-reassign-advisor');
+  showToast('Asesor Reasignado', `El asesor de ${c ? c.nombre : 'candidato'} ahora es ${c ? c.nombre_asesor : 'el seleccionado'}.`, 'success');
+  
+  // Re-render
+  if (State.currentSidebar === 'candidato-perfil') {
+    renderDashboard(State.activeRole, 'candidato-perfil');
+  } else {
+    renderDashboard(State.activeRole, State.currentSidebar);
+  }
+}
+
 function openUploadDocModal(cId) {
   const c = DB.getCandidatoById(cId);
   if (!c) return;
+
+  window._tempUploadedFileData = null;
+  window._tempUploadedFileSize = null;
 
   const rawName = c.nombre || 'Candidato';
   const nameParts = getCleanCandidateNameParts(rawName);
@@ -10559,7 +11393,7 @@ function openUploadDocModal(cId) {
   const initialFilename = `Documento_${lastName}.pdf`;
 
   const modalHtml = `
-    <div class="modal-overlay visible open" id="modal-upload-candidate-doc" role="dialog" aria-modal="true" style="z-index:99999;" onclick="if(event.target===this) closeModal('modal-upload-candidate-doc')">
+    <div class="modal-overlay visible open" id="modal-upload-candidate-doc" role="dialog" aria-modal="true" style="z-index:100003;" onclick="if(event.target===this) closeModal('modal-upload-candidate-doc')">
       <div class="modal modal-card" style="max-width:520px;width:95%;border-radius:24px;padding:0;overflow:hidden;background:#ffffff;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);">
         <div style="background:#801020;color:#ffffff;padding:20px 24px;display:flex;align-items:center;justify-content:space-between;">
           <div style="display:flex;align-items:center;gap:12px;">
@@ -10590,16 +11424,18 @@ function openUploadDocModal(cId) {
           </div>
 
           <div>
-            <label style="display:block;font-size:0.85rem;font-weight:700;color:#334155;margin-bottom:6px;">Nombre del Archivo (PDF)</label>
+            <label style="display:block;font-size:0.85rem;font-weight:700;color:#334155;margin-bottom:6px;">Nombre del Archivo</label>
             <input type="text" id="upload-doc-nombre" class="form-input" style="width:100%;border-radius:12px;padding:10px 14px;" value="${initialFilename}" placeholder="Ej: Pasaporte_${lastName}.pdf" required />
           </div>
 
           <div>
             <label style="display:block;font-size:0.85rem;font-weight:700;color:#334155;margin-bottom:6px;">Archivo Digital</label>
             <div style="border:2px dashed #cbd5e1;border-radius:14px;padding:20px;text-align:center;background:#f8fafc;cursor:pointer;" onclick="document.getElementById('upload-doc-file-input').click()">
-              <input type="file" id="upload-doc-file-input" accept=".pdf,.jpg,.jpeg,.png" style="display:none;" onchange="handleDocFileSelected(this)" />
-              <div style="font-size:1.8rem;margin-bottom:6px;">📄</div>
-              <div id="upload-doc-file-label" style="font-size:0.85rem;font-weight:700;color:#1e293b;">Haz clic para seleccionar archivo PDF</div>
+              <input type="file" id="upload-doc-file-input" accept=".pdf,.jpg,.jpeg,.png,.docx" style="display:none;" onchange="handleDocFileSelected(this)" />
+              <div style="margin-bottom:6px;display:flex;justify-content:center;color:#801020;">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
+              </div>
+              <div id="upload-doc-file-label" style="font-size:0.85rem;font-weight:700;color:#1e293b;">Haz clic para seleccionar archivo PDF o Imagen</div>
               <div style="font-size:0.75rem;color:#64748b;margin-top:2px;">PDF, JPG o PNG hasta 15MB</div>
             </div>
           </div>
@@ -10607,9 +11443,9 @@ function openUploadDocModal(cId) {
           <div>
             <label style="display:block;font-size:0.85rem;font-weight:700;color:#334155;margin-bottom:6px;">Estado Inicial de Validación</label>
             <select id="upload-doc-estado" class="form-input" style="width:100%;border-radius:12px;padding:10px 14px;">
-              <option value="Aprobado">Aprobado / Validado ✅</option>
-              <option value="Pendiente" selected>Esperando Validación ⏳</option>
-              <option value="En Revisión">En Revisión por Asesor 🔍</option>
+              <option value="Aprobado">Aprobado / Validado</option>
+              <option value="Pendiente" selected>Esperando Validación</option>
+              <option value="En Revisión">En Revisión por Asesor</option>
             </select>
           </div>
 
@@ -10654,11 +11490,18 @@ function handleDocFileSelected(input) {
   if (input.files && input.files[0]) {
     const file = input.files[0];
     const label = $('upload-doc-file-label');
-    if (label) label.textContent = `${file.name} (${(file.size / (1024*1024)).toFixed(2)} MB)`;
+    const sizeFormatted = (file.size / (1024*1024)).toFixed(2) + ' MB';
+    if (label) label.textContent = `${file.name} (${sizeFormatted})`;
     const nameInput = $('upload-doc-nombre');
     if (nameInput) {
       nameInput.value = file.name;
     }
+    window._tempUploadedFileSize = sizeFormatted;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      window._tempUploadedFileData = e.target.result;
+    };
+    reader.readAsDataURL(file);
   }
 }
 
@@ -10669,17 +11512,20 @@ function handleCandidateDocUploadSubmit(e, candidateId) {
 
   const cat = $('upload-doc-categoria')?.value || 'Otro';
   let nombre = $('upload-doc-nombre')?.value || 'Documento.pdf';
-  if (!nombre.toLowerCase().endsWith('.pdf') && !nombre.toLowerCase().endsWith('.jpg') && !nombre.toLowerCase().endsWith('.png')) {
+  if (!nombre.toLowerCase().endsWith('.pdf') && !nombre.toLowerCase().endsWith('.jpg') && !nombre.toLowerCase().endsWith('.png') && !nombre.toLowerCase().endsWith('.docx')) {
     nombre += '.pdf';
   }
   const estado = $('upload-doc-estado')?.value || 'Pendiente';
+  const fileData = window._tempUploadedFileData || null;
+  const tamano = window._tempUploadedFileSize || '1.4 MB';
 
   DB.addDocumento({
     id_candidato: candidateId,
     categoria: cat,
     nombre: nombre,
     estado: estado,
-    tamano: '1.4 MB',
+    fileData: fileData,
+    tamano: tamano,
     fecha: new Date().toISOString().split('T')[0]
   });
 
@@ -10690,11 +11536,16 @@ function handleCandidateDocUploadSubmit(e, candidateId) {
 
   closeModal('modal-upload-candidate-doc');
   showToast('Documento Guardado', `"${nombre}" fue añadido al expediente de ${c.nombre}.`, 'success');
-  
-  // Re-render
+
+  // Refrescar el modal de expediente en la pestaña de documentos inmediatamente
+  openCandidateDossierModal(candidateId, 'docs');
+
+  // Re-render de la vista de perfil en fondo
   const container = $('main-content');
-  if (container) {
-    container.innerHTML = renderCandidateProfilePage();
+  if (container && typeof renderCandidateProfilePage === 'function') {
+    try {
+      container.innerHTML = renderCandidateProfilePage();
+    } catch (err) { }
   }
 }
 
@@ -10716,6 +11567,8 @@ const _windowExports = {
   renderCandidateProfilePage, closeCandidateProfile, exportCandidateProfilePDF,
   openEditCandidateModal, saveCandidateProfileEdit, quickSendMessage,
   quickScheduleInterview, quickUploadDocForCandidate, openUploadDocModal,
+  openCandidateDocumentViewer, viewCandidateDocument, downloadCandidateDocument,
+  printCandidateDocument, eliminarDocumentoCandidato,
   handleCandidateDocUploadSubmit, handleDocCategoryChange, handleDocFileSelected,
   omitCandidateDocStep,
   quickAddCandidateNote, openCandidateDetailModalLegacy, deleteCandidateProfile,
@@ -10735,6 +11588,12 @@ for (const [key, fn] of Object.entries(_windowExports)) {
     window[key] = fn;
   }
 }
+
+window.openCandidateDocumentViewer = openCandidateDocumentViewer;
+window.viewCandidateDocument = viewCandidateDocument;
+window.downloadCandidateDocument = downloadCandidateDocument;
+window.printCandidateDocument = printCandidateDocument;
+window.eliminarDocumentoCandidato = eliminarDocumentoCandidato;
 
 
 window.toggleRoleDropdown = function(e) {
@@ -10881,5 +11740,9 @@ window.previewVacanteFromForm = previewVacanteFromForm;
 window.generateVacantePDFHTML = generateVacantePDFHTML;
 window.downloadVacantePDF = downloadVacantePDF;
 window.previewVacantePDFFromForm = previewVacantePDFFromForm;
+window.cambiarEstadoDocumentoCandidato = cambiarEstadoDocumentoCandidato;
+window.openReassignAdvisorModal = openReassignAdvisorModal;
+window.confirmReassignAdvisor = confirmReassignAdvisor;
+window.showCandidateCredentialsSentModal = showCandidateCredentialsSentModal;
 
 
