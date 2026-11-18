@@ -85,11 +85,15 @@ const DB = {
     }
 
     // Carga síncrona desde respaldo local para disponibilidad inmediata
+    const DEMO_CANDIDATE_IDS = ['cand-001', 'cand-002', 'cand-003', 'cand-004', 'cand-005', 'cand-006', 'cand-007', 'cand-008', 'cand-009', 'c-1790184385853'];
     if (!this.data) {
       try {
         const stored = localStorage.getItem(DB_STORAGE_KEY);
         if (stored) {
           this.data = JSON.parse(stored);
+          if (this.data && Array.isArray(this.data.candidatos)) {
+            this.data.candidatos = this.data.candidatos.filter(c => c && c.id && !DEMO_CANDIDATE_IDS.includes(c.id) && !c.nombre?.toLowerCase().includes('prueba'));
+          }
         }
       } catch (e) { }
     }
@@ -130,18 +134,20 @@ const DB = {
             const customVacs = remoteVacantes.filter(v => v && !legacyIds.includes(v.id) && !v.id?.startsWith('vac-'));
             const finalVacantes = [...JSON.parse(JSON.stringify(officialTemplate)), ...customVacs];
 
-            // Saneamiento de candidatos para asegurar perfiles reales y eliminar cualquier residuo de datos demo o "Prueba"
-            const officialCandidates = (typeof OFFICIAL_REAL_CANDIDATOS !== 'undefined') ? OFFICIAL_REAL_CANDIDATOS : ((typeof INITIAL_DATA !== 'undefined' && INITIAL_DATA.candidatos) ? INITIAL_DATA.candidatos : []);
+            // Saneamiento de candidatos: en producción NUNCA se inyectan ni re-siembran candidatos demo
+            const deletedIds = Array.isArray(remote._deleted_candidatos) ? remote._deleted_candidatos : [];
             let remoteCandidatos = Array.isArray(remote.candidatos) ? remote.candidatos : [];
-            const cleanCandidatos = remoteCandidatos.filter(c => c && c.nombre && !c.nombre.toLowerCase().includes('prueba') && c.id !== 'c-1790184385853');
-            let finalCandidatos = (cleanCandidatos.length > 0 && cleanCandidatos.some(c => c.id && c.id.startsWith('cand-')))
-              ? cleanCandidatos
-              : JSON.parse(JSON.stringify(officialCandidates));
+            const finalCandidatos = remoteCandidatos.filter(c => {
+              if (!c || !c.nombre) return false;
+              if (c.nombre.toLowerCase().includes('prueba')) return false;
+              if (DEMO_CANDIDATE_IDS.includes(c.id)) return false;
+              if (deletedIds.includes(c.id)) return false;
+              return true;
+            });
 
-            // Saneamiento de notas
-            const officialNotes = (typeof OFFICIAL_REAL_NOTAS !== 'undefined') ? OFFICIAL_REAL_NOTAS : ((typeof INITIAL_DATA !== 'undefined' && INITIAL_DATA.notas) ? INITIAL_DATA.notas : []);
+            // Saneamiento de notas: purgar notas que referencien candidatos demo
             let remoteNotas = Array.isArray(remote.notas) ? remote.notas : [];
-            const finalNotas = (remoteNotas.length > 0) ? remoteNotas : JSON.parse(JSON.stringify(officialNotes));
+            const finalNotas = remoteNotas.filter(n => !n.id_candidato || !DEMO_CANDIDATE_IDS.includes(n.id_candidato));
 
             this.data = {
               ...INITIAL_DATA,
@@ -431,51 +437,21 @@ const DB = {
   // ── CANDIDATOS ────────────────────────────────────────────────
   getCandidatos() {
     const db = this.get();
-    const officialCandidates = (typeof OFFICIAL_REAL_CANDIDATOS !== 'undefined') ? OFFICIAL_REAL_CANDIDATOS : ((typeof INITIAL_DATA !== 'undefined' && INITIAL_DATA.candidatos) ? INITIAL_DATA.candidatos : []);
     let list = Array.isArray(db.candidatos) ? db.candidatos : [];
-    const isDemoCleared = !!db._demo_candidatos_cleared;
     const deletedIds = Array.isArray(db._deleted_candidatos) ? db._deleted_candidatos : [];
+    const demoIds = ['cand-001', 'cand-002', 'cand-003', 'cand-004', 'cand-005', 'cand-006', 'cand-007', 'cand-008', 'cand-009', 'c-1790184385853'];
 
-    // Purgar incondicionalmente cualquier registro "Prueba", eliminados y demos si se solicitó limpiar
+    // Purgar incondicionalmente cualquier registro demo o eliminado para operar en modo producción limpio
     const filtered = list.filter(c => {
       if (!c || !c.nombre) return false;
       if (c.nombre.toLowerCase().includes('prueba') || c.id === 'c-1790184385853') return false;
+      if (demoIds.includes(c.id)) return false;
       if (deletedIds.includes(c.id)) return false;
-      if (isDemoCleared && (c.id.startsWith('cand-00') || (c.id && c.id.startsWith('cand-')))) return false;
       return true;
     });
 
-    let changed = false;
     if (filtered.length !== list.length) {
       list = filtered;
-      changed = true;
-    }
-
-    // Solo sembrar candidatos oficiales iniciales si NO se han limpiado los demos
-    if (!isDemoCleared && list.length === 0) {
-      list = JSON.parse(JSON.stringify(officialCandidates)).filter(off => !deletedIds.includes(off.id));
-      changed = true;
-    } else if (!isDemoCleared) {
-      // Enriquecer datos existentes pero sin recrear los eliminados
-      officialCandidates.forEach(off => {
-        if (deletedIds.includes(off.id)) return;
-        const idx = list.findIndex(c => c.id === off.id);
-        if (idx !== -1) {
-          const current = list[idx];
-          if (!current.telefono || !current.correo || !current.ciudad || !current.respuestas_elegibilidad) {
-            list[idx] = { ...JSON.parse(JSON.stringify(off)), ...current };
-            if (!list[idx].telefono) list[idx].telefono = off.telefono;
-            if (!list[idx].correo) list[idx].correo = off.correo;
-            if (!list[idx].ciudad) list[idx].ciudad = off.ciudad;
-            if (!list[idx].edad) list[idx].edad = off.edad;
-            if (!list[idx].respuestas_elegibilidad) list[idx].respuestas_elegibilidad = off.respuestas_elegibilidad;
-            changed = true;
-          }
-        }
-      });
-    }
-
-    if (changed) {
       db.candidatos = list;
       this.save(db);
     }
