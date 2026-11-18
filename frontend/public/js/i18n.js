@@ -325,7 +325,63 @@ const I18N_TRANSLATIONS = {
     common_accept: 'Aceptar',
     common_call: 'Llamar',
     common_note: 'Nota',
-    common_request: 'Solicitud'
+    common_request: 'Solicitud',
+
+    // Admin Overview Dashboard
+    admin_dash_title: 'Panel de Administración',
+    admin_dash_sub: 'Vista ejecutiva en tiempo real — JN Palabras Heidelberg',
+    admin_btn_export: '📊 Exportar',
+    admin_btn_new_user: '+ Nuevo Usuario',
+    kpi_total_candidates: 'Total Candidatos',
+    kpi_this_month: 'este mes',
+    kpi_placement_rate: 'Tasa de Colocación',
+    kpi_vs_prev_month: 'vs mes anterior',
+    kpi_active_vacancies: 'Vacantes Activas',
+    kpi_new_this_week: 'nueva esta semana',
+    kpi_projected_income: 'Ingresos Proyectados',
+    kpi_projection_q: 'Proyección Q3 2025',
+    kpi_client_hospitals: 'Hospitales Clientes',
+    kpi_germany: 'Alemania',
+    kpi_successfully_placed: 'Colocados Exitosamente',
+    kpi_signed_contracts: 'Contratos firmados',
+    kpi_partner_agencies: 'Socios de Captación',
+    kpi_active_agencies: 'Agencias activas',
+    kpi_collected_income: 'Ingresos Cobrados',
+    kpi_paid_commissions: 'Comisiones pagadas',
+    admin_pipeline_title: '📌 Pipeline de Candidatos por Estado',
+    admin_recent_activity: '🕐 Actividad Reciente',
+    admin_active_vacancies: '🏥 Vacantes Activas',
+    admin_empty_activity: 'No hay actividad reciente',
+    admin_min_level: 'mínimo',
+    admin_pos_single: 'plaza',
+    admin_pos_plural: 'plazas',
+    // Pipeline short labels
+    phase_lead_nuevo: 'Lead Nuevo',
+    phase_idioma: 'Idioma',
+    phase_homologacion: 'Homologación',
+    phase_postulacion: 'Postulación',
+    phase_entrevista: 'Entrevista',
+    phase_tramite_visado: 'Trámite Visado',
+    phase_colocado: 'Colocado 🎉',
+    // Candidate Profile
+    prof_title: 'Perfil del Candidato',
+    prof_view_docs: '📁 VER DOCUMENTACIÓN',
+    prof_export_pdf: 'EXPORTAR PDF',
+    prof_edit_profile: 'EDITAR PERFIL',
+    prof_delete: '🗑️ ELIMINAR',
+    prof_status_title: 'ESTADO DEL PROCESO',
+    prof_advisor_in_charge: 'ASESOR ENCARGADO',
+    prof_advisor_change: 'Cambiar',
+    prof_lang_label: 'IDIOMA',
+    prof_spec_label: 'ESPECIALIDAD',
+    prof_phase_status_pending: 'PENDIENTE',
+    prof_phase_status_in_progress: 'EN PROCESO',
+    prof_phase_status_completed: 'COMPLETADO',
+    prof_phase_status_discarded: 'DESCARTADO',
+    prof_all_candidates_title: 'Todos los Candidatos',
+    prof_all_candidates_sub: 'Vista global del pipeline',
+    prof_clear_demo_btn: '🗑️ Limpiar Candidatos Demo',
+    prof_new_candidate_btn: '+ Nuevo Candidato'
   },
 
   de: {
@@ -649,7 +705,63 @@ const I18N_TRANSLATIONS = {
     common_accept: 'Annehmen',
     common_call: 'Anrufen',
     common_note: 'Notiz',
-    common_request: 'Bewerbung'
+    common_request: 'Bewerbung',
+
+    // Admin Overview Dashboard
+    admin_dash_title: 'Verwaltungs-Dashboard',
+    admin_dash_sub: 'Echtzeit-Führungskräfteübersicht — JN Palabras Heidelberg',
+    admin_btn_export: '📊 Exportieren',
+    admin_btn_new_user: '+ Neuer Benutzer',
+    kpi_total_candidates: 'Gesamtzahl Kandidaten',
+    kpi_this_month: 'diesen Monat',
+    kpi_placement_rate: 'Vermittlungsquote',
+    kpi_vs_prev_month: 'ggü. Vormonat',
+    kpi_active_vacancies: 'Aktive Vakanzen',
+    kpi_new_this_week: 'neu diese Woche',
+    kpi_projected_income: 'Prognostizierter Umsatz',
+    kpi_projection_q: 'Prognose Q3 2025',
+    kpi_client_hospitals: 'Kliniken & Partner',
+    kpi_germany: 'Deutschland',
+    kpi_successfully_placed: 'Erfolgreich vermittelt',
+    kpi_signed_contracts: 'Unterzeichnete Verträge',
+    kpi_partner_agencies: 'Kooperationspartner',
+    kpi_active_agencies: 'Aktive Partner',
+    kpi_collected_income: 'Erzielte Einnahmen',
+    kpi_paid_commissions: 'Gezahlte Provisionen',
+    admin_pipeline_title: '📌 Kandidaten-Pipeline nach Status',
+    admin_recent_activity: '🕐 Neueste Aktivitäten',
+    admin_active_vacancies: '🏥 Aktive Vakanzen',
+    admin_empty_activity: 'Keine aktuellen Aktivitäten',
+    admin_min_level: 'mindestens',
+    admin_pos_single: 'Stelle',
+    admin_pos_plural: 'Stellen',
+    // Pipeline short labels
+    phase_lead_nuevo: 'Neuer Lead',
+    phase_idioma: 'Sprachkurs',
+    phase_homologacion: 'Anerkennung',
+    phase_postulacion: 'Bewerbung',
+    phase_entrevista: 'Vorstellungsgespräch',
+    phase_tramite_visado: 'Visumsantrag',
+    phase_colocado: 'Vermittelt 🎉',
+    // Candidate Profile
+    prof_title: 'Kandidatenprofil',
+    prof_view_docs: '📁 DOKUMENTE ANSEHEN',
+    prof_export_pdf: 'PDF EXPORTIEREN',
+    prof_edit_profile: 'PROFIL BEARBEITEN',
+    prof_delete: '🗑️ LÖSCHEN',
+    prof_status_title: 'PROZESSSTATUS',
+    prof_advisor_in_charge: 'ZUSTÄNDIGER BERATER',
+    prof_advisor_change: 'Ändern',
+    prof_lang_label: 'SPRACHE',
+    prof_spec_label: 'FACHBEREICH',
+    prof_phase_status_pending: 'AUSSTEHEND',
+    prof_phase_status_in_progress: 'IN BEARBEITUNG',
+    prof_phase_status_completed: 'ABGESCHLOSSEN',
+    prof_phase_status_discarded: 'VERWORFEN',
+    prof_all_candidates_title: 'Alle Kandidaten',
+    prof_all_candidates_sub: 'Gesamtübersicht der Pipeline',
+    prof_clear_demo_btn: '🗑️ Demo-Kandidaten bereinigen',
+    prof_new_candidate_btn: '+ Neuer Kandidat'
   }
 };
 
@@ -820,6 +932,8 @@ class I18nManager {
   }
 
   getPipelinePhaseLabel(phaseId, fallback = '') {
+    if (!phaseId && !fallback) return '';
+    const clean = (str) => String(str || '').replace(/^[0-9]+\.\s*/, '').replace(/🎉/g, '').trim();
     const map = {
       "Primer contacto / Cualificado (Cold Lead)": "phase_cold_lead",
       "Primera entrevista realizada": "phase_entrevista_1",
@@ -829,9 +943,17 @@ class I18nManager {
       "CV del candidato enviado": "phase_cv_enviado",
       "Entrevista programada / realizada": "phase_entrevista_clinica",
       "Intermediación completada": "phase_completado",
-      "Perdido": "phase_perdido"
+      "Perdido": "phase_perdido",
+      // Short / legacy pipeline columns
+      "Lead Nuevo": "phase_lead_nuevo",
+      "Idioma": "phase_idioma",
+      "Homologación": "phase_homologacion",
+      "Postulación": "phase_postulacion",
+      "Entrevista": "phase_entrevista",
+      "Trámite Visado": "phase_tramite_visado",
+      "Colocado": "phase_colocado"
     };
-    const key = map[phaseId];
+    const key = map[phaseId] || map[clean(phaseId)] || map[fallback] || map[clean(fallback)];
     return key ? this.t(key) : (fallback || phaseId);
   }
 

@@ -915,15 +915,18 @@ function triggerBackgroundSync(currentViewId) {
 // ──────────────────────────────────────────────────────────────────
 function renderAdminOverview() {
   const kpis = DB.getKpis();
+  const vacantesActivas = DB.getVacantes().filter(v => (v.estado || 'Abierta').toLowerCase() === 'abierta');
+  const notifs = DB.getNotificaciones('u-admin-001').slice(0, 5);
+
   return `
     <div class="page-header">
       <div>
-        <h1 class="page-title">Panel de Administración</h1>
-        <p class="page-subtitle">Vista ejecutiva en tiempo real — JN Palabras Heidelberg</p>
+        <h1 class="page-title">${t('admin_dash_title', 'Panel de Administración')}</h1>
+        <p class="page-subtitle">${t('admin_dash_sub', 'Vista ejecutiva en tiempo real — JN Palabras Heidelberg')}</p>
       </div>
       <div style="display:flex;gap:8px;">
-        <button class="btn btn-outline btn-sm">📊 Exportar</button>
-        <button class="btn btn-primary btn-sm">+ Nuevo Usuario</button>
+        <button class="btn btn-outline btn-sm">${t('admin_btn_export', '📊 Exportar')}</button>
+        <button class="btn btn-primary btn-sm" onclick="openModal('modal-new-user')">${t('admin_btn_new_user', '+ Nuevo Usuario')}</button>
       </div>
     </div>
 
@@ -931,27 +934,27 @@ function renderAdminOverview() {
     <div class="grid grid-4" style="gap:16px;">
       <div class="kpi-card kpi-gold animate-fadeInUp">
         <div class="kpi-icon">🩺</div>
-        <div class="kpi-label">Total Candidatos</div>
-        <div class="kpi-value">${kpis.total_candidatos}</div>
-        <div class="kpi-change up">▲ ${kpis.nuevos_este_mes} este mes</div>
+        <div class="kpi-label">${t('kpi_total_candidates', 'Total Candidatos')}</div>
+        <div class="kpi-value">${kpis.total_candidatos ?? 0}</div>
+        <div class="kpi-change up">▲ ${kpis.nuevos_este_mes ?? 0} ${t('kpi_this_month', 'este mes')}</div>
       </div>
       <div class="kpi-card kpi-success animate-fadeInUp delay-100">
         <div class="kpi-icon">✅</div>
-        <div class="kpi-label">Tasa de Colocación</div>
-        <div class="kpi-value">${kpis.tasa_colocacion}%</div>
-        <div class="kpi-change up">▲ 3.2% vs mes anterior</div>
+        <div class="kpi-label">${t('kpi_placement_rate', 'Tasa de Colocación')}</div>
+        <div class="kpi-value">${kpis.tasa_colocacion ?? 0}%</div>
+        <div class="kpi-change up">▲ 3.2% ${t('kpi_vs_prev_month', 'vs mes anterior')}</div>
       </div>
       <div class="kpi-card kpi-info animate-fadeInUp delay-200">
         <div class="kpi-icon">💼</div>
-        <div class="kpi-label">Vacantes Activas</div>
-        <div class="kpi-value">${kpis.vacantes_activas}</div>
-        <div class="kpi-change up">▲ 1 nueva esta semana</div>
+        <div class="kpi-label">${t('kpi_active_vacancies', 'Vacantes Activas')}</div>
+        <div class="kpi-value">${kpis.vacantes_activas ?? vacantesActivas.length}</div>
+        <div class="kpi-change up">▲ 1 ${t('kpi_new_this_week', 'nueva esta semana')}</div>
       </div>
       <div class="kpi-card kpi-danger animate-fadeInUp delay-300">
         <div class="kpi-icon">💰</div>
-        <div class="kpi-label">Ingresos Proyectados</div>
-        <div class="kpi-value">${formatCurrency(kpis.ingresos_proyectados)}</div>
-        <div class="kpi-change up">▲ Proyección Q3 2025</div>
+        <div class="kpi-label">${t('kpi_projected_income', 'Ingresos Proyectados')}</div>
+        <div class="kpi-value">${formatCurrency(Number(kpis.ingresos_proyectados) || 0)}</div>
+        <div class="kpi-change up">▲ ${t('kpi_projection_q', 'Proyección Q3 2025')}</div>
       </div>
     </div>
 
@@ -959,43 +962,46 @@ function renderAdminOverview() {
     <div class="grid grid-4" style="gap:16px;">
       <div class="kpi-card kpi-gold">
         <div class="kpi-icon">🏥</div>
-        <div class="kpi-label">Hospitales Clientes</div>
-        <div class="kpi-value">${kpis.empresas_clientes}</div>
-        <div class="kpi-change up">▲ Alemania</div>
+        <div class="kpi-label">${t('kpi_client_hospitals', 'Hospitales Clientes')}</div>
+        <div class="kpi-value">${kpis.empresas_clientes ?? (DB.getEmpresas() || []).length}</div>
+        <div class="kpi-change up">▲ ${t('kpi_germany', 'Alemania')}</div>
       </div>
       <div class="kpi-card kpi-success">
         <div class="kpi-icon">🛂</div>
-        <div class="kpi-label">Colocados Exitosamente</div>
-        <div class="kpi-value">${kpis.colocados}</div>
-        <div class="kpi-change up">▲ Contratos firmados</div>
+        <div class="kpi-label">${t('kpi_successfully_placed', 'Colocados Exitosamente')}</div>
+        <div class="kpi-value">${kpis.colocados ?? 0}</div>
+        <div class="kpi-change up">▲ ${t('kpi_signed_contracts', 'Contratos firmados')}</div>
       </div>
       <div class="kpi-card kpi-info">
         <div class="kpi-icon">🤝</div>
-        <div class="kpi-label">Socios de Captación</div>
+        <div class="kpi-label">${t('kpi_partner_agencies', 'Socios de Captación')}</div>
         <div class="kpi-value">${DB.getSocios().length}</div>
-        <div class="kpi-change up">Agencias activas</div>
+        <div class="kpi-change up">${t('kpi_active_agencies', 'Agencias activas')}</div>
       </div>
       <div class="kpi-card kpi-danger">
         <div class="kpi-icon">💳</div>
-        <div class="kpi-label">Ingresos Cobrados</div>
-        <div class="kpi-value">${formatCurrency(kpis.ingresos_cobrados)}</div>
-        <div class="kpi-change up">▲ Comisiones pagadas</div>
+        <div class="kpi-label">${t('kpi_collected_income', 'Ingresos Cobrados')}</div>
+        <div class="kpi-value">${formatCurrency(Number(kpis.ingresos_cobrados) || 0)}</div>
+        <div class="kpi-change up">▲ ${t('kpi_paid_commissions', 'Comisiones pagadas')}</div>
       </div>
     </div>
 
     <!-- Pipeline por estado -->
     <div class="card">
       <div class="card-header">
-        <h3 style="font-size:1rem;font-weight:700;color:var(--slate-900);">📌 Pipeline de Candidatos por Estado</h3>
+        <h3 style="font-size:1rem;font-weight:700;color:var(--slate-900);">${t('admin_pipeline_title', '📌 Pipeline de Candidatos por Estado')}</h3>
       </div>
       <div class="card-body">
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          ${DB.get().kanban_columns.map(col => {
+          ${(DB.get().kanban_columns || []).map(col => {
             const count = DB.getCandidatosByEstado(col.id).length;
+            const phaseLabel = (typeof i18n !== 'undefined' && i18n.getPipelinePhaseLabel) 
+              ? i18n.getPipelinePhaseLabel(col.id, col.label)
+              : col.label;
             return `
               <div style="flex:1;min-width:120px;text-align:center;padding:16px;background:var(--slate-50);border-radius:var(--radius-md);border:1px solid var(--slate-200);">
-                <div style="font-size:1.5rem;font-weight:800;color:${col.color};">${count}</div>
-                <div style="font-size:.75rem;font-weight:600;color:var(--slate-600);margin-top:4px;">${col.icon} ${col.label}</div>
+                <div style="font-size:1.5rem;font-weight:800;color:${col.color || '#64748b'};">${count}</div>
+                <div style="font-size:.75rem;font-weight:600;color:var(--slate-600);margin-top:4px;">${col.icon || ''} ${phaseLabel}</div>
               </div>
             `;
           }).join('')}
@@ -1003,12 +1009,12 @@ function renderAdminOverview() {
       </div>
     </div>
 
-    <!-- Últimas actividades -->
+    <!-- Últimas actividades y Vacantes Activas -->
     <div class="grid grid-2">
       <div class="card">
-        <div class="card-header"><h3 style="font-size:1rem;font-weight:700;">🕐 Actividad Reciente</h3></div>
+        <div class="card-header"><h3 style="font-size:1rem;font-weight:700;">${t('admin_recent_activity', '🕐 Actividad Reciente')}</h3></div>
         <div class="card-body" style="padding:0;">
-          ${DB.getNotificaciones('u-admin-001').slice(0,5).map(n => `
+          ${notifs.map(n => `
             <div class="notif-item" style="border-bottom:1px solid var(--slate-50);">
               <div class="notif-item-icon">${n.tipo==='Nuevo_Candidato'?'🆕':n.tipo==='Comision_Registrada'?'💰':'🔔'}</div>
               <div>
@@ -1016,21 +1022,24 @@ function renderAdminOverview() {
                 <div class="notif-item-time">${timeAgo(n.fecha)}</div>
               </div>
             </div>
-          `).join('') || '<div class="empty-state" style="padding:24px;"><div class="empty-icon">🔕</div></div>'}
+          `).join('') || `<div class="empty-state" style="padding:24px;"><div class="empty-icon">🔕</div><p style="font-size:.875rem;color:var(--slate-500);margin-top:8px;">${t('admin_empty_activity', 'No hay actividad reciente')}</p></div>`}
         </div>
       </div>
       <div class="card">
-        <div class="card-header"><h3 style="font-size:1rem;font-weight:700;">🏥 Vacantes Activas</h3></div>
+        <div class="card-header"><h3 style="font-size:1rem;font-weight:700;">${t('admin_active_vacancies', '🏥 Vacantes Activas')}</h3></div>
         <div class="card-body" style="padding:0;">
-          ${DB.getVacantes().filter(v=>v.estado==='Abierta').map(v => `
+          ${vacantesActivas.map(v => {
+            const plazasLabel = (v.vacantes > 1) ? t('admin_pos_plural', 'plazas') : t('admin_pos_single', 'plaza');
+            const minLabel = t('admin_min_level', 'mínimo');
+            return `
             <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-bottom:1px solid var(--slate-50);">
               <div>
                 <div style="font-size:.875rem;font-weight:600;color:var(--slate-900);">${v.titulo}</div>
-                <div style="font-size:.75rem;color:var(--slate-500);">${v.empresa} · ${v.nivel_aleman} mínimo</div>
+                <div style="font-size:.75rem;color:var(--slate-500);">${v.empresa} · ${v.nivel_aleman} ${minLabel}</div>
               </div>
-              <span class="badge badge-success">${v.vacantes} plaza${v.vacantes>1?'s':''}</span>
+              <span class="badge badge-success">${v.vacantes} ${plazasLabel}</span>
             </div>
-          `).join('')}
+          `;}).join('')}
         </div>
       </div>
     </div>
@@ -1434,12 +1443,12 @@ function renderAdminCandidatos() {
   return `
     <div class="page-header" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
       <div>
-        <h1 class="page-title">Todos los Candidatos</h1>
-        <p class="page-subtitle">Vista global del pipeline</p>
+        <h1 class="page-title">${t('prof_all_candidates_title', 'Todos los Candidatos')}</h1>
+        <p class="page-subtitle">${t('prof_all_candidates_sub', 'Vista global del pipeline')}</p>
       </div>
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
         <button class="btn btn-outline btn-sm" onclick="confirmClearDemoCandidates()" style="border-color:#fecdd3;color:#dc2626;background:#fff5f5;font-weight:700;border-radius:10px;display:inline-flex;align-items:center;gap:6px;" title="Eliminar todos los candidatos demo de prueba y dejar la base limpia para producción">
-          🗑️ Limpiar Candidatos Demo
+          ${t('prof_clear_demo_btn', '🗑️ Limpiar Candidatos Demo')}
         </button>
       </div>
     </div>
@@ -4832,20 +4841,20 @@ function renderCandidateProfileHTML(c) {
               <polyline points="12 19 5 12 12 5"></polyline>
             </svg>
           </button>
-          <h1 class="candidate-profile-title">Perfil del Candidato</h1>
+          <h1 class="candidate-profile-title">${t('prof_title', 'Perfil del Candidato')}</h1>
         </div>
         <div class="candidate-topbar-actions">
           <button class="btn-pill-outline" onclick="openCandidateDossierModal('${c.id}', 'docs')" style="color:#801020;border-color:#fecdd3;background:#fff5f5;" title="Ver toda la documentación del expediente">
-            📁 VER DOCUMENTACIÓN
+            ${t('prof_view_docs', '📁 VER DOCUMENTACIÓN')}
           </button>
           <button class="btn-pill-outline" onclick="exportCandidateProfilePDF('${c.id}')" title="Descargar o imprimir perfil en PDF">
-            EXPORTAR PDF
+            ${t('prof_export_pdf', 'EXPORTAR PDF')}
           </button>
           <button class="btn-pill-primary" onclick="openEditCandidateModal('${c.id}')" title="Editar datos del candidato">
-            EDITAR PERFIL
+            ${t('prof_edit_profile', 'EDITAR PERFIL')}
           </button>
           <button class="btn-pill-outline" onclick="deleteCandidateConfirm('${c.id}', '${escapeHtml(c.nombre)}')" style="color:#dc2626;border-color:#fecdd3;background:#ffffff;" title="Eliminar este candidato del sistema">
-            🗑️ ELIMINAR
+            ${t('prof_delete', '🗑️ ELIMINAR')}
           </button>
         </div>
       </div>
@@ -4929,18 +4938,18 @@ function renderCandidateProfileHTML(c) {
 
               <div class="candidate-hero-pills">
                 <div class="candidate-hero-pill">
-                  <div class="candidate-hero-pill-label">ASESOR ENCARGADO</div>
+                  <div class="candidate-hero-pill-label">${t('prof_advisor_in_charge', 'ASESOR ENCARGADO')}</div>
                   <div class="candidate-hero-pill-val" style="display:flex;align-items:center;gap:6px;">
                     <span style="font-weight:700;">${escapeHtml(c.nombre_asesor || 'Nelson Matthiessen')}</span>
-                    <button class="btn btn-xs" onclick="openReassignAdvisorModal('${c.id}')" style="padding:2px 8px;font-size:0.7rem;font-weight:700;border-radius:6px;background:#80102015;color:#801020;border:1px solid #80102030;cursor:pointer;" title="Reasignar asesor">Cambiar</button>
+                    <button class="btn btn-xs" onclick="openReassignAdvisorModal('${c.id}')" style="padding:2px 8px;font-size:0.7rem;font-weight:700;border-radius:6px;background:#80102015;color:#801020;border:1px solid #80102030;cursor:pointer;" title="Reasignar asesor">${t('prof_advisor_change', 'Cambiar')}</button>
                   </div>
                 </div>
                 <div class="candidate-hero-pill">
-                  <div class="candidate-hero-pill-label">IDIOMA</div>
+                  <div class="candidate-hero-pill-label">${t('prof_lang_label', 'IDIOMA')}</div>
                   <div class="candidate-hero-pill-val">${idioma}</div>
                 </div>
                 <div class="candidate-hero-pill">
-                  <div class="candidate-hero-pill-label">ESPECIALIDAD</div>
+                  <div class="candidate-hero-pill-label">${t('prof_spec_label', 'ESPECIALIDAD')}</div>
                   <div class="candidate-hero-pill-val">${subespecialidad}</div>
                 </div>
               </div>
@@ -4953,10 +4962,10 @@ function renderCandidateProfileHTML(c) {
           <!-- Tarjeta de Estado del Proceso (Stepper Horizontal Coherente con las 9 Fases) -->
           <div class="candidate-standard-card">
             <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
-              <div class="candidate-card-header-wine" style="margin-bottom:0;">ESTADO DEL PROCESO</div>
+              <div class="candidate-card-header-wine" style="margin-bottom:0;">${t('prof_status_title', 'ESTADO DEL PROCESO')}</div>
               <div style="display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border-radius:999px;font-size:0.8rem;font-weight:800;background:${currentPhase.color}15;color:${currentPhase.color};border:1px solid ${currentPhase.color}35;">
                 <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${currentPhase.color};"></span>
-                <span>Fase ${currentPhase.number}: ${currentPhase.label}</span>
+                <span>Fase ${currentPhase.number}: ${(typeof i18n !== 'undefined' && i18n.getPipelinePhaseLabel) ? i18n.getPipelinePhaseLabel(currentPhase.label) : currentPhase.label}</span>
               </div>
             </div>
 
@@ -4966,22 +4975,22 @@ function renderCandidateProfileHTML(c) {
               </div>
               ${steps.map((st, idx) => {
                 let circleClass = 'pending';
-                let statusLabel = 'PENDIENTE';
+                let statusLabel = t('prof_phase_status_pending', 'PENDIENTE');
                 let statusClass = 'pending';
                 let nodeIcon = st.defaultIcon;
 
                 if (isLost) {
                   circleClass = 'pending';
-                  statusLabel = 'DESCARTADO';
+                  statusLabel = t('prof_phase_status_discarded', 'DESCARTADO');
                   statusClass = 'pending';
                 } else if (currentPhase.number === 8 || idx < activeIndex) {
                   circleClass = 'completed';
-                  statusLabel = 'COMPLETADO';
+                  statusLabel = t('prof_phase_status_completed', 'COMPLETADO');
                   statusClass = 'completed';
                   nodeIcon = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
                 } else if (idx === activeIndex) {
                   circleClass = 'active';
-                  statusLabel = 'EN PROCESO';
+                  statusLabel = t('prof_phase_status_in_progress', 'EN PROCESO');
                   statusClass = 'in-progress';
                   nodeIcon = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>`;
                 }
@@ -7668,7 +7677,7 @@ function renderSuperKanban() {
           return `
             <div class="kanban-col" data-col="${col.id}" id="col-${col.id.replace(/\s+/g,'-')}">
               <div class="kanban-col-header">
-                <span class="kanban-col-title">${col.icon} ${col.label}</span>
+                <span class="kanban-col-title">${col.icon} ${(typeof i18n !== 'undefined' && i18n.getPipelinePhaseLabel) ? i18n.getPipelinePhaseLabel(col.id, col.label) : col.label}</span>
                 <span class="kanban-col-count">${cards.length}</span>
               </div>
               <div class="kanban-drop-zone" data-col="${col.id}">
