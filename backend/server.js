@@ -254,6 +254,37 @@ app.post('/api/reset', async (req, res) => {
   }
 });
 
+// ── SERVICIO DE TRADUCCIÓN AUTOMÁTICA (ESPAÑOL ⇄ ALEMÁN) ───────────
+app.post('/api/translate', async (req, res) => {
+  try {
+    const { text, texts, targetLang = 'de', sourceLang = 'auto' } = req.body;
+
+    const translateSingle = async (str, tl, sl) => {
+      if (!str || typeof str !== 'string' || !str.trim()) return str;
+      const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${encodeURIComponent(sl)}&tl=${encodeURIComponent(tl)}&dt=t&q=${encodeURIComponent(str)}`;
+      const resp = await fetch(url);
+      if (!resp.ok) throw new Error(`Translation API HTTP ${resp.status}`);
+      const data = await resp.json();
+      return Array.isArray(data[0]) ? data[0].map(item => item[0]).join('') : str;
+    };
+
+    if (Array.isArray(texts)) {
+      const results = await Promise.all(texts.map(t => translateSingle(t, targetLang, sourceLang)));
+      return res.json({ success: true, targetLang, translations: results });
+    }
+
+    if (typeof text === 'string') {
+      const translated = await translateSingle(text, targetLang, sourceLang);
+      return res.json({ success: true, targetLang, text: translated });
+    }
+
+    return res.status(400).json({ error: 'Parámetro "text" o "texts" requerido' });
+  } catch (err) {
+    console.error('Error en POST /api/translate:', err.message);
+    res.status(500).json({ error: 'Error procesando traducción automática', details: err.message });
+  }
+});
+
 // Manejador 404 para endpoints API no existentes
 app.use((req, res) => {
   res.status(404).json({ error: 'Ruta API no encontrada' });

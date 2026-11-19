@@ -1054,59 +1054,64 @@ function renderAdminUsers() {
   return `
     <div class="page-header">
       <div>
-        <h1 class="page-title">Gestión de Usuarios</h1>
-        <p class="page-subtitle">CRUD completo de cuentas del sistema</p>
+        <h1 class="page-title">${t('users_title', 'Gestión de Usuarios')}</h1>
+        <p class="page-subtitle">${t('users_sub', 'CRUD completo de cuentas del sistema')}</p>
       </div>
-      <button class="btn btn-primary" onclick="openModal('modal-new-user')">+ Nuevo Usuario</button>
+      <button class="btn btn-primary" onclick="openModal('modal-new-user')">${t('users_btn_new', '+ Nuevo Usuario')}</button>
     </div>
 
     <div class="card">
       <div class="card-header">
         <div class="search-bar" style="max-width:280px;">
           <span class="search-bar-icon">🔍</span>
-          <input class="form-input" placeholder="Buscar usuario..." id="user-search" oninput="filterTable(this,'user-table-body')">
+          <input class="form-input" placeholder="${t('users_search_ph', 'Buscar usuario...')}" id="user-search" oninput="filterTable(this,'user-table-body')">
         </div>
-        <span class="badge badge-slate">${users.length} usuarios</span>
+        <span class="badge badge-slate">${users.length} ${t('users_badge_count', 'usuarios')}</span>
       </div>
       <div class="data-table-wrapper">
         <table class="data-table">
           <thead>
             <tr>
-              <th>Usuario</th>
-              <th>Correo</th>
-              <th>Rol</th>
-              <th>Estado</th>
-              <th>Fecha alta</th>
-              <th>Acciones</th>
+              <th>${t('users_th_user', 'Usuario')}</th>
+              <th>${t('users_th_email', 'Correo')}</th>
+              <th>${t('users_th_role', 'Rol')}</th>
+              <th>${t('users_th_status', 'Estado')}</th>
+              <th>${t('users_th_date', 'Fecha alta')}</th>
+              <th>${t('users_th_actions', 'Acciones')}</th>
             </tr>
           </thead>
           <tbody id="user-table-body">
-            ${users.map(u => `
+            ${users.map(u => {
+              const activeLabel = u.activo ? t('users_status_active', 'Activo') : t('users_status_inactive', 'Inactivo');
+              return `
               <tr>
                 <td>
                   <div class="td-avatar">
                     <div class="avatar" style="background:${getAvatarColor(u.nombre)}">${getInitials(u.nombre)}</div>
                     <div>
-                      <div class="td-name">${u.nombre}</div>
+                      <div class="td-name">${escapeHtml(u.nombre)}</div>
                     </div>
                   </div>
                 </td>
-                <td>${u.correo}</td>
+                <td>${escapeHtml(u.correo)}</td>
                 <td>
                   <div style="display:flex;gap:4px;flex-wrap:wrap;">
-                    ${(u.roles || []).map(r => `<span class="badge" style="background:${getRolColor(r)}22;color:${getRolColor(r)}">${getRolIcon(r)} ${r}</span>`).join('')}
+                    ${(u.roles || []).map(r => {
+                      const rLabel = (typeof i18n !== 'undefined' && i18n.getRoleLabel) ? i18n.getRoleLabel(r) : r;
+                      return `<span class="badge" style="background:${getRolColor(r)}22;color:${getRolColor(r)}">${getRolIcon(r)} ${rLabel}</span>`;
+                    }).join('')}
                   </div>
                 </td>
-                <td><span class="badge ${u.activo?'badge-success':'badge-slate'}">${u.activo?'Activo':'Inactivo'}</span></td>
+                <td><span class="badge ${u.activo?'badge-success':'badge-slate'}">${activeLabel}</span></td>
                 <td>${formatDateTime(u.fecha_creacion)}</td>
                 <td>
                   <div style="display:flex;gap:6px;">
-                    <button class="btn btn-outline btn-sm" onclick="editUser('${u.id}')">✏️</button>
-                    ${u.id !== State.currentUser.id ? `<button class="btn btn-outline btn-sm" style="color:var(--danger);" onclick="deleteUser('${u.id}')">🗑️</button>` : ''}
+                    <button class="btn btn-outline btn-sm" onclick="editUser('${u.id}')" title="Editar">✏️</button>
+                    ${u.id !== State.currentUser.id ? `<button class="btn btn-outline btn-sm" style="color:var(--danger);" onclick="deleteUser('${u.id}')" title="Eliminar">🗑️</button>` : ''}
                   </div>
                 </td>
               </tr>
-            `).join('')}
+            `;}).join('')}
           </tbody>
         </table>
       </div>
@@ -9029,23 +9034,24 @@ function applyToJobVacancy(id) {
 function renderStellenportalAdmin() {
   const vacantes = DB.getVacantes ? DB.getVacantes() : [];
   const total = vacantes.length;
-  const abiertas = vacantes.filter(v => v.estado === 'Abierta').length;
-  const pausadas = vacantes.filter(v => v.estado === 'Pausada').length;
+  const abiertas = vacantes.filter(v => (v.estado || 'Abierta').toLowerCase() === 'abierta').length;
+  const pausadas = vacantes.filter(v => (v.estado || '').toLowerCase() === 'pausada').length;
   const plazas = vacantes.reduce((sum, v) => sum + (parseInt(v.vacantes, 10) || 1), 0);
+  const isDE = (typeof i18n !== 'undefined' && i18n.currentLang === 'de');
 
   return `
     <div class="stellenportal-admin-page">
       <div class="page-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:14px; margin-bottom:24px;">
         <div>
-          <h1 class="page-title">Bolsa de Empleo & Stellenportal</h1>
-          <p class="page-subtitle">Gestión centralizada de vacantes sanitarias, plantillas de puestos y sincronización en tiempo real</p>
+          <h1 class="page-title">${t('stellen_admin_title', 'Bolsa de Empleo & Stellenportal')}</h1>
+          <p class="page-subtitle">${t('stellen_admin_sub', 'Gestión centralizada de vacantes sanitarias, plantillas de puestos y sincronización en tiempo real')}</p>
         </div>
         <div style="display:flex; gap:10px; flex-wrap:wrap;">
-          <button class="btn btn-outline" onclick="resetStellenportalOfficialTemplate()" title="Restaurar los 7 puestos oficiales de jnpalabras.com">
-            🔄 Sincronizar Plantilla Oficial JN
+          <button class="btn btn-outline" onclick="resetStellenportalOfficialTemplate()" title="Restaurar los puestos oficiales de jnpalabras.com">
+            ${t('stellen_btn_sync', '🔄 Sincronizar Plantilla Oficial JN')}
           </button>
           <button class="btn btn-primary" onclick="openCreateVacanteModal()" style="background:#801020; border-color:#801020; font-weight:700;">
-            + Nueva Vacante
+            ${t('stellen_btn_new', '+ Nueva Vacante')}
           </button>
         </div>
       </div>
@@ -9054,36 +9060,36 @@ function renderStellenportalAdmin() {
       <div class="stellenportal-kpis-grid">
         <div class="stellenportal-kpi-card">
           <div class="stellenportal-kpi-val">${total}</div>
-          <div class="stellenportal-kpi-lbl">Total de Puestos</div>
+          <div class="stellenportal-kpi-lbl">${t('stellen_kpi_total', 'Total de Puestos')}</div>
         </div>
         <div class="stellenportal-kpi-card">
           <div class="stellenportal-kpi-val" style="color:#10b981;">${abiertas}</div>
-          <div class="stellenportal-kpi-lbl">Vacantes Abiertas (Web)</div>
+          <div class="stellenportal-kpi-lbl">${t('stellen_kpi_open', 'Vacantes Abiertas (Web)')}</div>
         </div>
         <div class="stellenportal-kpi-card">
           <div class="stellenportal-kpi-val" style="color:#f59e0b;">${pausadas}</div>
-          <div class="stellenportal-kpi-lbl">Vacantes Pausadas</div>
+          <div class="stellenportal-kpi-lbl">${t('stellen_kpi_paused', 'Vacantes Pausadas')}</div>
         </div>
         <div class="stellenportal-kpi-card">
           <div class="stellenportal-kpi-val" style="color:#801020;">${plazas}</div>
-          <div class="stellenportal-kpi-lbl">Total Plazas Sanitarias</div>
+          <div class="stellenportal-kpi-lbl">${t('stellen_kpi_places', 'Total Plazas Sanitarias')}</div>
         </div>
       </div>
 
       <!-- Barra de Filtros -->
       <div class="stellenportal-admin-toolbar">
         <div style="display:flex; gap:12px; align-items:center; flex:1; min-width:280px; flex-wrap:wrap;">
-          <input type="text" id="admin-vac-search" class="form-input" style="max-width:320px; border-radius:12px;" placeholder="Buscar puesto o clínica..." oninput="filterAdminVacantesTable()" />
+          <input type="text" id="admin-vac-search" class="form-input" style="max-width:320px; border-radius:12px;" placeholder="${t('stellen_search_ph', 'Buscar puesto o clínica...')}" oninput="filterAdminVacantesTable()" />
           <select id="admin-vac-cat-filter" class="form-input" style="max-width:200px; border-radius:12px;" onchange="filterAdminVacantesTable()">
-            <option value="all">Todas las categorías</option>
-            <option value="Medicina">Medicina</option>
-            <option value="Enfermería">Enfermería</option>
-            <option value="Quirófano / OTA">Quirófano / OTA</option>
-            <option value="Asistenciales">Asistenciales</option>
+            <option value="all">${t('stellen_cat_all', 'Todas las categorías')}</option>
+            <option value="Medicina">${t('stellen_cat_med', 'Medicina')}</option>
+            <option value="Enfermería">${t('stellen_cat_nurse', 'Enfermería')}</option>
+            <option value="Quirófano / OTA">${t('stellen_cat_ota', 'Quirófano / OTA')}</option>
+            <option value="Asistenciales">${t('stellen_cat_assist', 'Asistenciales')}</option>
           </select>
         </div>
         <div style="font-size:0.85rem; color:#64748b;">
-          Sincronizado con la web pública · <a href="#stellenportal" onclick="showPublic(); setTimeout(() => scrollToSection('stellenportal'), 200);" style="color:#801020; font-weight:700; text-decoration:underline; cursor:pointer;">Ver Portal Público</a>
+          ${t('stellen_synced_web', 'Sincronizado con la web pública')} · <a href="#stellenportal" onclick="showPublic(); setTimeout(() => scrollToSection('stellenportal'), 200);" style="color:#801020; font-weight:700; text-decoration:underline; cursor:pointer;">${t('stellen_view_public', 'Ver Portal Público')}</a>
         </div>
       </div>
 
@@ -9091,45 +9097,65 @@ function renderStellenportalAdmin() {
       <div id="admin-vacantes-list">
         ${vacantes.map(v => {
           const img = v.imagen || 'https://jnpalabras.com/wp-content/uploads/2026/07/doctor.jpg';
-          const isAbierta = v.estado === 'Abierta';
+          const isAbierta = (v.estado || 'Abierta').toLowerCase() === 'abierta';
+          const primaryTitle = isDE ? (v.titulo || v.titulo_es || 'Medizinische Stelle') : (v.titulo_es || v.titulo || 'Puesto Sanitario');
+          const secondaryTitle = isDE ? (v.titulo_es || '') : ((v.titulo && v.titulo !== v.titulo_es) ? v.titulo : '');
+          
+          let catTranslated = escapeHtml(v.categoria || 'Salud');
+          if (isDE) {
+            if (v.categoria === 'Medicina') catTranslated = 'Medizin';
+            else if (v.categoria === 'Enfermería') catTranslated = 'Pflege';
+            else if (v.categoria === 'Quirófano / OTA') catTranslated = 'OP / OTA';
+            else if (v.categoria === 'Asistenciales') catTranslated = 'Assistenz';
+          }
+
+          const plazasLabel = (v.vacantes > 1) ? t('admin_pos_plural', 'Plazas') : t('admin_pos_single', 'Plaza');
+          const contractLabel = t('stellen_unlimited', 'Indefinido');
+          const langLabel = isDE ? 'Deutsch' : 'Alemán';
+
+          let salaryText = escapeHtml(v.salario_objetivo || v.sueldo_texto || (v.sueldo_min ? (v.sueldo_min + '€ - ' + v.sueldo_max + '€') : 'Según convenio'));
+          if (isDE) {
+            salaryText = salaryText.replace('según TV-Ärzte', 'gemäß TV-Ärzte').replace('al año', 'pro Jahr').replace('/ mes', '/ Monat');
+          }
+
           return `
             <div class="vacante-admin-card" id="vac-card-${v.id}" data-category="${escapeHtml(v.categoria || '')}">
               <div class="vacante-admin-left">
-                <img src="${img}" class="vacante-thumb" alt="${escapeHtml(v.titulo)}" onerror="this.src='/logo.png';" />
+                <img src="${img}" class="vacante-thumb" alt="${escapeHtml(primaryTitle)}" onerror="this.src='/logo.png';" />
                 <div>
                   <div style="display:flex; align-items:center; gap:8px;">
-                    <span style="font-size:0.75rem; font-weight:800; background:#f1f5f9; color:#475569; padding:2px 8px; border-radius:6px;">${escapeHtml(v.categoria || 'Salud')}</span>
+                    <span style="font-size:0.75rem; font-weight:800; background:#f1f5f9; color:#475569; padding:2px 8px; border-radius:6px;">${catTranslated}</span>
                     <span style="font-size:0.72rem; font-weight:700; padding:2px 8px; border-radius:999px; background:${isAbierta ? '#10b98115' : '#f59e0b15'}; color:${isAbierta ? '#10b981' : '#b45309'}; border:1px solid ${isAbierta ? '#10b98130' : '#f59e0b30'};">
-                      ${isAbierta ? '● Abierta (En Web)' : '⏸ Pausada'}
+                      ${isAbierta ? t('stellen_status_open', '● Abierta (En Web)') : t('stellen_status_paused', '⏸ Pausada')}
                     </span>
                   </div>
-                  <div class="vacante-info-title">${escapeHtml(v.titulo || v.titulo_es || v.titulo_puesto || 'Puesto Sanitario')}</div>
-                  ${(v.titulo_es && v.titulo_es !== v.titulo) ? `<div style="font-size:0.8rem; color:#801020; margin-bottom:4px;">${escapeHtml(v.titulo_es)}</div>` : ''}
+                  <div class="vacante-info-title">${escapeHtml(primaryTitle)}</div>
+                  ${secondaryTitle ? `<div style="font-size:0.8rem; color:#801020; margin-bottom:4px;">${escapeHtml(secondaryTitle)}</div>` : ''}
                   <div class="vacante-info-sub">
-                    🏥 ${escapeHtml(v.empresa || 'Clínicas Asociadas')} · 📍 ${escapeHtml(v.lugar || v.ubicacion || 'Deutschlandweit')} · 👥 ${v.vacantes || 1} Plazas
+                    🏥 ${escapeHtml(v.empresa || 'Clínicas Asociadas')} · 📍 ${escapeHtml(v.lugar || v.ubicacion || 'Deutschlandweit')} · 👥 ${v.vacantes || 1} ${plazasLabel}
                   </div>
                   <div style="display:flex; gap:8px; flex-wrap:wrap; font-size:0.75rem;">
-                    <span style="background:#fefce8; color:#854d0e; font-weight:700; padding:2px 8px; border-radius:6px;">💰 ${escapeHtml(v.salario_objetivo || v.sueldo_texto || (v.sueldo_min ? (v.sueldo_min + '€ - ' + v.sueldo_max + '€') : 'Según convenio'))}</span>
-                    <span style="background:#eff6ff; color:#1e40af; font-weight:700; padding:2px 8px; border-radius:6px;">🗣️ Alemán ${escapeHtml(v.nivel_aleman || 'B2')}</span>
-                    <span style="background:#f8fafc; color:#64748b; padding:2px 8px; border-radius:6px;">📑 ${escapeHtml(v.tipo_contrato || 'Indefinido')}</span>
+                    <span style="background:#fefce8; color:#854d0e; font-weight:700; padding:2px 8px; border-radius:6px;">💰 ${salaryText}</span>
+                    <span style="background:#eff6ff; color:#1e40af; font-weight:700; padding:2px 8px; border-radius:6px;">🗣️ ${langLabel} ${escapeHtml(v.nivel_aleman || 'B2')}</span>
+                    <span style="background:#f8fafc; color:#64748b; padding:2px 8px; border-radius:6px;">📑 ${contractLabel}</span>
                   </div>
                 </div>
               </div>
               <div class="vacante-admin-actions">
                 <button class="btn btn-sm btn-outline" onclick="toggleVacanteAdmin('${v.id}')" title="Alternar visibilidad en la web">
-                  ${isAbierta ? '⏸ Pausar' : '▶ Abrir'}
+                  ${isAbierta ? t('stellen_btn_pause', '⏸ Pausar') : t('stellen_btn_open', '▶ Abrir')}
                 </button>
                 <button class="btn btn-sm btn-outline" onclick="openStellenportalModal('${v.id}')" title="Previsualizar ficha pública">
-                  👁️ Ver
+                  ${t('stellen_btn_view', '👁️ Ver')}
                 </button>
-                <button class="btn btn-sm btn-outline" style="border-color:#801020; color:#801020; font-weight:700;" onclick="downloadVacantePDF('${v.id}', 'es')" title="Descargar perfil oficial en PDF">
-                  📄 PDF
+                <button class="btn btn-sm btn-outline" style="border-color:#801020; color:#801020; font-weight:700;" onclick="downloadVacantePDF('${v.id}', '${isDE ? 'de' : 'es'}')" title="Descargar perfil oficial en PDF">
+                  ${t('stellen_btn_pdf', '📄 PDF')}
                 </button>
                 <button class="btn btn-sm btn-outline" style="border-color:#3b82f6; color:#2563eb;" onclick="openEditVacanteModal('${v.id}')" title="Editar puesto y plantilla">
-                  ✏️ Editar
+                  ${t('stellen_btn_edit', '✏️ Editar')}
                 </button>
                 <button class="btn btn-sm btn-outline" style="border-color:#10b981; color:#059669;" onclick="jumpToMatchingForVacante('${v.id}')" title="Buscar candidatos compatibles con IA">
-                  🎯 Matching
+                  ${t('stellen_btn_match', '🎯 Matching')}
                 </button>
                 <button class="btn btn-sm btn-outline" style="border-color:#ef4444; color:#dc2626;" onclick="deleteVacanteAdmin('${v.id}')" title="Eliminar vacante">
                   🗑️
@@ -9205,7 +9231,12 @@ function openEditVacanteModal(id) {
             </select>
           </div>
 
-          ${sectionTitle('1. Títulos y especialidad')}
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            ${sectionTitle('1. Títulos y especialidad')}
+            <button type="button" id="btn-vac-autotranslate" onclick="autoTranslateVacanteInputs()" class="btn btn-xs btn-outline" style="color:#0284c7; border-color:#bae6fd; background:#f0f9ff; font-weight:700; border-radius:8px; padding:4px 10px; cursor:pointer;" title="Traduce automáticamente los campos entre español y alemán">
+              ✨ Auto-traducir (ES ⇄ DE)
+            </button>
+          </div>
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
             <div>
               <label class="form-label" style="font-weight:700;">Título en Español (visible)</label>
@@ -9393,12 +9424,58 @@ function readVacanteForm() {
   };
 }
 
-function handleSaveVacanteSubmit(e, id) {
+async function autoTranslateVacanteInputs() {
+  const btn = document.getElementById('btn-vac-autotranslate');
+  const titEs = document.getElementById('vac-form-titulo-es');
+  const titDe = document.getElementById('vac-form-titulo');
+  const cualif = document.getElementById('vac-form-cualificacion');
+
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '⏳ Traduciendo...';
+  }
+
+  try {
+    if (titEs && titDe) {
+      if (titEs.value && !titDe.value) {
+        titDe.value = await window.translateText(titEs.value, 'de', 'es');
+      } else if (titDe.value && !titEs.value) {
+        titEs.value = await window.translateText(titDe.value, 'es', 'de');
+      } else if (titEs.value && titDe.value) {
+        titDe.value = await window.translateText(titEs.value, 'de', 'es');
+      }
+    }
+    showToast('Traducción completada', 'Se sincronizaron los títulos entre español y alemán.', 'success');
+  } catch (err) {
+    console.error('Error auto-traduciendo vacante:', err);
+    showToast('Aviso', 'No se pudo completar la traducción automática en este instante.', 'warning');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '✨ Auto-traducir (ES ⇄ DE)';
+    }
+  }
+}
+
+async function handleSaveVacanteSubmit(e, id) {
   e.preventDefault();
   const data = readVacanteForm();
-  if (!data.titulo_es) {
+  if (!data.titulo_es && !data.titulo) {
     showToast('Error', 'El título de la vacante es obligatorio.', 'error');
     return;
+  }
+
+  // Si falta alguno de los dos títulos, autotraducirlo antes de guardar
+  try {
+    if (!data.titulo && data.titulo_es) {
+      data.titulo = await window.translateText(data.titulo_es, 'de', 'es');
+    } else if (!data.titulo_es && data.titulo) {
+      data.titulo_es = await window.translateText(data.titulo, 'es', 'de');
+    }
+  } catch (err) {
+    console.warn('Fallback al guardar vacante sin traducir:', err);
+    if (!data.titulo) data.titulo = data.titulo_es;
+    if (!data.titulo_es) data.titulo_es = data.titulo;
   }
 
   if (id) {
@@ -11823,6 +11900,7 @@ window.renderStellenportalAdmin = renderStellenportalAdmin;
 window.openCreateVacanteModal = openCreateVacanteModal;
 window.openEditVacanteModal = openEditVacanteModal;
 window.applyTemplateToVacanteForm = applyTemplateToVacanteForm;
+window.autoTranslateVacanteInputs = autoTranslateVacanteInputs;
 window.handleSaveVacanteSubmit = handleSaveVacanteSubmit;
 window.toggleVacanteAdmin = toggleVacanteAdmin;
 window.deleteVacanteAdmin = deleteVacanteAdmin;

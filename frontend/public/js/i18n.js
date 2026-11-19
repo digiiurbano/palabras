@@ -381,7 +381,68 @@ const I18N_TRANSLATIONS = {
     prof_all_candidates_title: 'Todos los Candidatos',
     prof_all_candidates_sub: 'Vista global del pipeline',
     prof_clear_demo_btn: '🗑️ Limpiar Candidatos Demo',
-    prof_new_candidate_btn: '+ Nuevo Candidato'
+    prof_new_candidate_btn: '+ Nuevo Candidato',
+
+    // Stellenportal Admin View
+    stellen_admin_title: 'Bolsa de Empleo & Stellenportal',
+    stellen_admin_sub: 'Gestión centralizada de vacantes sanitarias, plantillas de puestos y sincronización en tiempo real',
+    stellen_btn_sync: '🔄 Sincronizar Plantilla Oficial JN',
+    stellen_btn_new: '+ Nueva Vacante',
+    stellen_kpi_total: 'Total de Puestos',
+    stellen_kpi_open: 'Vacantes Abiertas (Web)',
+    stellen_kpi_paused: 'Vacantes Pausadas',
+    stellen_kpi_places: 'Total Plazas Sanitarias',
+    stellen_search_ph: 'Buscar puesto o clínica...',
+    stellen_cat_all: 'Todas las categorías',
+    stellen_cat_med: 'Medicina',
+    stellen_cat_nurse: 'Enfermería',
+    stellen_cat_ota: 'Quirófano / OTA',
+    stellen_cat_assist: 'Asistenciales',
+    stellen_synced_web: 'Sincronizado con la web pública',
+    stellen_view_public: 'Ver Portal Público',
+    stellen_status_open: '● Abierta (En Web)',
+    stellen_status_paused: '⏸ Pausada',
+    stellen_btn_pause: '⏸ Pausar',
+    stellen_btn_open: '▶ Abrir',
+    stellen_btn_view: '👁️ Ver',
+    stellen_btn_pdf: '📄 PDF',
+    stellen_btn_edit: '✏️ Editar',
+    stellen_btn_match: '🎯 Matching',
+    stellen_unlimited: 'Indefinido',
+    stellen_salary_scale: 'según TV-Ärzte',
+    btn_auto_translate: '✨ Auto-traducir (ES ⇄ DE)',
+
+    // Gestión de Usuarios
+    users_title: 'Gestión de Usuarios',
+    users_sub: 'CRUD completo de cuentas del sistema',
+    users_btn_new: '+ Nuevo Usuario',
+    users_search_ph: 'Buscar usuario...',
+    users_badge_count: 'usuarios',
+    users_th_user: 'Usuario',
+    users_th_email: 'Correo',
+    users_th_role: 'Rol',
+    users_th_status: 'Estado',
+    users_th_date: 'Fecha alta',
+    users_th_actions: 'Acciones',
+    users_status_active: 'Activo',
+    users_status_inactive: 'Inactivo',
+    users_modal_title: '➕ Nuevo Usuario',
+
+    // Empresas & Clínicas B2B
+    b2b_page_title: 'Empresas & Clínicas (B2B) – Alemania',
+    b2b_page_sub: 'Gestión de hospitales, residencias geriátricas, pipeline de convenios y CRM de llamadas',
+    b2b_btn_import_excel: '📥 Subir Base de Datos (Excel)',
+    b2b_btn_template: '📄 Plantilla .xlsx',
+    b2b_btn_export: '📊 Exportar',
+    b2b_btn_new: '+ Nueva Empresa / Lead',
+    b2b_kpi_total: 'Total Hospitales & Clínicas',
+    b2b_kpi_total_sub: 'Instituciones en Base de Datos',
+    b2b_kpi_new: 'Leads B2B Nuevos',
+    b2b_kpi_new_sub: 'Por contactar / agendar',
+    b2b_kpi_demand: 'Demanda de Personal Activa',
+    b2b_kpi_demand_sub: 'Plazas solicitadas por clínicas',
+    b2b_kpi_contracts: 'Convenios & Contratos Activos',
+    b2b_kpi_contracts_sub: 'En búsqueda o colocación'
   },
 
   de: {
@@ -761,7 +822,68 @@ const I18N_TRANSLATIONS = {
     prof_all_candidates_title: 'Alle Kandidaten',
     prof_all_candidates_sub: 'Gesamtübersicht der Pipeline',
     prof_clear_demo_btn: '🗑️ Demo-Kandidaten bereinigen',
-    prof_new_candidate_btn: '+ Neuer Kandidat'
+    prof_new_candidate_btn: '+ Neuer Kandidat',
+
+    // Stellenportal Admin View
+    stellen_admin_title: 'Stellenportal & Vakanzen',
+    stellen_admin_sub: 'Zentrale Verwaltung von medizinischen Vakanzen, Stellenprofilen und Echtzeitsynchronisation',
+    stellen_btn_sync: '🔄 Offizielle JN-Vorlage synchronisieren',
+    stellen_btn_new: '+ Neue Stellenanzeige',
+    stellen_kpi_total: 'Gesamtzahl Stellen',
+    stellen_kpi_open: 'Offene Stellen (Web)',
+    stellen_kpi_paused: 'Pausierte Stellen',
+    stellen_kpi_places: 'Gesamtzahl Plätze',
+    stellen_search_ph: 'Stelle oder Klinik suchen...',
+    stellen_cat_all: 'Alle Fachbereiche',
+    stellen_cat_med: 'Medizin',
+    stellen_cat_nurse: 'Pflege',
+    stellen_cat_ota: 'OP / OTA',
+    stellen_cat_assist: 'Assistenzberufe',
+    stellen_synced_web: 'Mit der Website synchronisiert',
+    stellen_view_public: 'Öffentliches Portal ansehen',
+    stellen_status_open: '● Aktiv (Web)',
+    stellen_status_paused: '⏸ Pausiert',
+    stellen_btn_pause: '⏸ Pausieren',
+    stellen_btn_open: '▶ Aktivieren',
+    stellen_btn_view: '👁️ Ansehen',
+    stellen_btn_pdf: '📄 PDF',
+    stellen_btn_edit: '✏️ Bearbeiten',
+    stellen_btn_match: '🎯 Matching',
+    stellen_unlimited: 'Unbefristet',
+    stellen_salary_scale: 'gemäß TV-Ärzte',
+    btn_auto_translate: '✨ Automatisch übersetzen (DE ⇄ ES)',
+
+    // Gestión de Usuarios
+    users_title: 'Benutzerverwaltung',
+    users_sub: 'Vollständige Kontenverwaltung des Systems',
+    users_btn_new: '+ Neuer Benutzer',
+    users_search_ph: 'Benutzer suchen...',
+    users_badge_count: 'Benutzer',
+    users_th_user: 'Benutzer',
+    users_th_email: 'E-Mail',
+    users_th_role: 'Rolle',
+    users_th_status: 'Status',
+    users_th_date: 'Registriert am',
+    users_th_actions: 'Aktionen',
+    users_status_active: 'Aktiv',
+    users_status_inactive: 'Inaktiv',
+    users_modal_title: '➕ Neuer Benutzer',
+
+    // Empresas & Clínicas B2B
+    b2b_page_title: 'Kliniken & Partner (B2B) – Deutschland',
+    b2b_page_sub: 'Verwaltung von Kliniken, Pflegeheimen, Kooperationspipeline und Telefon-CRM',
+    b2b_btn_import_excel: '📥 Datenbank hochladen (Excel)',
+    b2b_btn_template: '📄 Vorlage .xlsx',
+    b2b_btn_export: '📊 Exportieren',
+    b2b_btn_new: '+ Neue Klinik / Neuer Lead',
+    b2b_kpi_total: 'Gesamtzahl Kliniken & Partner',
+    b2b_kpi_total_sub: 'Einrichtungen in der Datenbank',
+    b2b_kpi_new: 'Neue B2B-Leads',
+    b2b_kpi_new_sub: 'Zu kontaktieren / terminieren',
+    b2b_kpi_demand: 'Aktive Personalnachfrage',
+    b2b_kpi_demand_sub: 'Von Kliniken angeforderte Stellen',
+    b2b_kpi_contracts: 'Aktive Verträge & Kooperationen',
+    b2b_kpi_contracts_sub: 'In Vermittlung oder Platzierung'
   }
 };
 
@@ -992,12 +1114,65 @@ class I18nManager {
       </div>
     `;
   }
+
+  // ── MOTOR DE TRADUCCIÓN AUTOMÁTICA EN TIEMPO REAL ─────────────────
+  async translateText(text, targetLang = null, sourceLang = 'auto') {
+    if (!text || typeof text !== 'string' || !text.trim()) return text;
+    const tl = targetLang || this.currentLang || 'de';
+    const sl = sourceLang || 'auto';
+    const cacheKey = `jnp_tr_${sl}_${tl}_${text.trim().slice(0, 80)}`;
+
+    try {
+      const cached = sessionStorage.getItem(cacheKey);
+      if (cached) return cached;
+    } catch(e) {}
+
+    // 1. Intentar vía endpoint en backend
+    try {
+      const apiEndpoint = (typeof API_URL !== 'undefined' && API_URL) ? `${API_URL}/api/translate` : '/api/translate';
+      const res = await fetch(apiEndpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text, targetLang: tl, sourceLang: sl })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.text) {
+          try { sessionStorage.setItem(cacheKey, data.text); } catch(e) {}
+          return data.text;
+        }
+      }
+    } catch(e) {}
+
+    // 2. Fallback de alta velocidad directo a Google Translate API bridge
+    try {
+      const gUrl = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${encodeURIComponent(sl)}&tl=${encodeURIComponent(tl)}&dt=t&q=${encodeURIComponent(text)}`;
+      const gRes = await fetch(gUrl);
+      if (gRes.ok) {
+        const gData = await gRes.json();
+        const translated = Array.isArray(gData[0]) ? gData[0].map(item => item[0]).join('') : text;
+        try { sessionStorage.setItem(cacheKey, translated); } catch(e) {}
+        return translated;
+      }
+    } catch(err) {
+      console.warn('Fallo en traducción directa:', err);
+    }
+
+    return text;
+  }
+
+  async translateBatch(texts, targetLang = null, sourceLang = 'auto') {
+    if (!Array.isArray(texts)) return [];
+    return Promise.all(texts.map(t => this.translateText(t, targetLang, sourceLang)));
+  }
 }
 
 // Inicializar instancia global
 const i18n = new I18nManager();
 window.i18n = i18n;
 window.t = (key, fallback = '') => (typeof i18n !== 'undefined' ? (i18n.t(key) !== key ? i18n.t(key) : (fallback || key)) : (fallback || key));
+window.translateText = (text, tl, sl) => i18n.translateText(text, tl, sl);
+window.translateBatch = (texts, tl, sl) => i18n.translateBatch(texts, tl, sl);
 
 // Aplicar al cargar la página
 document.addEventListener('DOMContentLoaded', () => {
