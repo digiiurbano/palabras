@@ -4824,9 +4824,12 @@ function renderCandidateProfileHTML(c) {
   }
 
   // Notas e Historial
+  const isDE = (typeof i18n !== 'undefined' && i18n.currentLang === 'de');
   const notas = DB.getNotas ? DB.getNotas(c.id) : [];
   const latestNota = notas && notas.length > 0 ? notas[0] : null;
-  const quoteText = latestNota ? latestNota.contenido : (c.notas_internas || `El candidato cuenta con expediente académico legalizado y perfil idóneo para el reconocimiento profesional en Alemania.`);
+  const quoteText = latestNota
+    ? (isDE && latestNota.contenido_de ? latestNota.contenido_de : latestNota.contenido)
+    : (c.notas_internas || (isDE ? 'Der Kandidat verfügt über eine beglaubigte Studienakte und ein ideales Profil für die Anerkennung in Deutschland.' : `El candidato cuenta con expediente académico legalizado y perfil idóneo para el reconocimiento profesional en Alemania.`));
   const authorName = latestNota && (latestNota.asesor || latestNota.autor) ? (latestNota.asesor || latestNota.autor) : (c.nombre_asesor || 'Carlos Martínez');
   const authorInitials = getInitials(authorName);
 
@@ -6591,11 +6594,23 @@ function showRejectModal(docId) {
   }
 }
 
-function addQuickNote(id_cand) {
+async function addQuickNote(id_cand) {
   const contenido = $('quick-note')?.value.trim();
   const tipo = $('quick-note-tipo')?.value;
   if (!contenido) return;
-  DB.addNota({ id_candidato: id_cand, asesor: State.currentUser.nombre, tipo, contenido });
+
+  let contenido_de = null;
+  try {
+    contenido_de = await window.translateText(contenido, 'de', 'es');
+  } catch(e) {}
+
+  DB.addNota({ 
+    id_candidato: id_cand, 
+    asesor: State.currentUser.nombre, 
+    tipo, 
+    contenido,
+    contenido_de: contenido_de || contenido
+  });
   showToast('Nota guardada', 'La nota fue registrada en el historial.', 'success');
   openCandidateDetail(id_cand);
 }
@@ -8722,16 +8737,31 @@ function renderPublicStellenportal() {
     return;
   }
 
+  const isDE = (typeof i18n !== 'undefined' && i18n.currentLang === 'de');
   grid.innerHTML = filtered.map(v => {
     const img = v.imagen || 'https://jnpalabras.com/wp-content/uploads/2026/07/doctor.jpg';
     const plazas = v.vacantes || 1;
-    const cat = v.categoria || 'Salud';
+    let cat = v.categoria || 'Salud';
+    if (isDE) {
+      if (cat === 'Medicina') cat = 'Medizin';
+      else if (cat === 'Enfermería') cat = 'Pflege';
+      else if (cat === 'Quirófano / OTA') cat = 'OP / OTA';
+      else if (cat === 'Asistenciales') cat = 'Assistenz';
+    }
     const nivel = v.nivel_aleman || 'B2';
-    const salario = v.sueldo_texto || (v.sueldo_min ? `${v.sueldo_min}€ – ${v.sueldo_max}€ / mes` : 'A convenir según convenio');
+    let salario = v.sueldo_texto || (v.sueldo_min ? `${v.sueldo_min}€ – ${v.sueldo_max}€ / mes` : 'A convenir según convenio');
+    if (isDE && salario) {
+      salario = salario.replace('al año', 'pro Jahr').replace('/ mes', '/ Monat').replace('según TV-Ärzte', 'gemäß TV-Ärzte');
+    }
     const ubicacion = v.ubicacion || 'Deutschlandweit';
-    const titulo = v.titulo;
-    const tituloEs = v.titulo_es ? `<div class="stellenportal-card-title-es">${escapeHtml(v.titulo_es)}</div>` : '';
-    const desc = v.descripcion_es || v.descripcion || 'Puesto oficial con clínicas y hospitales en Alemania.';
+    const titulo = isDE ? (v.titulo || v.titulo_es) : (v.titulo_es || v.titulo);
+    const tituloSub = isDE
+      ? (v.titulo_es ? `<div class="stellenportal-card-title-es">${escapeHtml(v.titulo_es)}</div>` : '')
+      : (v.titulo && v.titulo !== v.titulo_es ? `<div class="stellenportal-card-title-es">${escapeHtml(v.titulo)}</div>` : '');
+    const desc = isDE ? (v.descripcion || v.descripcion_es || 'Offizielle Vakanz mit Partnerkliniken in Deutschland.') : (v.descripcion_es || v.descripcion || 'Puesto oficial con clínicas y hospitales en Alemania.');
+    const plazasText = plazas > 1 ? t('stellen_card_plazas', 'Plazas') : t('stellen_card_plaza', 'Plaza');
+    const btnDetail = t('stellen_btn_detail', 'Ver Detalles');
+    const btnApply = t('stellen_btn_apply', 'Postular Ahora');
 
     return `
       <div class="stellenportal-card animate-fadeInUp">
@@ -8739,19 +8769,19 @@ function renderPublicStellenportal() {
           <img src="${img}" alt="${escapeHtml(titulo)}" class="stellenportal-card-img" loading="lazy" onerror="this.src='/logo.png'; this.style.objectFit='contain'; this.style.padding='20px';" />
           <div class="stellenportal-card-tag">${escapeHtml(cat)}</div>
           <div class="stellenportal-card-badge-status">
-            <span>●</span> ${plazas} ${plazas > 1 ? 'Plazas' : 'Plaza'}
+            <span>●</span> ${plazas} ${plazasText}
           </div>
         </div>
         <div class="stellenportal-card-body">
           <h3 class="stellenportal-card-title">${escapeHtml(titulo)}</h3>
-          ${tituloEs}
+          ${tituloSub}
           <div class="stellenportal-card-empresa">
             <span>🏥</span> <span>${escapeHtml(v.empresa || 'Clínicas Asociadas')}</span>
           </div>
           <div class="stellenportal-card-pills">
             <span class="stellenportal-pill">📍 ${escapeHtml(ubicacion)}</span>
             <span class="stellenportal-pill salary">💰 ${escapeHtml(salario)}</span>
-            <span class="stellenportal-pill german">🗣️ Nivel ${escapeHtml(nivel)}</span>
+            <span class="stellenportal-pill german">🗣️ ${isDE ? 'Niveau' : 'Nivel'} ${escapeHtml(nivel)}</span>
             ${v.requiere_fsp ? '<span class="stellenportal-pill" style="background:#fef2f2;border-color:#fecaca;color:#991b1b;font-weight:700;">⚕️ FSP</span>' : ''}
           </div>
           <p class="stellenportal-card-desc">
@@ -8759,10 +8789,10 @@ function renderPublicStellenportal() {
           </p>
           <div class="stellenportal-card-footer">
             <button class="stellenportal-btn-detail" onclick="openStellenportalModal('${v.id}')">
-              Ver Detalles
+              ${btnDetail}
             </button>
             <button class="stellenportal-btn-apply" onclick="applyToJobVacancy('${v.id}')">
-              Postular Ahora
+              ${btnApply}
             </button>
           </div>
         </div>
@@ -9231,20 +9261,18 @@ function openEditVacanteModal(id) {
             </select>
           </div>
 
-          <div style="display:flex; justify-content:space-between; align-items:center;">
-            ${sectionTitle('1. Títulos y especialidad')}
-            <button type="button" id="btn-vac-autotranslate" onclick="autoTranslateVacanteInputs()" class="btn btn-xs btn-outline" style="color:#0284c7; border-color:#bae6fd; background:#f0f9ff; font-weight:700; border-radius:8px; padding:4px 10px; cursor:pointer;" title="Traduce automáticamente los campos entre español y alemán">
-              ✨ Auto-traducir (ES ⇄ DE)
-            </button>
-          </div>
+          ${sectionTitle('1. Títulos y especialidad')}
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
             <div>
               <label class="form-label" style="font-weight:700;">Título en Español (visible)</label>
               <input type="text" id="vac-form-titulo-es" class="form-input" style="border-radius:10px; width:100%;" value="${escapeHtml(v.titulo_es || '')}" placeholder="Ej: Auxiliar de quirófano (OTA) en reconocimiento" required />
             </div>
             <div>
-              <label class="form-label" style="font-weight:700;">Título en Alemán (Stellentitel)</label>
-              <input type="text" id="vac-form-titulo" class="form-input" style="border-radius:10px; width:100%;" value="${escapeHtml(v.titulo || '')}" placeholder="Ej: Operationstechnische Assistenz (OTA) in Anerkennung" />
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <label class="form-label" style="font-weight:700; margin-bottom:0;">Título en Alemán (Stellentitel)</label>
+                <span id="vac-auto-translate-status" style="font-size:0.75rem; color:#0284c7; font-weight:600; display:none;">✨ Auto-traduciendo...</span>
+              </div>
+              <input type="text" id="vac-form-titulo" class="form-input" style="border-radius:10px; width:100%; margin-top:6px;" value="${escapeHtml(v.titulo || '')}" placeholder="Ej: Operationstechnische Assistenz (OTA) in Anerkennung" />
             </div>
           </div>
           <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px;">
@@ -9355,6 +9383,9 @@ function openEditVacanteModal(id) {
   let existing = $('modal-edit-vacante-dialog');
   if (existing) existing.remove();
   document.body.insertAdjacentHTML('beforeend', modalHtml);
+  if (typeof initAutomaticVacanteTranslation === 'function') {
+    initAutomaticVacanteTranslation();
+  }
 }
 
 function applyTemplateToVacanteForm(slug) {
@@ -9424,36 +9455,88 @@ function readVacanteForm() {
   };
 }
 
-async function autoTranslateVacanteInputs() {
-  const btn = document.getElementById('btn-vac-autotranslate');
+function initAutomaticVacanteTranslation() {
   const titEs = document.getElementById('vac-form-titulo-es');
   const titDe = document.getElementById('vac-form-titulo');
-  const cualif = document.getElementById('vac-form-cualificacion');
+  const statusEl = document.getElementById('vac-auto-translate-status');
 
-  if (btn) {
-    btn.disabled = true;
-    btn.innerHTML = '⏳ Traduciendo...';
+  let esTimer = null;
+  let deTimer = null;
+  let lastTranslatedEs = titEs ? titEs.value.trim() : '';
+  let lastTranslatedDe = titDe ? titDe.value.trim() : '';
+
+  const doTranslateEsToDe = async (force = false) => {
+    if (!titEs || !titDe) return;
+    const val = titEs.value.trim();
+    if (!val || (val === lastTranslatedEs && !force)) return;
+    lastTranslatedEs = val;
+    if (statusEl) {
+      statusEl.style.display = 'inline';
+      statusEl.style.color = '#0284c7';
+      statusEl.textContent = '✨ Auto-traduciendo...';
+    }
+    try {
+      const translated = await window.translateText(val, 'de', 'es');
+      if (translated && titEs.value.trim() === val) {
+        titDe.value = translated;
+        lastTranslatedDe = translated;
+        if (statusEl) {
+          statusEl.style.color = '#059669';
+          statusEl.textContent = '✓ Traducido automáticamente';
+          setTimeout(() => { if (statusEl) statusEl.style.display = 'none'; }, 2200);
+        }
+      }
+    } catch (e) {
+      if (statusEl) statusEl.style.display = 'none';
+    }
+  };
+
+  const doTranslateDeToEs = async (force = false) => {
+    if (!titEs || !titDe) return;
+    const val = titDe.value.trim();
+    if (!val || (val === lastTranslatedDe && !force)) return;
+    lastTranslatedDe = val;
+    if (statusEl) {
+      statusEl.style.display = 'inline';
+      statusEl.style.color = '#0284c7';
+      statusEl.textContent = '✨ Auto-traduciendo...';
+    }
+    try {
+      const translated = await window.translateText(val, 'es', 'de');
+      if (translated && titDe.value.trim() === val) {
+        titEs.value = translated;
+        lastTranslatedEs = translated;
+        if (statusEl) {
+          statusEl.style.color = '#059669';
+          statusEl.textContent = '✓ Traducido automáticamente';
+          setTimeout(() => { if (statusEl) statusEl.style.display = 'none'; }, 2200);
+        }
+      }
+    } catch (e) {
+      if (statusEl) statusEl.style.display = 'none';
+    }
+  };
+
+  if (titEs) {
+    titEs.addEventListener('input', () => {
+      clearTimeout(esTimer);
+      esTimer = setTimeout(() => doTranslateEsToDe(), 600);
+    });
+    titEs.addEventListener('blur', () => {
+      clearTimeout(esTimer);
+      doTranslateEsToDe();
+    });
   }
 
-  try {
-    if (titEs && titDe) {
-      if (titEs.value && !titDe.value) {
-        titDe.value = await window.translateText(titEs.value, 'de', 'es');
-      } else if (titDe.value && !titEs.value) {
-        titEs.value = await window.translateText(titDe.value, 'es', 'de');
-      } else if (titEs.value && titDe.value) {
-        titDe.value = await window.translateText(titEs.value, 'de', 'es');
-      }
-    }
-    showToast('Traducción completada', 'Se sincronizaron los títulos entre español y alemán.', 'success');
-  } catch (err) {
-    console.error('Error auto-traduciendo vacante:', err);
-    showToast('Aviso', 'No se pudo completar la traducción automática en este instante.', 'warning');
-  } finally {
-    if (btn) {
-      btn.disabled = false;
-      btn.innerHTML = '✨ Auto-traducir (ES ⇄ DE)';
-    }
+  if (titDe) {
+    titDe.addEventListener('input', () => {
+      clearTimeout(deTimer);
+      deTimer = setTimeout(() => doTranslateDeToEs(), 600);
+    });
+    titDe.addEventListener('blur', () => {
+      clearTimeout(deTimer);
+      doTranslateDeToEs();
+    });
   }
 }
 
@@ -9465,12 +9548,15 @@ async function handleSaveVacanteSubmit(e, id) {
     return;
   }
 
-  // Si falta alguno de los dos títulos, autotraducirlo antes de guardar
+  // Traducción bidireccional automática y transparente antes de guardar
   try {
     if (!data.titulo && data.titulo_es) {
       data.titulo = await window.translateText(data.titulo_es, 'de', 'es');
     } else if (!data.titulo_es && data.titulo) {
       data.titulo_es = await window.translateText(data.titulo, 'es', 'de');
+    }
+    if (data.cualificacion && !data.cualificacion_de) {
+      data.cualificacion_de = await window.translateText(data.cualificacion, 'de', 'es');
     }
   } catch (err) {
     console.warn('Fallback al guardar vacante sin traducir:', err);
@@ -11900,7 +11986,7 @@ window.renderStellenportalAdmin = renderStellenportalAdmin;
 window.openCreateVacanteModal = openCreateVacanteModal;
 window.openEditVacanteModal = openEditVacanteModal;
 window.applyTemplateToVacanteForm = applyTemplateToVacanteForm;
-window.autoTranslateVacanteInputs = autoTranslateVacanteInputs;
+window.initAutomaticVacanteTranslation = initAutomaticVacanteTranslation;
 window.handleSaveVacanteSubmit = handleSaveVacanteSubmit;
 window.toggleVacanteAdmin = toggleVacanteAdmin;
 window.deleteVacanteAdmin = deleteVacanteAdmin;

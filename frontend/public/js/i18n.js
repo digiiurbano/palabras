@@ -410,7 +410,12 @@ const I18N_TRANSLATIONS = {
     stellen_btn_match: '🎯 Matching',
     stellen_unlimited: 'Indefinido',
     stellen_salary_scale: 'según TV-Ärzte',
-    btn_auto_translate: '✨ Auto-traducir (ES ⇄ DE)',
+    stellen_btn_detail: 'Ver Detalles',
+    stellen_btn_apply: 'Postular Ahora',
+    stellen_card_plazas: 'Plazas',
+    stellen_card_plaza: 'Plaza',
+    stellen_auto_translating: '✨ Traduciendo automáticamente...',
+    stellen_auto_translated: '✓ Traducido automáticamente',
 
     // Gestión de Usuarios
     users_title: 'Gestión de Usuarios',
@@ -851,7 +856,12 @@ const I18N_TRANSLATIONS = {
     stellen_btn_match: '🎯 Matching',
     stellen_unlimited: 'Unbefristet',
     stellen_salary_scale: 'gemäß TV-Ärzte',
-    btn_auto_translate: '✨ Automatisch übersetzen (DE ⇄ ES)',
+    stellen_btn_detail: 'Details anzeigen',
+    stellen_btn_apply: 'Jetzt bewerben',
+    stellen_card_plazas: 'Plätze',
+    stellen_card_plaza: 'Platz',
+    stellen_auto_translating: '✨ Automatische Übersetzung...',
+    stellen_auto_translated: '✓ Automatisch übersetzt',
 
     // Gestión de Usuarios
     users_title: 'Benutzerverwaltung',
