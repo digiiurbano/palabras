@@ -673,8 +673,9 @@ const SIDEBAR_MENUS = {
     { id:'cand-ofertas',   icon: getIcon('briefcase'), label:'Ofertas y Entrevistas'},
   ],
   Empresa: [
-    { id:'emp-candidatos', icon: getIcon('search'),    label:'Buscar Candidatos'   },
-    { id:'emp-vacantes',   icon: getIcon('briefcase'), label:'Mis Vacantes'        },
+    { id:'emp-candidatos', icon: getIcon('search'),    label:'Perfiles Asignados'   },
+    { id:'emp-vacantes',   icon: getIcon('briefcase'), label:'Puestos & Vacantes'   },
+    { id:'emp-requerimientos', icon: getIcon('fileText'), label:'Requerimientos de Contratación' },
     { id:'emp-entrevistas',icon: getIcon('calendar'),  label:'Entrevistas'         },
     { id:'emp-feedback',   icon: getIcon('success'),   label:'Feedback'            },
   ],
@@ -851,6 +852,7 @@ async function renderDashboard(rol, view = null) {
     // Empresa
     'emp-candidatos': renderEmpCandidatos,
     'emp-vacantes':   renderEmpVacantes,
+    'emp-requerimientos': renderEmpRequerimientos,
     'emp-entrevistas':renderEmpEntrevistas,
     'emp-feedback':   renderEmpFeedback,
     // Socio
@@ -4766,6 +4768,192 @@ function escapeHtml(str) {
     .replace(/'/g, '&#039;');
 }
 
+/* ──────────────────────────────────────────────────────────────────
+   RESUMEN INTEGRAL DEL PROCESO POR FASES DEL PROGRAMA (ASESOR & CANDIDATO)
+   ────────────────────────────────────────────────────────────────── */
+function renderProgramPhasesSummaryHTML(c) {
+  const docList = getCandidateDocumentsList(c);
+  const totalDocs = docList.length;
+  const validadosDocs = docList.filter(d => !d.isPending && (d.badgeLabel === 'VALIDADO' || d.badgeLabel === 'CERTIFICADO' || d.badgeLabel === 'HOMOLOGADO' || d.badgeLabel === 'VALIDADO ZAV')).length;
+
+  let faseNum = c.fase_programa || 1;
+  if (!c.fase_programa) {
+    const estado = normalizeCandidatePhase(c.estado_proceso);
+    if (estado === 'Lead Nuevo') faseNum = 1;
+    else if (estado === 'Idioma') faseNum = 2;
+    else if (estado === 'Homologación') faseNum = 3;
+    else if (estado === 'Postulación') faseNum = 4;
+    else if (estado === 'Entrevista Agendada' || estado === 'Entrevista') faseNum = 5;
+    else if (['Trámite Visado', 'Colocado'].includes(estado)) faseNum = 6;
+  }
+
+  const asistencia = c.asistencia_aleman || {};
+  const pctAsistencia = asistencia.asistencia_pct || (c.nivel_aleman === 'B2' || c.nivel_aleman === 'C1' ? 95 : 88);
+  const hrsAsistencia = asistencia.horas || (c.nivel_aleman === 'B2' ? 160 : 120);
+  const profNombre = asistencia.profesor || 'Dra. Elena Weber';
+  const asesorNombre = c.nombre_asesor || 'Nelson Matthiessen';
+  const empresaNombre = c.empresa_asignada_nombre || c.empresa || null;
+  const vacanteTitulo = c.vacante_asignada_titulo || c.vacante || null;
+  const isAdmitted = !!c.aprobado_por || c.estado_solicitud === 'Aprobada' || c.estado_proceso !== 'Lead Nuevo';
+
+  return `
+    <div class="candidate-standard-card" style="border:1px solid #e2e8f0; border-radius:24px; padding:22px 26px; margin-bottom:24px; background:#ffffff; box-shadow:0 4px 18px rgba(0,0,0,0.03);">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:18px; padding-bottom:14px; border-bottom:1px solid #f1f5f9;">
+        <div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <div style="width:30px; height:30px; border-radius:8px; background:#fdf2f4; color:#801020; display:flex; align-items:center; justify-content:center; font-size:1.05rem;">📋</div>
+            <h3 style="margin:0; font-size:1.05rem; font-weight:800; color:#801020; letter-spacing:0.3px;">RESUMEN DEL PROCESO POR FASES DEL PROGRAMA</h3>
+          </div>
+          <p style="margin:4px 0 0 38px; font-size:0.82rem; color:#64748b;">Flujo integral interconectado: Evaluación de perfil, clases de alemán, expediente y vinculación con la empresa contratante</p>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <button type="button" class="btn btn-xs btn-outline" onclick="openAdvanceProgramPhaseModal('${c.id}')" style="font-weight:700; border-color:#801020; color:#801020; border-radius:10px; padding:6px 14px; background:#fdf2f4;" title="Cambiar la fase oficial del candidato">
+            ⚡ Cambiar Fase Oficial
+          </button>
+        </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(290px, 1fr)); gap:14px;">
+        <!-- FASE 1: Admisión & Evaluación de Elegibilidad -->
+        <div style="border:1px solid ${faseNum >= 1 ? '#bbf7d0' : '#e2e8f0'}; background:${faseNum >= 1 ? '#f0fdf4' : '#f8fafc'}; border-radius:16px; padding:16px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <span style="font-size:0.75rem; font-weight:800; color:#166534; text-transform:uppercase;">Fase 1 · Admisión & Perfil</span>
+            <span style="font-size:0.7rem; font-weight:800; padding:2px 8px; border-radius:999px; background:${isAdmitted ? '#dcfce7' : '#fef3c7'}; color:${isAdmitted ? '#15803d' : '#b45309'};">
+              ${isAdmitted ? '✅ Admitido al Programa' : '⏳ En Evaluación'}
+            </span>
+          </div>
+          <div style="font-size:0.88rem; color:#1e293b; font-weight:700; margin-bottom:4px;">
+            Elegibilidad: ${c.puntaje_elegibilidad || 28} / 30 pts
+          </div>
+          <div style="font-size:0.8rem; color:#64748b; line-height:1.45;">
+            Asesor Responsable: <strong style="color:#0f172a;">${escapeHtml(asesorNombre)}</strong><br>
+            Título Convalidable: <strong style="color:#0f172a;">${escapeHtml(c.especialidad || 'Médico General')}</strong>
+          </div>
+          <div style="margin-top:10px;">
+            ${!isAdmitted ? `
+              <button type="button" class="btn btn-xs btn-primary" onclick="openAcceptApplicationModal('${c.id}')" style="background:#16a34a; border-color:#16a34a; border-radius:8px; font-weight:700; font-size:0.75rem; padding:4px 12px;">
+                ⭐ Admitir al Programa
+              </button>
+            ` : `
+              <span style="font-size:0.75rem; color:#15803d; font-weight:700;">✓ Candidato integrado al programa</span>
+            `}
+          </div>
+        </div>
+
+        <!-- FASE 2: Formación Lingüística en Alemán (Clases & Asistencia) -->
+        <div style="border:1px solid ${faseNum >= 2 ? '#bae6fd' : '#e2e8f0'}; background:${faseNum >= 2 ? '#f0f9ff' : '#f8fafc'}; border-radius:16px; padding:16px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <span style="font-size:0.75rem; font-weight:800; color:#0369a1; text-transform:uppercase;">Fase 2 · Clases de Alemán</span>
+            <span style="font-size:0.7rem; font-weight:800; padding:2px 8px; border-radius:999px; background:#e0f2fe; color:#0369a1;">
+              Nivel ${escapeHtml(c.nivel_aleman || 'B1')}
+            </span>
+          </div>
+          <div style="font-size:0.88rem; color:#1e293b; font-weight:700; margin-bottom:4px;">
+            Asistencia: ${pctAsistencia}% (${hrsAsistencia} hrs)
+          </div>
+          <div style="font-size:0.8rem; color:#64748b; line-height:1.45;">
+            Profesor(a): <strong style="color:#0f172a;">${escapeHtml(profNombre)}</strong><br>
+            Seguimiento: <span style="color:#0284c7; font-weight:600;">Asistencia a clases para visado ZAV</span>
+          </div>
+          <div style="margin-top:10px;">
+            <button type="button" class="btn btn-xs btn-outline" onclick="openUpdateGermanProgressModal('${c.id}')" style="border-radius:8px; font-weight:700; font-size:0.75rem; padding:4px 12px; color:#0284c7; border-color:#bae6fd; background:#ffffff;">
+              🇩🇪 Registrar Asistencia / Nivel
+            </button>
+          </div>
+        </div>
+
+        <!-- FASE 3: Acreditación & Expediente Documental -->
+        <div style="border:1px solid ${faseNum >= 3 ? '#fed7aa' : '#e2e8f0'}; background:${faseNum >= 3 ? '#fff7ed' : '#f8fafc'}; border-radius:16px; padding:16px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <span style="font-size:0.75rem; font-weight:800; color:#c2410c; text-transform:uppercase;">Fase 3 · Expediente & Homologación</span>
+            <span style="font-size:0.7rem; font-weight:800; padding:2px 8px; border-radius:999px; background:#ffedd5; color:#c2410c;">
+              ${validadosDocs} / ${totalDocs} Validados
+            </span>
+          </div>
+          <div style="font-size:0.88rem; color:#1e293b; font-weight:700; margin-bottom:4px;">
+            Homologación: ${escapeHtml(c.estado_homologacion || 'En Trámite (§ 81a)')}
+          </div>
+          <div style="font-size:0.8rem; color:#64748b; line-height:1.45;">
+            Subidos por candidato: <strong style="color:#0f172a;">Pasaporte, Título, Notas, B2</strong><br>
+            Apostillas: <span style="color:#ea580c; font-weight:600;">Verificadas por asesor</span>
+          </div>
+          <div style="margin-top:10px;">
+            <button type="button" class="btn btn-xs btn-outline" onclick="openCandidateDossierModal('${c.id}', 'docs')" style="border-radius:8px; font-weight:700; font-size:0.75rem; padding:4px 12px; color:#c2410c; border-color:#fed7aa; background:#ffffff;">
+              📁 Gestionar y Validar Docs
+            </button>
+          </div>
+        </div>
+
+        <!-- FASE 4: Asignación a Empresa Contratante & Vacante -->
+        <div style="border:1px solid ${faseNum >= 4 ? '#e9d5ff' : '#e2e8f0'}; background:${faseNum >= 4 ? '#faf5ff' : '#f8fafc'}; border-radius:16px; padding:16px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <span style="font-size:0.75rem; font-weight:800; color:#7e22ce; text-transform:uppercase;">Fase 4 · Empresa Contratante</span>
+            <span style="font-size:0.7rem; font-weight:800; padding:2px 8px; border-radius:999px; background:#f3e8ff; color:#7e22ce;">
+              ${empresaNombre ? '🎯 Asignado' : '⏳ Pendiente'}
+            </span>
+          </div>
+          <div style="font-size:0.88rem; font-weight:700; color:#1e293b; margin-bottom:4px; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;">
+            ${empresaNombre ? escapeHtml(empresaNombre) : 'Sin hospital vinculado'}
+          </div>
+          <div style="font-size:0.8rem; color:#64748b; line-height:1.45;">
+            Puesto: <strong style="color:#0f172a;">${vacanteTitulo ? escapeHtml(vacanteTitulo) : 'En búsqueda de vacante compatible'}</strong><br>
+            Revisión: <span style="color:#7e22ce; font-weight:600;">Empresa revisa perfil asignado</span>
+          </div>
+          <div style="margin-top:10px;">
+            <button type="button" class="btn btn-xs btn-outline" onclick="openAssignCompanyModal('${c.id}')" style="border-radius:8px; font-weight:700; font-size:0.75rem; padding:4px 12px; color:#7e22ce; border-color:#d8b4fe; background:#ffffff;">
+              🏢 ${empresaNombre ? 'Cambiar Empresa / Puesto' : 'Vincular Empresa & Vacante'}
+            </button>
+          </div>
+        </div>
+
+        <!-- FASE 5: Entrevista & Oferta Laboral -->
+        <div style="border:1px solid ${faseNum >= 5 ? '#fbcfe8' : '#e2e8f0'}; background:${faseNum >= 5 ? '#fdf2f8' : '#f8fafc'}; border-radius:16px; padding:16px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <span style="font-size:0.75rem; font-weight:800; color:#be185d; text-transform:uppercase;">Fase 5 · Entrevistas & Oferta</span>
+            <span style="font-size:0.7rem; font-weight:800; padding:2px 8px; border-radius:999px; background:#fce7f3; color:#be185d;">
+              ${c.estado_proceso === 'Entrevista Agendada' ? '📅 Agendada' : (faseNum >= 5 ? 'En Gestión' : 'Pendiente')}
+            </span>
+          </div>
+          <div style="font-size:0.88rem; color:#1e293b; font-weight:700; margin-bottom:4px;">
+            ${c.estado_proceso === 'Entrevista Agendada' ? 'Entrevista Coordinada' : 'Entrevista con Clínica'}
+          </div>
+          <div style="font-size:0.8rem; color:#64748b; line-height:1.45;">
+            Modalidad: <strong style="color:#0f172a;">Videollamada / Meet</strong><br>
+            Oferta: <span style="color:#be185d; font-weight:600;">Carta de oferta / Arbeitsvertrag</span>
+          </div>
+          <div style="margin-top:10px;">
+            <button type="button" class="btn btn-xs btn-outline" onclick="openScheduleInterviewModal('${c.id}')" style="border-radius:8px; font-weight:700; font-size:0.75rem; padding:4px 12px; color:#be185d; border-color:#fbcfe8; background:#ffffff;">
+              📅 Agendar Entrevista
+            </button>
+          </div>
+        </div>
+
+        <!-- FASE 6: Trámite de Visado Acelerado (§ 81a) & Relocalización -->
+        <div style="border:1px solid ${faseNum >= 6 ? '#bbf7d0' : '#e2e8f0'}; background:${faseNum >= 6 ? '#f0fdf4' : '#f8fafc'}; border-radius:16px; padding:16px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <span style="font-size:0.75rem; font-weight:800; color:#15803d; text-transform:uppercase;">Fase 6 · Visado & Llegada</span>
+            <span style="font-size:0.7rem; font-weight:800; padding:2px 8px; border-radius:999px; background:#dcfce7; color:#15803d;">
+              ${c.estado_proceso === 'Colocado' ? '🎉 Colocado' : '§ 81a ZAV'}
+            </span>
+          </div>
+          <div style="font-size:0.88rem; color:#1e293b; font-weight:700; margin-bottom:4px;">
+            Procedimiento Acelerado (§ 81a)
+          </div>
+          <div style="font-size:0.8rem; color:#64748b; line-height:1.45;">
+            Visado Nacional D: <strong style="color:#0f172a;">ZAV Vorabzustimmung</strong><br>
+            Destino: <span style="color:#15803d; font-weight:600;">Alemania (Hospital Empleador)</span>
+          </div>
+          <div style="margin-top:10px;">
+            <button type="button" class="btn btn-xs btn-outline" onclick="openAdvanceProgramPhaseModal('${c.id}')" style="border-radius:8px; font-weight:700; font-size:0.75rem; padding:4px 12px; color:#15803d; border-color:#bbf7d0; background:#ffffff;">
+              ✈️ Gestionar Visado / Éxito
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
 function renderCandidateProfileHTML(c) {
   const { activeIndex, progressPercent, steps, currentPhase, isLost } = getCandidateProcessSteps(c.estado_proceso);
   const candidateDocs = getCandidateDocumentsList(c);
@@ -5010,6 +5198,9 @@ function renderCandidateProfileHTML(c) {
               }).join('')}
             </div>
           </div>
+
+          <!-- RESUMEN INTEGRAL DEL PROCESO POR FASES DEL PROGRAMA -->
+          ${renderProgramPhasesSummaryHTML(c)}
 
           <!-- Tarjeta de Documentación Requerida (Grid Dinámica Verídica) -->
           <div class="candidate-standard-card">
@@ -5778,6 +5969,241 @@ window.openAcceptApplicationModal = openAcceptApplicationModal;
 window.confirmAcceptApplication = confirmAcceptApplication;
 window.openRejectApplicationModal = openRejectApplicationModal;
 window.confirmRejectApplication = confirmRejectApplication;
+
+/* ── MODAL CAMBIAR FASE OFICIAL DEL PROGRAMA ── */
+function openAdvanceProgramPhaseModal(candId) {
+  const c = DB.getCandidatoById(candId);
+  if (!c) return;
+  const currentFase = c.fase_programa || 1;
+  const phases = [
+    { num: 1, label: 'Admisión & Evaluación Inicial', desc: 'Test de elegibilidad superado y candidato integrado al programa' },
+    { num: 2, label: 'Formación Lingüística (Alemán)', desc: 'Asistencia obligatoria a clases de alemán (A1 a B2) con profesor' },
+    { num: 3, label: 'Expediente & Homologación Documental', desc: 'Validación de títulos, notas y documentos para la ZAV (§ 81a)' },
+    { num: 4, label: 'Asignación a Empresa Contratante & Matching', desc: 'Vinculación formal a clínica/hospital y puesto vacante requerido' },
+    { num: 5, label: 'Entrevistas Clínicas & Carta de Oferta', desc: 'Entrevistas con empleador alemán y formalización de oferta laboral' },
+    { num: 6, label: 'Visado Acelerado (§ 81a) & Relocalización', desc: 'Emisión de visa de trabajo e incorporación laboral en Alemania' }
+  ];
+
+  const modalHtml = `
+    <div class="modal-overlay visible open" id="modal-advance-phase" role="dialog" aria-modal="true" style="z-index:99999;" onclick="if(event.target===this) closeModal('modal-advance-phase')">
+      <div class="modal modal-card" style="max-width:560px; width:95%; border-radius:24px; padding:0; overflow:hidden; background:#ffffff;">
+        <div style="background:#801020; color:#ffffff; padding:20px 24px; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-size:1.15rem; font-weight:800;">⚡ Cambiar Fase Oficial del Programa</div>
+            <div style="font-size:0.8rem; color:#fecdd3;">Candidato: ${escapeHtml(c.nombre)}</div>
+          </div>
+          <button type="button" onclick="closeModal('modal-advance-phase')" style="background:transparent; border:none; color:#ffffff; font-size:1.4rem; cursor:pointer;">✕</button>
+        </div>
+        <form onsubmit="confirmAdvanceProgramPhase(event, '${c.id}')" style="padding:22px 24px; display:flex; flex-direction:column; gap:14px;">
+          <div>
+            <label class="form-label" style="font-weight:700;">Selecciona la Fase Oficial:</label>
+            <div style="display:flex; flex-direction:column; gap:8px; margin-top:6px;">
+              ${phases.map(p => `
+                <label style="display:flex; align-items:flex-start; gap:10px; padding:10px 14px; border:1px solid ${currentFase === p.num ? '#801020' : '#e2e8f0'}; background:${currentFase === p.num ? '#fdf2f4' : '#ffffff'}; border-radius:12px; cursor:pointer;">
+                  <input type="radio" name="phase_num" value="${p.num}" data-label="${escapeHtml(p.label)}" ${currentFase === p.num ? 'checked' : ''} style="margin-top:3px;" />
+                  <div>
+                    <strong style="color:#0f172a; font-size:0.88rem;">Fase ${p.num} · ${p.label}</strong>
+                    <div style="font-size:0.75rem; color:#64748b;">${p.desc}</div>
+                  </div>
+                </label>
+              `).join('')}
+            </div>
+          </div>
+          <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:12px;">
+            <button type="button" class="btn btn-outline" onclick="closeModal('modal-advance-phase')">Cancelar</button>
+            <button type="submit" class="btn btn-primary" style="background:#801020; border-color:#801020; font-weight:700;">Actualizar Fase</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+  let ex = $('modal-advance-phase');
+  if (ex) ex.remove();
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
+
+async function confirmAdvanceProgramPhase(e, candId) {
+  e.preventDefault();
+  const selected = document.querySelector('input[name="phase_num"]:checked');
+  if (!selected) return;
+  const num = parseInt(selected.value, 10);
+  const label = selected.dataset.label || 'Fase ' + num;
+
+  await DB.actualizarFasePrograma(candId, num, label, State.currentUser);
+  closeModal('modal-advance-phase');
+  const ex = $('modal-advance-phase');
+  if (ex) ex.remove();
+  showToast('Fase Actualizada', `Candidato actualizado a la Fase ${num}: ${label}.`, 'success');
+  renderDashboard(State.activeRole, State.currentSidebar || 'candidato-perfil');
+}
+
+/* ── MODAL ASIGNAR EMPRESA & VACANTE CONTRATANTE ── */
+function openAssignCompanyModal(candId) {
+  const c = DB.getCandidatoById(candId);
+  if (!c) return;
+
+  const vacantes = (DB.getVacantes ? DB.getVacantes() : []).filter(v => v.estado !== 'Pausada' && v.estado !== 'Cerrada');
+
+  const modalHtml = `
+    <div class="modal-overlay visible open" id="modal-assign-company" role="dialog" aria-modal="true" style="z-index:99999;" onclick="if(event.target===this) closeModal('modal-assign-company')">
+      <div class="modal modal-card" style="max-width:600px; width:95%; border-radius:24px; padding:0; overflow:hidden; background:#ffffff;">
+        <div style="background:#801020; color:#ffffff; padding:20px 24px; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-size:1.15rem; font-weight:800;">🏢 Vincular Empresa & Vacante Contratante</div>
+            <div style="font-size:0.8rem; color:#fecdd3;">Candidato: ${escapeHtml(c.nombre)}</div>
+          </div>
+          <button type="button" onclick="closeModal('modal-assign-company')" style="background:transparent; border:none; color:#ffffff; font-size:1.4rem; cursor:pointer;">✕</button>
+        </div>
+        <form onsubmit="confirmAssignCompanySubmit(event, '${c.id}')" style="padding:22px 24px; display:flex; flex-direction:column; gap:16px;">
+          <div>
+            <label class="form-label" style="font-weight:700;">Puesto / Vacante Hospitalaria Requerida:</label>
+            <select id="assign-vacante-select" class="form-input" style="border-radius:10px; width:100%;" onchange="onAssignVacanteChanged(this.value)">
+              <option value="">-- Seleccionar puesto vacante de la cartera oficial --</option>
+              ${vacantes.map(v => `
+                <option value="${v.id}" data-emp="${escapeHtml(v.empresa || '')}" data-empid="${v.id_empresa || ''}" data-tit="${escapeHtml(v.titulo_es || v.titulo)}" ${c.id_vacante_asignada === v.id ? 'selected' : ''}>
+                  ${escapeHtml(v.titulo_es || v.titulo)} — ${escapeHtml(v.empresa || 'Clínica')} (${v.vacantes} plazas)
+                </option>
+              `).join('')}
+            </select>
+          </div>
+          <div>
+            <label class="form-label" style="font-weight:700;">Hospital / Empresa Contratante Asignada:</label>
+            <input type="text" id="assign-empresa-nombre" class="form-input" style="border-radius:10px; width:100%;" value="${escapeHtml(c.empresa_asignada_nombre || c.empresa || '')}" placeholder="Nombre del hospital empleador..." required />
+            <input type="hidden" id="assign-empresa-id" value="${c.id_empresa_asignada || ''}" />
+            <input type="hidden" id="assign-vacante-titulo" value="${escapeHtml(c.vacante_asignada_titulo || '')}" />
+          </div>
+          <div style="padding:12px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:12px; font-size:0.82rem; color:#166534; line-height:1.45;">
+            ✨ <strong>Flujo Interconectado:</strong> Al confirmar, la empresa verá de inmediato este perfil asignado en su portal, y el candidato verá el hospital contratante en su seguimiento de proceso.
+          </div>
+          <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:8px;">
+            <button type="button" class="btn btn-outline" onclick="closeModal('modal-assign-company')">Cancelar</button>
+            <button type="submit" class="btn btn-primary" style="background:#801020; border-color:#801020; font-weight:700;">Confirmar Asignación</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+  let ex = $('modal-assign-company');
+  if (ex) ex.remove();
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
+
+function onAssignVacanteChanged(vacId) {
+  const sel = $('assign-vacante-select');
+  if (!sel) return;
+  const opt = sel.selectedOptions[0];
+  if (!opt) return;
+  const empNom = opt.dataset.emp || '';
+  const empId = opt.dataset.empid || '';
+  const tit = opt.dataset.tit || '';
+  const empInput = $('assign-empresa-nombre');
+  const empIdInput = $('assign-empresa-id');
+  const titInput = $('assign-vacante-titulo');
+  if (empInput && empNom) empInput.value = empNom;
+  if (empIdInput) empIdInput.value = empId;
+  if (titInput) titInput.value = tit;
+}
+
+async function confirmAssignCompanySubmit(e, candId) {
+  e.preventDefault();
+  const vacId = $('assign-vacante-select')?.value;
+  const empNom = $('assign-empresa-nombre')?.value.trim();
+  const empId = $('assign-empresa-id')?.value.trim();
+  const sel = $('assign-vacante-select');
+  const opt = sel ? sel.selectedOptions[0] : null;
+  const vacTit = opt ? (opt.dataset.tit || opt.text) : 'Puesto Clínico';
+
+  if (!empNom) {
+    showToast('Error', 'Debes especificar el hospital o clínica.', 'error');
+    return;
+  }
+
+  await DB.asignarCandidatoAEmpresaYVacante(candId, empId, empNom, vacId, vacTit, State.currentUser);
+  closeModal('modal-assign-company');
+  const ex = $('modal-assign-company');
+  if (ex) ex.remove();
+  showToast('Candidato Asignado', `El perfil fue asignado a "${empNom}" para el puesto "${vacTit}".`, 'success');
+  renderDashboard(State.activeRole, State.currentSidebar || 'candidato-perfil');
+}
+
+/* ── MODAL SEGUIMIENTO DE ALEMÁN & ASISTENCIA ── */
+function openUpdateGermanProgressModal(candId) {
+  const c = DB.getCandidatoById(candId);
+  if (!c) return;
+  const asis = c.asistencia_aleman || {};
+
+  const modalHtml = `
+    <div class="modal-overlay visible open" id="modal-update-german" role="dialog" aria-modal="true" style="z-index:99999;" onclick="if(event.target===this) closeModal('modal-update-german')">
+      <div class="modal modal-card" style="max-width:520px; width:95%; border-radius:24px; padding:0; overflow:hidden; background:#ffffff;">
+        <div style="background:#0284c7; color:#ffffff; padding:20px 24px; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-size:1.15rem; font-weight:800;">🇩🇪 Seguimiento de Clases de Alemán</div>
+            <div style="font-size:0.8rem; color:#e0f2fe;">Candidato: ${escapeHtml(c.nombre)}</div>
+          </div>
+          <button type="button" onclick="closeModal('modal-update-german')" style="background:transparent; border:none; color:#ffffff; font-size:1.4rem; cursor:pointer;">✕</button>
+        </div>
+        <form onsubmit="confirmUpdateGermanSubmit(event, '${c.id}')" style="padding:22px 24px; display:flex; flex-direction:column; gap:14px;">
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+            <div>
+              <label class="form-label" style="font-weight:700;">Nivel de Alemán:</label>
+              <select id="german-prog-nivel" class="form-input" style="border-radius:10px; width:100%;">
+                ${['A1', 'A2', 'B1', 'B2', 'C1'].map(n => `<option value="${n}" ${c.nivel_aleman === n ? 'selected' : ''}>Nivel ${n}</option>`).join('')}
+              </select>
+            </div>
+            <div>
+              <label class="form-label" style="font-weight:700;">% Asistencia a Clases:</label>
+              <input type="number" id="german-prog-pct" class="form-input" min="0" max="100" value="${asis.asistencia_pct || 90}" style="border-radius:10px; width:100%;" required />
+            </div>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+            <div>
+              <label class="form-label" style="font-weight:700;">Horas Cursadas:</label>
+              <input type="number" id="german-prog-horas" class="form-input" min="0" value="${asis.horas || 120}" style="border-radius:10px; width:100%;" required />
+            </div>
+            <div>
+              <label class="form-label" style="font-weight:700;">Profesor(a) Encargado(a):</label>
+              <input type="text" id="german-prog-profesor" class="form-input" value="${escapeHtml(asis.profesor || 'Dra. Elena Weber')}" style="border-radius:10px; width:100%;" required />
+            </div>
+          </div>
+          <div>
+            <label class="form-label" style="font-weight:700;">Notas Pedagógicas / Observaciones:</label>
+            <textarea id="german-prog-obs" class="form-input" style="border-radius:10px; width:100%; height:70px;" placeholder="Progreso en vocabulario médico, fluidez en anamnesis...">${escapeHtml(asis.observaciones || '')}</textarea>
+          </div>
+          <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:8px;">
+            <button type="button" class="btn btn-outline" onclick="closeModal('modal-update-german')">Cancelar</button>
+            <button type="submit" class="btn btn-primary" style="background:#0284c7; border-color:#0284c7; font-weight:700;">Guardar Progreso</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+  let ex = $('modal-update-german');
+  if (ex) ex.remove();
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
+
+async function confirmUpdateGermanSubmit(e, candId) {
+  e.preventDefault();
+  const nivel = $('german-prog-nivel')?.value;
+  const asistencia_pct = parseInt($('german-prog-pct')?.value || 90, 10);
+  const horas = parseInt($('german-prog-horas')?.value || 120, 10);
+  const profesor = $('german-prog-profesor')?.value.trim() || 'Dra. Elena Weber';
+  const observaciones = $('german-prog-obs')?.value.trim() || '';
+
+  await DB.actualizarAsistenciaAleman(candId, {
+    nivel,
+    asistencia_pct,
+    horas,
+    profesor,
+    observaciones
+  }, State.currentUser);
+
+  closeModal('modal-update-german');
+  const ex = $('modal-update-german');
+  if (ex) ex.remove();
+  showToast('Clases Actualizadas', `Se registró ${asistencia_pct}% de asistencia y nivel ${nivel}.`, 'success');
+  renderDashboard(State.activeRole, State.currentSidebar || 'candidato-perfil');
+}
 
 /* ── MODAL CUADRO PARA AÑADIR NOTA INTERNA ── */
 function openAddCandidateNoteModal(id) {
@@ -8393,73 +8819,145 @@ function renderCandDocumentos() {
 }
 
 function renderCandAula() {
-  const grupos = DB.get().grupos;
-  const mats   = DB.get().materiales;
+  const cand = getActiveCandidateForPortal();
+  const grupos = DB.get().grupos || [];
+  const mats   = DB.get().materiales || [];
+  const asis = cand?.asistencia_aleman || {};
+  const pct = asis.asistencia_pct || 90;
+  const horas = asis.horas || 120;
+  const prof = asis.profesor || 'Dra. Elena Weber';
+  const nivel = cand?.nivel_aleman || 'B1';
+
   return `
-    <div class="page-header">
-      <div><h1 class="page-title">Mi Aula Virtual</h1><p class="page-subtitle">Accede a tus clases en vivo y materiales del profesor</p></div>
+    <div class="page-header" style="margin-bottom:20px;">
+      <div>
+        <h1 class="page-title" style="font-family:var(--font-heading);color:var(--wine-800);">Mi Aula Virtual · Formación Lingüística en Alemán</h1>
+        <p class="page-subtitle">Accede a tus clases en vivo, registro de asistencia y materiales para tu homologación médica en Alemania</p>
+      </div>
     </div>
-    <div class="grid grid-2">
+
+    <!-- Métrica de Asistencia y Progreso Lingüístico -->
+    <div class="card" style="background:#ffffff; border:1px solid #e2e8f0; border-radius:24px; padding:22px 26px; margin-bottom:24px; box-shadow:0 4px 15px rgba(0,0,0,0.03);">
+      <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px;">
+        <div style="display:flex; align-items:center; gap:18px;">
+          <div style="width:56px; height:56px; border-radius:16px; background:#0284c715; color:#0284c7; display:flex; align-items:center; justify-content:center; font-size:1.8rem;">
+            🇩🇪
+          </div>
+          <div>
+            <h3 style="margin:0; font-size:1.2rem; font-weight:800; color:#0f172a;">Plan de Formación Médica: Nivel ${escapeHtml(nivel)}</h3>
+            <div style="font-size:0.85rem; color:#64748b; margin-top:2px;">
+              Docente Asignada: <strong style="color:#0f172a;">${escapeHtml(prof)}</strong> · Requisito para ZAV y Visado (§ 81a)
+            </div>
+          </div>
+        </div>
+        <div style="display:flex; gap:16px; align-items:center; background:#f8fafc; padding:12px 20px; border-radius:16px; border:1px solid #e2e8f0;">
+          <div>
+            <div style="font-size:0.75rem; color:#64748b; font-weight:600;">Asistencia a Clases</div>
+            <div style="font-size:1.5rem; font-weight:800; color:#0284c7;">${pct}%</div>
+          </div>
+          <div style="width:1px; height:32px; background:#cbd5e1;"></div>
+          <div>
+            <div style="font-size:0.75rem; color:#64748b; font-weight:600;">Horas Cursadas</div>
+            <div style="font-size:1.5rem; font-weight:800; color:#10b981;">${horas} hrs</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-2" style="margin-bottom:24px;">
       ${grupos.slice(0,2).map(g => `
-        <div class="card" style="border-top:3px solid var(--gold-500);">
-          <div class="card-body">
-            <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:12px;">
-              <div>
-                <div style="font-size:1rem;font-weight:700;color:var(--slate-900);">${g.nombre}</div>
-                <div style="font-size:.8125rem;color:var(--slate-500);">${g.horario}</div>
-              </div>
-              <span class="badge badge-info">Nivel ${g.nivel}</span>
+        <div class="card" style="border-top:3px solid #801020; border-radius:18px; padding:20px; box-shadow:0 2px 8px rgba(0,0,0,0.02);">
+          <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:12px;">
+            <div>
+              <div style="font-size:1.05rem;font-weight:800;color:var(--slate-900);">${g.nombre}</div>
+              <div style="font-size:.85rem;color:var(--slate-500);margin-top:2px;">🕒 ${g.horario}</div>
             </div>
-            <div style="display:flex;gap:8px;">
-              <a href="${g.enlace}" target="_blank" class="btn btn-primary btn-sm" style="flex:1;justify-content:center;">🎥 Entrar a Clase</a>
-            </div>
+            <span class="badge badge-info" style="font-weight:700;">Nivel ${g.nivel}</span>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:14px;">
+            <a href="${g.enlace}" target="_blank" class="btn btn-primary btn-sm" style="flex:1;justify-content:center;background:#801020;border-color:#801020;font-weight:700;border-radius:10px;">
+              🎥 Entrar a Clase en Vivo (Google Meet)
+            </a>
           </div>
         </div>
       `).join('')}
     </div>
-    <div class="card">
-      <div class="card-header"><h3 style="font-size:1rem;font-weight:700;">📚 Materiales Compartidos por el Profesor</h3></div>
-      <div class="card-body">
-        <div class="doc-grid">
-          ${mats.slice(0,6).map(m => `
-            <div class="doc-card">
-              <div class="doc-card-icon">📄</div>
-              <div class="doc-card-name">${m.titulo}</div>
-              <div style="font-size:.75rem;color:var(--slate-400);margin-bottom:10px;">${m.tipo} · ${formatDateTime(m.fecha)}</div>
-              <a href="${m.url}" class="btn btn-outline btn-sm w-full" style="width:100%;justify-content:center;">Descargar</a>
-            </div>
-          `).join('')}
-        </div>
+
+    <div class="card" style="border-radius:20px; padding:22px;">
+      <div style="font-size:1.05rem; font-weight:800; color:#0f172a; margin-bottom:16px;">📚 Materiales Médicos y Guías de Alemán Compartidas</div>
+      <div class="doc-grid">
+        ${mats.slice(0,6).map(m => `
+          <div class="doc-card" style="border-radius:14px; border:1px solid #e2e8f0; padding:16px;">
+            <div class="doc-card-icon" style="font-size:1.6rem; margin-bottom:8px;">📄</div>
+            <div class="doc-card-name" style="font-weight:700; color:#0f172a; font-size:0.9rem;">${m.titulo}</div>
+            <div style="font-size:.75rem;color:var(--slate-400);margin-bottom:10px; margin-top:2px;">${m.tipo} · ${formatDateTime(m.fecha)}</div>
+            <a href="${m.url}" class="btn btn-outline btn-sm w-full" style="width:100%;justify-content:center;border-radius:8px;font-weight:600;">Descargar</a>
+          </div>
+        `).join('')}
       </div>
     </div>
   `;
 }
 
 function renderCandOfertas() {
+  const cand = getActiveCandidateForPortal();
   const matchings   = DB.getMatchings();
   const entrevistas = DB.getEntrevistas();
+  const empNom = cand?.empresa_asignada_nombre || cand?.empresa;
+  const vacNom = cand?.vacante_asignada_titulo || cand?.vacante;
+
   return `
-    <div class="page-header">
-      <div><h1 class="page-title">Mis Ofertas y Entrevistas</h1><p class="page-subtitle">Ofertas asignadas y estado de tus entrevistas con clínicas</p></div>
+    <div class="page-header" style="margin-bottom:20px;">
+      <div>
+        <h1 class="page-title" style="font-family:var(--font-heading);color:var(--wine-800);">Mis Ofertas y Entrevistas Clínicas</h1>
+        <p class="page-subtitle">Hospital contratante asignado por tu asesor y seguimiento de entrevistas en Alemania</p>
+      </div>
     </div>
-    ${matchings.length===0 && entrevistas.length===0
-      ? `<div class="empty-state"><div class="empty-icon">💼</div><div class="empty-title">Sin ofertas asignadas aún</div><div class="empty-desc">Tu asesor te asignará oportunidades laborales cuando completes los requisitos.</div></div>`
+
+    ${empNom ? `
+      <!-- Puesto Asignado por el Asesor -->
+      <div class="card" style="background:#ffffff; border:1px solid #bbf7d0; border-left:6px solid #16a34a; border-radius:20px; padding:22px 26px; margin-bottom:24px; box-shadow:0 4px 15px rgba(0,0,0,0.03);">
+        <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:14px;">
+          <div>
+            <div style="font-size:0.75rem; font-weight:800; color:#166534; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px;">
+              🏥 HOSPITAL CONTRATANTE ASIGNADO POR TU ASESOR
+            </div>
+            <h2 style="margin:0; font-size:1.35rem; font-weight:800; color:#0f172a;">${escapeHtml(empNom)}</h2>
+            <div style="font-size:0.9rem; color:#475569; margin-top:4px;">
+              Puesto: <strong style="color:#801020;">${escapeHtml(vacNom || 'Puesto Médico Especializado')}</strong>
+            </div>
+            <div style="font-size:0.8rem; color:#64748b; margin-top:6px;">
+              Asesor responsable de la vinculación: 👤 <strong>${escapeHtml(cand?.nombre_asesor || 'Nelson Matthiessen')}</strong>
+            </div>
+          </div>
+          <div style="text-align:right;">
+            <span style="font-size:0.75rem; font-weight:800; padding:6px 14px; border-radius:999px; background:#dcfce7; color:#15803d; border:1px solid #bbf7d0;">
+              ✨ POSTULACIÓN EN CURSO
+            </span>
+          </div>
+        </div>
+      </div>
+    ` : ''}
+
+    ${matchings.length===0 && entrevistas.length===0 && !empNom
+      ? `<div class="empty-state"><div class="empty-icon">💼</div><div class="empty-title">Sin ofertas asignadas aún</div><div class="empty-desc">Tu asesor te asignará oportunidades laborales hospitalarias en cuanto completes los requisitos de expediente y alemán.</div></div>`
       : ''
     }
+
     ${entrevistas.map(e => `
-      <div class="card" style="border-left:4px solid var(--gold-500);">
-        <div class="card-body" style="display:flex;align-items:center;gap:20px;">
+      <div class="card" style="border-left:4px solid var(--gold-500); border-radius:18px; margin-bottom:12px;">
+        <div class="card-body" style="display:flex;align-items:center;gap:20px; padding:18px 22px;">
           <div style="font-size:2.5rem;">📅</div>
           <div style="flex:1;">
-            <div style="font-size:1rem;font-weight:700;color:var(--slate-900);">${e.vacante}</div>
-            <div style="font-size:.875rem;color:var(--slate-600);">${e.empresa}</div>
+            <div style="font-size:1.05rem;font-weight:800;color:var(--slate-900);">${escapeHtml(e.vacante)}</div>
+            <div style="font-size:.9rem;color:var(--slate-600);">${escapeHtml(e.empresa)}</div>
             <div style="font-size:.8125rem;color:var(--slate-500);margin-top:4px;">
               📅 ${new Date(e.fecha_propuesta).toLocaleDateString('es-ES',{dateStyle:'long'})} a las ${new Date(e.fecha_propuesta).toLocaleTimeString('es-ES',{timeStyle:'short'})} CET
             </div>
           </div>
           <div>
             <span class="badge ${e.estado==='Confirmada'?'badge-success':e.estado==='Propuesta'?'badge-warning':'badge-slate'}">${e.estado}</span>
-            ${e.enlace ? `<div style="margin-top:8px;"><a href="${e.enlace}" target="_blank" class="btn btn-primary btn-sm">🎥 Unirse</a></div>` : ''}
+            ${e.enlace ? `<div style="margin-top:8px;"><a href="${e.enlace}" target="_blank" class="btn btn-primary btn-sm" style="background:#801020; border-color:#801020; font-weight:700; border-radius:8px;">🎥 Unirse</a></div>` : ''}
           </div>
         </div>
       </div>
@@ -8470,56 +8968,159 @@ function renderCandOfertas() {
 // ──────────────────────────────────────────────────────────────────
 // ★ DASHBOARD 5: EMPRESA / HOSPITAL
 // ──────────────────────────────────────────────────────────────────
+let _currentEmpCandidatosTab = 'asignados';
+
+function setEmpCandidatosTab(tab) {
+  _currentEmpCandidatosTab = tab;
+  renderDashboard('Empresa', 'emp-candidatos');
+}
+
 function renderEmpCandidatos() {
-  const candidatos = DB.getCandidatos().filter(c => ['Postulación','Entrevista Agendada','Trámite Visado'].includes(c.estado_proceso));
-  const specialties = [...new Set(candidatos.map(c=>c.especialidad))];
-  const levels      = ['B1','B2','C1'];
+  const emp = DB.get().empresas.find(e => e.id_usuario === State.currentUser?.id) || DB.get().empresas[0] || {};
+  const empId = emp.id;
+  const asignados = DB.getCandidatosByEmpresa ? DB.getCandidatosByEmpresa(empId) : [];
+  const allCandidatos = DB.getCandidatos ? DB.getCandidatos() : [];
+  const disponibles = allCandidatos.filter(c => !asignados.some(a => a.id === c.id));
+  const activeTab = _currentEmpCandidatosTab || 'asignados';
+  const empNombreDisplay = emp.nombre_clinica || emp.nombre || 'Hospital Contratante';
 
   return `
-    <div class="page-header">
-      <div><h1 class="page-title">Buscar Candidatos</h1><p class="page-subtitle">Perfiles anonimizados de talento médico internacional cualificado</p></div>
-    </div>
-    <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:24px;">
-      <div class="search-bar" style="flex:1;min-width:200px;"><span class="search-bar-icon">🔍</span>
-        <input class="form-input" placeholder="Buscar por especialidad o nivel..." id="blind-search" oninput="filterBlindCards()">
+    <div class="page-header" style="margin-bottom:20px;">
+      <div>
+        <h1 class="page-title" style="font-family:var(--font-heading);color:var(--wine-800);">Portal de Contratación · Perfiles Asignados y Selección</h1>
+        <p class="page-subtitle">Revisa el talento médico y sanitario asignado por tu asesor de JN Palabras acorde a tus requerimientos clínicos para <strong>${escapeHtml(empNombreDisplay)}</strong></p>
       </div>
-      <select class="form-select" style="width:180px;" id="blind-spec" onchange="filterBlindCards()">
-        <option value="">Todas las especialidades</option>
-        ${specialties.map(s=>`<option value="${s}">${s}</option>`).join('')}
-      </select>
-      <select class="form-select" style="width:140px;" id="blind-level" onchange="filterBlindCards()">
-        <option value="">Cualquier nivel</option>
-        ${levels.map(l=>`<option value="${l}">${l}</option>`).join('')}
-      </select>
     </div>
-    <div style="padding:10px 14px;background:var(--info-bg);border-radius:var(--radius-md);border-left:4px solid var(--info);margin-bottom:20px;">
-      <span style="font-size:.875rem;color:#1d4ed8;">🛡️ Los datos de contacto e identidad del candidato son confidenciales hasta formalización del acuerdo comercial con JN Palabras.</span>
+
+    <!-- Pestañas de Navegación -->
+    <div style="display:flex; gap:12px; margin-bottom:22px; border-bottom:1px solid #e2e8f0; padding-bottom:8px;">
+      <button class="btn btn-sm ${activeTab === 'asignados' ? 'btn-primary' : 'btn-outline'}" onclick="setEmpCandidatosTab('asignados')" style="border-radius:12px; font-weight:700; ${activeTab === 'asignados' ? 'background:#801020; border-color:#801020;' : ''}">
+        🎯 Perfiles Asignados a Mis Necesidades (${asignados.length})
+      </button>
+      <button class="btn btn-sm ${activeTab === 'disponibles' ? 'btn-primary' : 'btn-outline'}" onclick="setEmpCandidatosTab('disponibles')" style="border-radius:12px; font-weight:700; ${activeTab === 'disponibles' ? 'background:#801020; border-color:#801020;' : ''}">
+        🔍 Talento Sanitario en Preparación (${disponibles.length})
+      </button>
     </div>
-    <div class="grid grid-3" id="blind-grid">
-      ${candidatos.map((c,i) => `
-        <div class="blind-card" data-spec="${c.especialidad}" data-level="${c.nivel_aleman}" id="bc-${c.id}">
-          <div class="blind-card-id">ID: JNP-${String(i+1).padStart(4,'0')}</div>
-          <div class="blind-avatar">${c.especialidad.charAt(0).toUpperCase()}</div>
-          <div class="blind-spec">${c.especialidad}</div>
-          <div class="blind-meta">Nivel alemán: <strong>${c.nivel_aleman}</strong> · Exp: ${c.anos_exp} años · ${c.pais}</div>
-          <div class="blind-tags">
-            <span class="badge badge-info">${c.nivel_aleman}</span>
-            <span class="badge badge-gold">${c.estado_homologacion}</span>
-            <span class="badge badge-slate">${c.anos_exp} años exp.</span>
+
+    ${activeTab === 'asignados' ? `
+      <!-- PESTAÑA 1: PERFILES ASIGNADOS -->
+      ${asignados.length === 0 ? `
+        <div style="padding:60px 20px; text-align:center; background:#ffffff; border-radius:24px; border:1px dashed #cbd5e1; box-shadow:0 4px 15px rgba(0,0,0,0.02);">
+          <div style="font-size:2.8rem; margin-bottom:12px;">🏥</div>
+          <h3 style="font-size:1.25rem; font-weight:800; color:#0f172a; margin-bottom:6px;">Sin perfiles asignados directamente aún</h3>
+          <p style="font-size:0.9rem; color:#64748b; max-width:580px; margin:0 auto 18px auto; line-height:1.55;">
+            Tu asesor de JN Palabras está evaluando profesionales compatibles con tus vacantes activas. Puedes publicar más puestos requeridos o configurar tus requerimientos para acelerar la asignación.
+          </p>
+          <div style="display:flex; justify-content:center; gap:10px; flex-wrap:wrap;">
+            <button class="btn btn-primary btn-sm" onclick="navigateTo('emp-vacantes')" style="background:#801020; border-color:#801020; border-radius:12px; font-weight:700; padding:8px 18px;">
+              + Publicar Nuevo Puesto
+            </button>
+            <button class="btn btn-outline btn-sm" onclick="navigateTo('emp-requerimientos')" style="border-radius:12px; font-weight:700; padding:8px 18px;">
+              Configurar Requerimientos
+            </button>
+            <button class="btn btn-outline btn-sm" onclick="setEmpCandidatosTab('disponibles')" style="border-radius:12px; font-weight:700; padding:8px 18px;">
+              Explorar Talento en Preparación
+            </button>
           </div>
-          <div class="blind-video" onclick="playVideo('${c.id}')">
-            <div class="blind-video-icon">▶</div>
-            <span class="blind-video-text">Video pitch en alemán (60 seg)</span>
-          </div>
-          <button class="btn btn-primary w-full" style="width:100%;justify-content:center;" onclick="solicitarEntrevista('${c.id}')">📅 Solicitar Entrevista</button>
         </div>
-      `).join('')}
-    </div>
+      ` : `
+        <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(360px, 1fr)); gap:18px;">
+          ${asignados.map(c => {
+            const docList = getCandidateDocumentsList(c);
+            const totalDocs = docList.length;
+            const validados = docList.filter(d => !d.isPending && (d.badgeLabel === 'VALIDADO' || d.badgeLabel === 'CERTIFICADO' || d.badgeLabel === 'HOMOLOGADO' || d.badgeLabel === 'VALIDADO ZAV')).length;
+            const vacNom = c.vacante_asignada_titulo || 'Puesto Médico Requerido';
+            const asisPct = c.asistencia_aleman?.asistencia_pct || 90;
+
+            return `
+              <div class="card" style="padding:22px; background:#ffffff; border:1px solid #e2e8f0; border-radius:20px; box-shadow:0 4px 15px rgba(0,0,0,0.03); display:flex; flex-direction:column; justify-content:space-between;">
+                <div>
+                  <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px;">
+                    <div style="display:flex; align-items:center; gap:12px;">
+                      <div style="width:48px; height:48px; border-radius:14px; background:#801020; color:#ffffff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:1.15rem;">
+                        ${getInitials(c.nombre)}
+                      </div>
+                      <div>
+                        <h4 style="margin:0; font-size:1.05rem; font-weight:800; color:#0f172a;">${escapeHtml(c.nombre)}</h4>
+                        <div style="font-size:0.8rem; color:#64748b; margin-top:2px;">${escapeHtml(c.especialidad || 'Médico General')} · ${escapeHtml(c.pais || 'Ecuador')}</div>
+                      </div>
+                    </div>
+                    <span style="font-size:0.7rem; font-weight:800; padding:3px 10px; border-radius:999px; background:#f0fdf4; color:#166534; border:1px solid #bbf7d0;">
+                      ASIGNADO
+                    </span>
+                  </div>
+
+                  <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:10px 14px; margin-bottom:14px;">
+                    <div style="font-size:0.75rem; font-weight:800; color:#475569; text-transform:uppercase;">Puesto Asignado por el Asesor:</div>
+                    <div style="font-size:0.88rem; font-weight:700; color:#801020; margin-top:2px;">${escapeHtml(vacNom)}</div>
+                  </div>
+
+                  <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px;">
+                    <span class="badge badge-info" style="font-weight:700;">🗣️ Alemán ${c.nivel_aleman || 'B1'} (${asisPct}% asist.)</span>
+                    <span class="badge badge-gold" style="font-weight:700;">⚕️ ${c.estado_homologacion || 'Homologación § 81a'}</span>
+                    <span class="badge badge-success" style="font-weight:700;">📄 ${validados}/${totalDocs} docs validados</span>
+                  </div>
+                </div>
+
+                <div style="display:flex; flex-direction:column; gap:8px; border-top:1px solid #f1f5f9; padding-top:14px;">
+                  <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                    <button class="btn btn-outline btn-sm" onclick="openCandidateCVModal('${c.id}')" style="font-weight:700; border-radius:10px; font-size:0.8rem;" title="Ver Curriculum Vitae completo en formato oficial alemán">
+                      📄 Ver CV Alemán
+                    </button>
+                    <button class="btn btn-primary btn-sm" onclick="solicitarEntrevista('${c.id}')" style="background:#801020; border-color:#801020; font-weight:700; border-radius:10px; font-size:0.8rem;">
+                      📅 Agendar Entrevista
+                    </button>
+                  </div>
+                  <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                    <button class="btn btn-outline btn-sm" onclick="confirmarAceptacionEmpresa('${c.id}')" style="font-weight:700; border-radius:10px; font-size:0.78rem; color:#15803d; border-color:#bbf7d0;">
+                      ✅ Aceptar Perfil
+                    </button>
+                    <button class="btn btn-outline btn-sm" onclick="openCompanyFeedbackModal('${c.id}')" style="font-weight:700; border-radius:10px; font-size:0.78rem; color:#475569;">
+                      💬 Feedback
+                    </button>
+                  </div>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `}
+    ` : `
+      <!-- PESTAÑA 2: TALENTO EN PREPARACIÓN -->
+      <div style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:20px;">
+        <div class="search-bar" style="flex:1; min-width:200px;">
+          <span class="search-bar-icon">🔍</span>
+          <input class="form-input" placeholder="Buscar por especialidad o nivel..." id="blind-search" oninput="filterBlindCards()">
+        </div>
+      </div>
+      <div class="grid grid-3" id="blind-grid">
+        ${disponibles.map((c, i) => `
+          <div class="blind-card" data-spec="${c.especialidad}" data-level="${c.nivel_aleman}" id="bc-${c.id}">
+            <div class="blind-card-id">ID: JNP-${String(i+1).padStart(4,'0')}</div>
+            <div class="blind-avatar">${(c.especialidad || 'M').charAt(0).toUpperCase()}</div>
+            <div class="blind-spec">${escapeHtml(c.especialidad || 'Médico General')}</div>
+            <div class="blind-meta">Nivel alemán: <strong>${c.nivel_aleman || 'B1'}</strong> · Exp: ${c.anos_exp || 2} años · ${c.pais || 'Ecuador'}</div>
+            <div class="blind-tags">
+              <span class="badge badge-info">${c.nivel_aleman || 'B1'}</span>
+              <span class="badge badge-gold">${c.estado_homologacion || 'En Trámite (§ 81a)'}</span>
+            </div>
+            <div style="margin-top:10px; display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+              <button class="btn btn-outline btn-sm" onclick="openCandidateCVModal('${c.id}')" style="font-weight:700; border-radius:8px; font-size:0.75rem;">
+                📄 Ver CV
+              </button>
+              <button class="btn btn-primary btn-sm" onclick="solicitarAsignacionCandidato('${c.id}')" style="background:#801020; border-color:#801020; font-weight:700; border-radius:8px; font-size:0.75rem;">
+                🎯 Asignar
+              </button>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `}
 
     <div class="modal-overlay" id="modal-entrevista">
       <div class="modal">
         <div class="modal-header">
-          <h3 class="modal-title">📅 Solicitar Entrevista</h3>
+          <h3 class="modal-title">📅 Solicitar / Agendar Entrevista</h3>
           <button class="modal-close" onclick="closeModal('modal-entrevista')">✕</button>
         </div>
         <div class="modal-body">
@@ -8527,14 +9128,14 @@ function renderEmpCandidatos() {
             <div class="form-group"><label class="form-label">Fecha propuesta</label>
               <input class="form-input" type="datetime-local" id="ent-fecha" value="${new Date(Date.now()+7*86400000).toISOString().slice(0,16)}"></div>
             <div class="form-group"><label class="form-label">Formato</label>
-              <select class="form-select" id="ent-formato"><option>Videollamada</option><option>Presencial</option></select></div>
-            <div class="form-group"><label class="form-label">Mensaje al asesor</label>
-              <textarea class="form-textarea" id="ent-msg" placeholder="Aspectos a evaluar, disponibilidad adicional..."></textarea></div>
+              <select class="form-select" id="ent-formato"><option>Videollamada (Google Meet con intérprete)</option><option>Presencial en Alemania</option></select></div>
+            <div class="form-group"><label class="form-label">Mensaje al asesor y candidato</label>
+              <textarea class="form-textarea" id="ent-msg" placeholder="Aspectos a evaluar, disponibilidad adicional, equipo médico participante..."></textarea></div>
           </div>
         </div>
         <div class="modal-footer">
           <button class="btn btn-outline" onclick="closeModal('modal-entrevista')">Cancelar</button>
-          <button class="btn btn-primary" onclick="confirmarEntrevista()">Enviar Solicitud</button>
+          <button class="btn btn-primary" style="background:#801020; border-color:#801020; font-weight:700;" onclick="confirmarEntrevista()">Enviar Solicitud</button>
         </div>
       </div>
     </div>
@@ -8544,13 +9145,36 @@ function renderEmpCandidatos() {
 let _entrevistaCandId = null;
 function playVideo(id) { showToast('Video pitch', 'En producción: video corto del candidato hablando en alemán (anónimo).', 'info'); }
 function solicitarEntrevista(id) { _entrevistaCandId = id; openModal('modal-entrevista'); }
+
 function confirmarEntrevista() {
   const fecha = $('ent-fecha')?.value;
   const c = _entrevistaCandId ? DB.getCandidatoById(_entrevistaCandId) : null;
-  const emp = DB.get().empresas.find(e => e.id_usuario === State.currentUser.id) || DB.get().empresas[0];
-  DB.addEntrevista({ id_matching: 'match-new', fecha_propuesta: fecha, estado:'Propuesta', empresa: emp?.nombre||'Hospital', candidato: c?.nombre||'Candidato', vacante:'Vacante solicitada', enlace:'https://meet.google.com/jnp-entrevista-new' });
+  const emp = DB.get().empresas.find(e => e.id_usuario === State.currentUser?.id) || DB.get().empresas[0];
+  const empNom = emp?.nombre_clinica || emp?.nombre || 'Hospital Contratante';
+  
+  DB.addEntrevista({ 
+    id_matching: 'match-new', 
+    fecha_propuesta: fecha, 
+    estado:'Propuesta', 
+    empresa: empNom, 
+    candidato: c?.nombre||'Candidato', 
+    vacante: c?.vacante_asignada_titulo || 'Puesto Sanitario', 
+    enlace:'https://meet.google.com/jnp-entrevista-med' 
+  });
+
+  if (c) {
+    DB.addNota({
+      id_candidato: c.id,
+      asesor: empNom,
+      tipo: 'Entrevista',
+      contenido: `📅 ${empNom} ha agendado una entrevista clínica para el ${new Date(fecha).toLocaleString('es-ES', { dateStyle:'medium', timeStyle:'short' })} CET.`
+    });
+    DB.updateCandidato(c.id, { estado_proceso: 'Entrevista Agendada', fase_programa: 5 });
+  }
+
   closeModal('modal-entrevista');
-  showToast('✅ Entrevista solicitada', 'JN Palabras coordinará la entrevista y confirmará en 24h.', 'success', 5000);
+  showToast('✅ Entrevista Agendada', 'JN Palabras coordinará la sesión con el candidato y el hospital.', 'success', 5000);
+  renderDashboard('Empresa', 'emp-candidatos');
 }
 
 function filterBlindCards() {
@@ -8563,6 +9187,196 @@ function filterBlindCards() {
     const match = (!spec||s.includes(spec)) && (!level||l===level) && (!query||s.includes(query)||l.includes(query));
     card.style.display = match ? '' : 'none';
   });
+}
+
+function confirmarAceptacionEmpresa(candId) {
+  const c = DB.getCandidatoById(candId);
+  const emp = DB.get().empresas.find(e => e.id_usuario === State.currentUser?.id) || DB.get().empresas[0];
+  const empNom = emp?.nombre_clinica || emp?.nombre || 'Hospital Contratante';
+  
+  if (confirm(`¿Confirmas que deseas aceptar el perfil de ${c ? c.nombre : 'este candidato'} y emitir una propuesta formal de contratación?`)) {
+    DB.addNota({
+      id_candidato: candId,
+      asesor: empNom,
+      tipo: 'Aceptación Hospital',
+      contenido: `🎉 ${empNom} ha aceptado formalmente el perfil del candidato y solicita proceder con la oferta laboral y visado (§ 81a).`
+    });
+    DB.updateCandidato(candId, { estado_proceso: 'Contrato firmado (encargo recibido)', fase_programa: 5 });
+    showToast('Perfil Aceptado', `Has aceptado a ${c ? c.nombre : 'candidato'}. JN Palabras coordinará la oferta formal y el trámite § 81a.`, 'success');
+    renderDashboard('Empresa', 'emp-candidatos');
+  }
+}
+
+function openCompanyFeedbackModal(candId) {
+  const c = DB.getCandidatoById(candId);
+  if (!c) return;
+
+  const modalHtml = `
+    <div class="modal-overlay visible open" id="modal-company-feedback" role="dialog" aria-modal="true" style="z-index:99999;" onclick="if(event.target===this) closeModal('modal-company-feedback')">
+      <div class="modal modal-card" style="max-width:520px; width:95%; border-radius:24px; padding:0; overflow:hidden; background:#ffffff;">
+        <div style="background:#801020; color:#ffffff; padding:20px 24px; display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-size:1.15rem; font-weight:800;">💬 Feedback para el Asesor JN Palabras</div>
+            <div style="font-size:0.8rem; color:#fecdd3;">Candidato: ${escapeHtml(c.nombre)}</div>
+          </div>
+          <button type="button" onclick="closeModal('modal-company-feedback')" style="background:transparent; border:none; color:#ffffff; font-size:1.4rem; cursor:pointer;">✕</button>
+        </div>
+        <form onsubmit="confirmCompanyFeedbackSubmit(event, '${c.id}')" style="padding:22px 24px; display:flex; flex-direction:column; gap:14px;">
+          <div>
+            <label class="form-label" style="font-weight:700;">Tipo de Feedback / Valoración:</label>
+            <select id="emp-feed-tipo" class="form-input" style="border-radius:10px; width:100%;">
+              <option value="Perfil Muy Compatible">Perfil Muy Compatible - Solicitar Entrevista</option>
+              <option value="Requiere Nivel B2 Confirmado">Requiere Nivel B2 Confirmado</option>
+              <option value="Especialidad No Coincide">Especialidad no coincide con demanda actual</option>
+              <option value="Observación General">Observación General para el Asesor</option>
+            </select>
+          </div>
+          <div>
+            <label class="form-label" style="font-weight:700;">Mensaje o Requerimiento Específico:</label>
+            <textarea id="emp-feed-mensaje" class="form-input" style="border-radius:10px; width:100%; height:90px;" placeholder="Detalles de turnos, salario o fecha de incorporación deseada..." required></textarea>
+          </div>
+          <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:8px;">
+            <button type="button" class="btn btn-outline" onclick="closeModal('modal-company-feedback')">Cancelar</button>
+            <button type="submit" class="btn btn-primary" style="background:#801020; border-color:#801020; font-weight:700;">Enviar Feedback</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+  let ex = $('modal-company-feedback');
+  if (ex) ex.remove();
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
+
+function confirmCompanyFeedbackSubmit(e, candId) {
+  e.preventDefault();
+  const emp = DB.get().empresas.find(e => e.id_usuario === State.currentUser?.id) || DB.get().empresas[0];
+  const empNom = emp?.nombre_clinica || emp?.nombre || 'Hospital Contratante';
+  const tipo = $('emp-feed-tipo')?.value || 'Observación';
+  const mensaje = $('emp-feed-mensaje')?.value.trim();
+
+  DB.addNota({
+    id_candidato: candId,
+    asesor: empNom,
+    tipo: 'Feedback Hospital',
+    contenido: `💬 [Feedback de ${empNom}] ${tipo}: ${mensaje}`
+  });
+
+  closeModal('modal-company-feedback');
+  const ex = $('modal-company-feedback');
+  if (ex) ex.remove();
+  showToast('Feedback Enviado', 'El asesor de JN Palabras ha recibido tu mensaje.', 'success');
+}
+
+function solicitarAsignacionCandidato(candId) {
+  const c = DB.getCandidatoById(candId);
+  const emp = DB.get().empresas.find(e => e.id_usuario === State.currentUser?.id) || DB.get().empresas[0];
+  const empNom = emp?.nombre_clinica || emp?.nombre || 'Hospital Contratante';
+  
+  DB.addNota({
+    id_candidato: candId,
+    asesor: empNom,
+    tipo: 'Solicitud Asignación',
+    contenido: `🎯 ${empNom} ha mostrado interés en este perfil y solicita al asesor su asignación oficial para una de sus vacantes.`
+  });
+  showToast('Solicitud Enviada', `Has solicitado al asesor la asignación de ${c ? c.nombre : 'este candidato'}.`, 'success');
+}
+
+/* ── VISTA REQUERIMIENTOS OFICIALES DE CONTRATACIÓN (EMPRESA) ── */
+function renderEmpRequerimientos() {
+  const emp = DB.get().empresas.find(e => e.id_usuario === State.currentUser?.id) || DB.get().empresas[0] || {};
+  const req = emp.requerimientos_contratacion || {};
+  const empNom = emp.nombre_clinica || emp.nombre || 'Hospital Contratante';
+
+  return `
+    <div class="page-header" style="margin-bottom:20px;">
+      <div>
+        <h1 class="page-title" style="font-family:var(--font-heading);color:var(--wine-800);">Requerimientos Oficiales de Contratación</h1>
+        <p class="page-subtitle">Define las especialidades médicas, perfil de homologación y condiciones para la asignación de talento por JN Palabras para <strong>${escapeHtml(empNom)}</strong></p>
+      </div>
+    </div>
+
+    <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:24px; padding:28px; box-shadow:0 4px 15px rgba(0,0,0,0.04); max-width:850px;">
+      <form onsubmit="saveEmpresaRequerimientosSubmit(event, '${emp.id}')" style="display:flex; flex-direction:column; gap:20px;">
+        
+        <div>
+          <label style="display:block; font-weight:800; font-size:0.95rem; color:#0f172a; margin-bottom:8px;">
+            🏥 Especialidades Médicas y Sanitarias Prioritarias:
+          </label>
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:10px;">
+            ${['Medicina General', 'Medicina Interna', 'Urgencias / Anestesiología', 'Cirugía General', 'Enfermería Quirúrgica (OTA)', 'Enfermería UCI', 'Geriatría / Pflegeheim', 'Fisioterapia'].map(sp => `
+              <label style="display:flex; align-items:center; gap:8px; font-size:0.85rem; padding:8px 12px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; cursor:pointer;">
+                <input type="checkbox" name="emp_specs" value="${sp}" ${(req.especialidades || ['Medicina General', 'Enfermería Quirúrgica (OTA)']).includes(sp) ? 'checked' : ''} />
+                <span>${sp}</span>
+              </label>
+            `).join('')}
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+          <div>
+            <label class="form-label" style="font-weight:700;">Nivel Mínimo de Alemán Exigido:</label>
+            <select id="emp-req-nivel" class="form-input" style="border-radius:10px; width:100%;">
+              <option value="B1" ${req.nivel_aleman === 'B1' ? 'selected' : ''}>Alemán B1 (Con compromiso de avance a B2)</option>
+              <option value="B2" ${req.nivel_aleman === 'B2' || !req.nivel_aleman ? 'selected' : ''}>Alemán B2 (Estándar Hospitalario ZAV)</option>
+              <option value="C1" ${req.nivel_aleman === 'C1' ? 'selected' : ''}>Alemán C1 / Fachsprachprüfung (FSP)</option>
+            </select>
+          </div>
+          <div>
+            <label class="form-label" style="font-weight:700;">Vía de Homologación Aceptada:</label>
+            <select id="emp-req-homologacion" class="form-input" style="border-radius:10px; width:100%;">
+              <option value="Procedimiento Acelerado § 81a">Procedimiento Acelerado § 81a (ZAV)</option>
+              <option value="Berufserlaubnis Temporal">Berufserlaubnis Temporal</option>
+              <option value="Approbation Definitiva">Approbation Definitiva</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="form-label" style="font-weight:700;">Beneficios de Bienvenida Ofrecidos al Candidato:</label>
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:10px;">
+            ${['Alojamiento temporal incluido', 'Bono de bienvenida / Reubicación', 'Curso intensivo de alemán médico in-house', 'Apoyo con visado familiar', 'Tutoría clínica en servicio'].map(b => `
+              <label style="display:flex; align-items:center; gap:8px; font-size:0.85rem; padding:8px 12px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; cursor:pointer;">
+                <input type="checkbox" name="emp_beneficios" value="${b}" ${(req.beneficios || ['Alojamiento temporal incluido', 'Tutoría clínica en servicio']).includes(b) ? 'checked' : ''} />
+                <span>${b}</span>
+              </label>
+            `).join('')}
+          </div>
+        </div>
+
+        <div>
+          <label class="form-label" style="font-weight:700;">Observaciones Clínicas o Turnos:</label>
+          <textarea id="emp-req-notas" class="form-input" style="border-radius:10px; width:100%; height:80px;" placeholder="Guardias según convenio TV-Ärzte, ambiente multicultural...">${escapeHtml(req.observaciones || '')}</textarea>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; padding-top:14px; border-top:1px solid #f1f5f9;">
+          <span style="font-size:0.8rem; color:#64748b;">Los asesores de JN Palabras filtrarán los perfiles basándose en estos requerimientos.</span>
+          <button type="submit" class="btn btn-primary" style="background:#801020; border-color:#801020; font-weight:700; padding:10px 24px;">
+            Guardar Requerimientos
+          </button>
+        </div>
+      </form>
+    </div>
+  `;
+}
+
+function saveEmpresaRequerimientosSubmit(e, empId) {
+  e.preventDefault();
+  const specs = Array.from(document.querySelectorAll('input[name="emp_specs"]:checked')).map(cb => cb.value);
+  const nivel = $('emp-req-nivel')?.value || 'B2';
+  const homologacion = $('emp-req-homologacion')?.value || 'Procedimiento Acelerado § 81a';
+  const beneficios = Array.from(document.querySelectorAll('input[name="emp_beneficios"]:checked')).map(cb => cb.value);
+  const observaciones = $('emp-req-notas')?.value.trim() || '';
+
+  DB.actualizarRequerimientosEmpresa(empId, {
+    especialidades: specs,
+    nivel_aleman: nivel,
+    homologacion,
+    beneficios,
+    observaciones
+  });
+
+  showToast('Requerimientos Guardados', 'Los requerimientos de contratación fueron actualizados para los asesores de JN Palabras.', 'success');
 }
 
 function renderEmpVacantes() {
@@ -12002,5 +12816,22 @@ window.cambiarEstadoDocumentoCandidato = cambiarEstadoDocumentoCandidato;
 window.openReassignAdvisorModal = openReassignAdvisorModal;
 window.confirmReassignAdvisor = confirmReassignAdvisor;
 window.showCandidateCredentialsSentModal = showCandidateCredentialsSentModal;
+
+// Flujo Interconectado Candidato - Asesor - Empresa
+window.renderProgramPhasesSummaryHTML = renderProgramPhasesSummaryHTML;
+window.openAdvanceProgramPhaseModal = openAdvanceProgramPhaseModal;
+window.confirmAdvanceProgramPhase = confirmAdvanceProgramPhase;
+window.openAssignCompanyModal = openAssignCompanyModal;
+window.onAssignVacanteChanged = onAssignVacanteChanged;
+window.confirmAssignCompanySubmit = confirmAssignCompanySubmit;
+window.openUpdateGermanProgressModal = openUpdateGermanProgressModal;
+window.confirmUpdateGermanSubmit = confirmUpdateGermanSubmit;
+window.setEmpCandidatosTab = setEmpCandidatosTab;
+window.confirmarAceptacionEmpresa = confirmarAceptacionEmpresa;
+window.openCompanyFeedbackModal = openCompanyFeedbackModal;
+window.confirmCompanyFeedbackSubmit = confirmCompanyFeedbackSubmit;
+window.solicitarAsignacionCandidato = solicitarAsignacionCandidato;
+window.renderEmpRequerimientos = renderEmpRequerimientos;
+window.saveEmpresaRequerimientosSubmit = saveEmpresaRequerimientosSubmit;
 
 

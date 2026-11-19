@@ -572,6 +572,107 @@ const DB = {
     return { count, message: `Se asignaron ${count} candidato(s) equitativamente entre los asesores.` };
   },
 
+  async asignarCandidatoAEmpresaYVacante(candId, empresaId, empresaNombre, vacanteId, vacanteTitulo, asesorUser = null) {
+    const autor = asesorUser ? asesorUser.nombre : 'Asesor JN Palabras';
+    const cand = this.getCandidatoById(candId);
+    const updatePayload = {
+      id_empresa_asignada: empresaId,
+      empresa_asignada_nombre: empresaNombre,
+      id_vacante_asignada: vacanteId,
+      vacante_asignada_titulo: vacanteTitulo,
+      estado_proceso: 'Postulación',
+      fase_programa: 4,
+      fase_label: 'Postulación y Matching Clínico'
+    };
+    const updated = await this.updateCandidato(candId, updatePayload);
+
+    if (vacanteId) {
+      this.crearMatching(candId, vacanteId);
+    }
+
+    this.addNota({
+      id_candidato: candId,
+      asesor: autor,
+      tipo: 'Matching Empresa',
+      contenido: `🏢 Candidato vinculado formalmente a "${empresaNombre}" para la vacante "${vacanteTitulo}".`
+    });
+
+    return updated;
+  },
+
+  async actualizarAsistenciaAleman(candId, data, autorUser = null) {
+    const autor = autorUser ? autorUser.nombre : 'Asesor / Profesor JN';
+    const cand = this.getCandidatoById(candId);
+    const prev = cand?.asistencia_aleman || {};
+    const nueva = {
+      ...prev,
+      ...data,
+      ultima_actualizacion: new Date().toISOString()
+    };
+
+    const updatePayload = {
+      asistencia_aleman: nueva,
+      nivel_aleman: data.nivel || cand?.nivel_aleman || 'B1'
+    };
+    const updated = await this.updateCandidato(candId, updatePayload);
+
+    this.addNota({
+      id_candidato: candId,
+      asesor: autor,
+      tipo: 'Clases Alemán',
+      contenido: `🇩🇪 Registro de clases de alemán: Nivel ${data.nivel || cand?.nivel_aleman || 'B1'} · Asistencia: ${data.asistencia_pct || 85}% (${data.horas || 120} hrs). Prof: ${data.profesor || 'Dra. Elena Weber'}.`
+    });
+
+    return updated;
+  },
+
+  async actualizarFasePrograma(candId, faseNum, faseLabel, autorUser = null) {
+    const autor = autorUser ? autorUser.nombre : 'Asesor JN Palabras';
+    const updatePayload = {
+      fase_programa: faseNum,
+      fase_label: faseLabel
+    };
+    const updated = await this.updateCandidato(candId, updatePayload);
+
+    this.addNota({
+      id_candidato: candId,
+      asesor: autor,
+      tipo: 'Hito Programa',
+      contenido: `🎯 Fase del Programa actualizada a: Fase ${faseNum} · ${faseLabel}.`
+    });
+
+    return updated;
+  },
+
+  async actualizarRequerimientosEmpresa(empId, requerimientos) {
+    const db = this.get();
+    if (!db.empresas) db.empresas = [];
+    const idx = db.empresas.findIndex(e => e.id === empId);
+    if (idx !== -1) {
+      db.empresas[idx].requerimientos_contratacion = requerimientos;
+      this.save(db);
+      return db.empresas[idx];
+    }
+    return null;
+  },
+
+  getCandidatosByEmpresa(id_empresa) {
+    const candList = this.getCandidatos();
+    const matchings = this.getMatchings();
+    const vacantesEmpresa = this.getVacantesByEmpresa(id_empresa).map(v => v.id);
+    const emp = this.getEmpresas ? this.getEmpresas().find(e => e.id === id_empresa) : (this.get().empresas || []).find(e => e.id === id_empresa);
+    const empNom = (emp?.nombre || emp?.nombre_clinica || '').toLowerCase().trim();
+
+    return candList.filter(c => {
+      if (c.id_empresa_asignada === id_empresa) return true;
+      if (empNom && c.empresa_asignada_nombre && c.empresa_asignada_nombre.toLowerCase().includes(empNom)) return true;
+      if (c.id_vacante_asignada && vacantesEmpresa.includes(c.id_vacante_asignada)) return true;
+      const tieneMatch = matchings.some(m => m.id_candidato === c.id && vacantesEmpresa.includes(m.id_vacante));
+      if (tieneMatch) return true;
+      return false;
+    });
+  },
+
   async createCandidato(data) {
     try {
       const res = await fetch(`${API_URL}/api/candidatos`, {
@@ -911,7 +1012,15 @@ const DB = {
   },
 
   getVacantesByEmpresa(id_empresa) {
-    return this.getVacantes().filter(v => v.id_empresa === id_empresa);
+    const list = this.getVacantes();
+    const emp = this.getEmpresas ? this.getEmpresas().find(e => e.id === id_empresa) : (this.get().empresas || []).find(e => e.id === id_empresa);
+    const empNom = (emp?.nombre || emp?.nombre_clinica || '').toLowerCase().trim();
+
+    return list.filter(v => {
+      if (v.id_empresa && v.id_empresa === id_empresa) return true;
+      if (empNom && v.empresa && (v.empresa.toLowerCase().includes(empNom) || empNom.includes(v.empresa.toLowerCase()))) return true;
+      return false;
+    });
   },
 
   createVacante(data) {
